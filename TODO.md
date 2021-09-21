@@ -1,8 +1,11 @@
 Things we need to do to turn this into software + paper
 
-* Extend Theseus with multisets with negative multiplicity a la http://www.cas.mcmaster.ca/~carette/publications/calculemus10-final.pdf 
+* Extend Theseus with multisets with negative multiplicity a la 
+  [Symbolic Domain Decomposition](http://www.cas.mcmaster.ca/~carette/publications/calculemus10-final.pdf)
 
-* Compare to regular Theseus: programs should be much shorter and more elegant
+* Compare to regular [Theseus](https://legacy.cs.indiana.edu/~sabry/papers/theseus.pdf): programs should be much shorter and more elegant
+
+* See also [From Symmetric Pattern-Matching to Quantum Control](https://arxiv.org/abs/1804.00952)
 
 * Compile to regular Theseus
 
