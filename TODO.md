@@ -13,7 +13,7 @@ Things we need to do to turn this into software + paper
 
 * Reason about complexity of reversible programs (actually complexity of the compiled reversible circuits but without necessarily generating the circuits)
 
-* Ultimately want to run Shor’s algorithm and understand where the speed up
+* Ultimately want to run Shor's algorithm and understand where the speed up
   comes from. There is a vague idea that there is negative flow of information
   going backwards in the circuit to implement the "phase kickback" and that
   this ability is crucial for the potential speedup
