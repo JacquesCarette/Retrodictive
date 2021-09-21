@@ -7,7 +7,7 @@ Things we need to do to turn this into software + paper
 
 * See also [From Symmetric Pattern-Matching to Quantum Control](https://arxiv.org/abs/1804.00952)
 
-* Compile to regular Theseus
+* Compile to regular Theseus: lots of Haskell
 
 * Show connections to Pi -- generalizing sums and products
 
