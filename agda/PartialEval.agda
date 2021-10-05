@@ -1,19 +1,42 @@
 {-# OPTIONS --without-K #-}
 
-module PiLevel0 where
+module PartialEval where
+
+open import Data.Nat using (ℕ)
+open import Data.Sum using (_⊎_; inj₁; inj₂)
+open import Data.Product using (_×_)
 
 open import PiU
+open import PiLevel0
+open import PiEval
 
-infix  30 _⟷_
-infixr 50 _◎_
+data U′ : Set where
+  Pure  : U → U′
+  Var   : ℕ → U → U′
+  PLUSˡ  : U′ → U → U′
+  PLUSʳ  : U → U′ → U′
+  PLUS²  : U′ → U′ → U′
+  TIMESˡ  : U′ → U → U′
+  TIMESʳ  : U → U′ → U′
+  TIMES²  : U′ → U′ → U′
 
 ------------------------------------------------------------------------------
--- Level 0 of Pi
 
--- Combinators
+-- probably need to 'mark' the virtual ones?
+⟦_⟧′ : U′ → Set
+⟦ Pure x ⟧′ = ⟦ x ⟧
+⟦ Var i u ⟧′ = ⟦ u ⟧
+⟦ PLUSˡ x y ⟧′ = ⟦ x ⟧′ ⊎ ⟦ y ⟧
+⟦ PLUSʳ x y ⟧′ = ⟦ x ⟧ ⊎ ⟦ y ⟧′
+⟦ PLUS² x y ⟧′ = ⟦ x ⟧′ ⊎ ⟦ y ⟧′
+⟦ TIMESˡ x y ⟧′ = ⟦ x ⟧′ × ⟦ y ⟧
+⟦ TIMESʳ x y ⟧′ = ⟦ x ⟧ × ⟦ y ⟧′
+⟦ TIMES² x y ⟧′ = ⟦ x ⟧′ × ⟦ y ⟧′
 
-data _⟷_ : U → U → Set where
-  unite₊l : {t : U} → PLUS ZERO t ⟷ t
+data _⟷′_ : U′ → U′ → Set where
+  lift    : {t₁ t₂ : U} → t₁ ⟷ t₂ → Pure t₁ ⟷′ Pure t₂
+  unite₊l : {t : U′} → PLUSʳ ZERO t ⟷′ t
+  {-
   uniti₊l : {t : U} → t ⟷ PLUS ZERO t
   unite₊r : {t : U} → PLUS t ZERO ⟷ t
   uniti₊r : {t : U} → t ⟷ PLUS t ZERO
@@ -46,36 +69,7 @@ data _⟷_ : U → U → Set where
   _⊗_     : {t₁ t₂ t₃ t₄ : U} →
             (t₁ ⟷ t₃) → (t₂ ⟷ t₄) → (TIMES t₁ t₂ ⟷ TIMES t₃ t₄)
 
-------------------------------------------------------------------------------
--- Every combinator has an inverse. There are actually many
--- syntactically different inverses but they are all equivalent.
-
-! : {t₁ t₂ : U} → (t₁ ⟷ t₂) → (t₂ ⟷ t₁)
-! unite₊l   = uniti₊l
-! uniti₊l   = unite₊l
-! unite₊r   = uniti₊r
-! uniti₊r   = unite₊r
-! swap₊     = swap₊
-! assocl₊   = assocr₊
-! assocr₊   = assocl₊
-! unite⋆l   = uniti⋆l
-! uniti⋆l   = unite⋆l
-! unite⋆r   = uniti⋆r
-! uniti⋆r   = unite⋆r
-! swap⋆     = swap⋆
-! assocl⋆   = assocr⋆
-! assocr⋆   = assocl⋆
-! absorbl   = factorzr
-! absorbr   = factorzl
-! factorzl  = absorbr
-! factorzr  = absorbl
-! dist      = factor
-! factor    = dist
-! distl     = factorl
-! factorl   = distl
-! id⟷       = id⟷
-! (c₁ ◎ c₂) = ! c₂ ◎ ! c₁
-! (c₁ ⊕ c₂) = (! c₁) ⊕ (! c₂)
-! (c₁ ⊗ c₂) = (! c₁) ⊗ (! c₂)
-
-------------------------------------------------------------------------------
+  -}
+peval : {t₁ t₂ : U′} → (t₁ ⟷′ t₂) → ⟦ t₁ ⟧′ → ⟦ t₂ ⟧′
+peval (lift c) v = eval c v
+peval unite₊l (inj₂ y) = y
