@@ -17,7 +17,8 @@ data a :<=> b where
   Div2L :: (Integer,Integer) :<=> (Integer,Integer)
   Div2R :: (Integer,Integer) :<=> (Integer,Integer)
   MultModL :: (Integer,Integer,Integer,Integer) :<=> (Integer,Integer,Integer,Integer) 
-  MultModR :: (Integer,Integer,Integer,Integer) :<=> (Integer,Integer,Integer,Integer) 
+  MultModR :: (Integer,Integer,Integer,Integer) :<=> (Integer,Integer,Integer,Integer)
+  
 
 interp :: (a :<=> b) -> a -> b
 interp Id v = v
@@ -32,8 +33,6 @@ interp Div2R (n , h) = (n , h - (n `div` 2))
 interp MultModL (a, b, m, h) = (a, b, m, h + ((a * b) `mod` m))
 interp MultModR (a, b, m, h) = (a, b, m, h - ((a * b) `mod` m))
 
------------------------------------------------------------------------------
-
 {--
 
 https://byorgey.wordpress.com/2020/02/15/
@@ -41,12 +40,18 @@ https://byorgey.wordpress.com/2020/02/15/
 
 modexp :: Integer -> Integer -> Integer -> Integer
 modexp _ 0 _ = 1
-modexp b e m
-  | even e    = (r*r) `mod` m
-  | otherwise = (b*r*r) `mod` m
+modexp a x m
+  | even x    = (r*r) `mod` m
+  | otherwise = (a*r*r) `mod` m
   where
-    r = modexp b (e `div` 2) m
+    r = modexp a (x `div` 2) m
 
 --}
 
 -----------------------------------------------------------------------------
+-- Tests
+
+x = interp 
+
+-----------------------------------------------------------------------------
+
