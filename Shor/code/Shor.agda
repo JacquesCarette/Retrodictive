@@ -7,6 +7,7 @@ open import Data.Nat
 
 infixr 10 _↔_
 infixr 12 _×ᵤ_
+infixr 12 _⊗_
 infixr 50 _⨾_
 
 -----------------------------------------------------------------------------
@@ -22,6 +23,10 @@ data 𝕌 : Set where
 ⟦ 𝟙 ⟧ = ⊤
 ⟦ 𝟚 ⟧ = Bool
 ⟦ t₁ ×ᵤ t₂ ⟧ = ⟦ t₁ ⟧ × ⟦ t₂ ⟧
+
+-- Given that we will not the sizes, partial evaluation will be
+-- exact on every operation except X, CX, and CCX when their
+-- inputs are only partially known
 
 data _↔_ : 𝕌 → 𝕌 → Set where
   unite⋆   : {t : 𝕌} → t ×ᵤ 𝟙 ↔ t
@@ -71,88 +76,69 @@ interp CCX bs = bs
 𝔹^ 0 = 𝟙
 𝔹^ (suc n) = 𝟚 ×ᵤ 𝔹^ n
 
-[AB]C=[AC]B : {A B C : 𝕌} → (A ×ᵤ B) ×ᵤ C ↔ (A ×ᵤ C) ×ᵤ B
-[AB]C=[AC]B = assocr⋆ ⨾ (id↔ ⊗ swap⋆) ⨾ assocl⋆
-
-CCX* : {A : 𝕌} → 𝟚 ×ᵤ (𝟚 ×ᵤ (𝟚 ×ᵤ A)) ↔ 𝟚 ×ᵤ (𝟚 ×ᵤ (𝟚 ×ᵤ A))
-CCX* = (id↔ ⊗ assocl⋆) ⨾ assocl⋆ ⨾ (CCX ⊗ id↔) ⨾ assocr⋆ ⨾ (id↔ ⊗ assocr⋆)
-
 -----------------------------------------------------------------------------
 -- Building blocks
 
-FLIP : {m : ℕ} → 𝔹^ (suc m) ×ᵤ 𝔹^ m ↔ 𝔹^ (suc m) ×ᵤ 𝔹^ m
-FLIP {0} = id↔
-FLIP {suc 0} =
-  ((id↔ ⊗ unite⋆) ⊗ unite⋆) ⨾
-  assocr⋆ ⨾ CCX ⨾ assocl⋆ ⨾
-  ((id↔ ⊗ uniti⋆) ⊗ uniti⋆)
-FLIP {suc (suc m)} =
-  [AB]C=[AC]B ⨾
-  ((id↔ ⊗ (assocl⋆ ⨾ (swap⋆ ⊗ id↔) ⨾ assocr⋆)) ⊗ id↔) ⨾
-  (CCX* ⊗ id↔) ⨾
-  ((id↔ ⊗ (assocl⋆ ⨾ (swap⋆ ⊗ id↔) ⨾ assocr⋆)) ⊗ id↔) ⨾
-  (assocl⋆ ⊗ id↔) ⨾ assocr⋆ ⨾ (id↔ ⊗ swap⋆) ⨾
-  (id↔ ⊗ FLIP) ⨾
-  (id↔ ⊗ swap⋆) ⨾ assocl⋆ ⨾ (assocr⋆ ⊗ id↔) ⨾
-  ((id↔ ⊗ (assocl⋆ ⨾ (swap⋆ ⊗ id↔) ⨾ assocr⋆)) ⊗ id↔) ⨾
-  (CCX* ⊗ id↔) ⨾
-  ((id↔ ⊗ (assocl⋆ ⨾ (swap⋆ ⊗ id↔) ⨾ assocr⋆)) ⊗ id↔) ⨾
-  ! [AB]C=[AC]B 
+-- SUM (c , a , b)
+SUM : 𝟚 ×ᵤ 𝟚 ×ᵤ 𝟚 ↔ 𝟚 ×ᵤ 𝟚 ×ᵤ 𝟚
+SUM = (id↔ ⊗ CX) ⨾ (assocl⋆ ⨾ (swap⋆ ⊗ id↔) ⨾ assocr⋆) ⨾
+      (id↔ ⊗ CX) ⨾ (assocl⋆ ⨾ (swap⋆ ⊗ id↔) ⨾ assocr⋆)
 
--- TEST AND SIMPLIFY AS MUCH AS POSSIBLE
+-- CARRY (c , a , b , c')
+CARRY : 𝟚 ×ᵤ 𝟚 ×ᵤ 𝟚 ×ᵤ 𝟚 ↔ 𝟚 ×ᵤ 𝟚 ×ᵤ 𝟚 ×ᵤ 𝟚
+CARRY =
+  (id↔ ⊗ CCX) ⨾
+  (id↔ ⊗ (assocl⋆ ⨾ (CX ⊗ id↔) ⨾ assocr⋆)) ⨾ 
+  (assocl⋆ ⨾ (swap⋆ ⊗ id↔) ⨾ assocr⋆) ⨾
+  (id↔ ⊗ CCX) ⨾
+  (assocl⋆ ⨾ (swap⋆ ⊗ id↔) ⨾ assocr⋆) ⨾
+  (id↔ ⊗ (assocl⋆ ⨾ (CX ⊗ id↔) ⨾ assocr⋆))
+
+-- ROTATER (a , b , ... , x , y) = (y , a , b , ... , x)
+ROTATER : {n : ℕ} → 𝔹^ n ↔ 𝔹^ n
+ROTATER {0} = id↔ 
+ROTATER {1} = id↔ 
+ROTATER {suc (suc n)} = (id↔ ⊗ ROTATER) ⨾ assocl⋆ ⨾ (swap⋆ ⊗ id↔) ⨾ assocr⋆ 
+
+-- ADD (carry[n] , first[n] , second[n+1])
+ADD : {n : ℕ} → 𝔹^ n ×ᵤ 𝔹^ n ×ᵤ 𝔹^ (suc n) ↔ 𝔹^ n ×ᵤ 𝔹^ n ×ᵤ 𝔹^ (suc n)
+ADD {0} = id↔ 
+ADD {1} = 
+  (unite⋆ ⊗ unite⋆ ⊗ (id↔ ⊗ unite⋆)) ⨾
+  (id↔ ⊗ id↔ ⊗ swap⋆) ⨾ CARRY ⨾
+  assocl⋆ ⨾ assocl⋆ ⨾ ((assocr⋆ ⨾ SUM ⨾ assocl⋆) ⊗ id↔) ⨾ assocr⋆ ⨾ assocr⋆ ⨾
+  (id↔ ⊗ (id↔ ⊗ swap⋆)) ⨾
+  (uniti⋆ ⊗ uniti⋆ ⊗ (id↔ ⊗ uniti⋆))
+ADD {suc (suc n)} =
+  (ROTATER ⊗ ROTATER ⊗ ROTATER) ⨾
+  ((id↔ ⊗ ROTATER) ⊗ id↔ ⊗ id↔) ⨾
+  {!!} 
+
+{--
+c a b
+
+--}
 
 -----------------------------------------------------------------------------
 -- Tests
 
+t1 = interp CARRY (false , false , false , false)
+t2 = interp CARRY (false , false , true , false)
+t3 = interp CARRY (false , true , true , false)
+t4 = interp CARRY (true , false , true , false)
+t5 = interp CARRY (true , true , true , false)
+t6 = interp CARRY (false , true , true , true)
 
+t7 = interp SUM (false , false , true)
+t8 = interp SUM (true , false , true)
+t9 = interp SUM (true , true , true)
+
+t10 = interp ROTATER (false , tt)
+t11 = interp ROTATER (false , true , tt)
+t12 = interp ROTATER (false , false , true , tt)
+t13 = interp ROTATER (false , false , false , true , tt)
+t14 = interp ROTATER (false , false , true , false , true , tt)
 
 -----------------------------------------------------------------------------
 -----------------------------------------------------------------------------
 
-{--
-
------------------------------------------------------------------------------
--- Patterns and data definitions
-
-pattern 𝔹 = 𝟙 +ᵤ 𝟙
-pattern 𝔽 = inj₁ tt
-pattern 𝕋 = inj₂ tt
-
-X : 𝔹^ 1 ↔ 𝔹^ 1
-X = swap₊
-
-CX : 𝔹^ 2 ↔ 𝔹^ 2
-CX = dist ⨾ (id↔ ⊕ (id↔ ⊗ swap₊)) ⨾ factor
-
-CCX : 𝔹^ 3 ↔ 𝔹^ 3
-CCX = dist ⨾ (id↔ ⊕ (id↔ ⊗ CX)) ⨾ factor
-
-AND : {m : ℕ} → 𝔹^ m ↔ 𝔹^ m
-AND = {!!} 
-
--- NOT(b) = ¬b
-NOT : 𝔹 ↔ 𝔹
-NOT = swap₊
-
--- CNOT(b₁,b₂) = (b₁,b₁ xor b₂)
-CNOT : 𝔹 ×ᵤ 𝔹 ↔ 𝔹 ×ᵤ 𝔹
-CNOT = dist ⨾ (id↔ ⊕ (id↔ ⊗ swap₊)) ⨾ factor
-
--- CIF(c₁,c₂)(𝔽,a) = (𝔽,c₁ a)
--- CIF(c₁,c₂)(𝕋,a) = (𝕋,c₂ a)
-CIF : {A : 𝕌} → (c₁ c₂ : A ↔ A) → 𝔹 ×ᵤ A ↔ 𝔹 ×ᵤ A
-CIF c₁ c₂ = dist ⨾ ((id↔ ⊗ c₁) ⊕ (id↔ ⊗ c₂)) ⨾ factor
-
-CIF₁ CIF₂ : {A : 𝕌} → (c : A ↔ A) → 𝔹 ×ᵤ A ↔ 𝔹 ×ᵤ A
-CIF₁ c = CIF c id↔
-CIF₂ c = CIF id↔ c
-
--- TOFFOLI(b₁,…,bₙ,b) = (b₁,…,bₙ,b xor (b₁ ∧ … ∧ bₙ))
-TOFFOLI : {n : ℕ} → 𝔹^ n ↔ 𝔹^ n
-TOFFOLI {0} = id↔
-TOFFOLI {1} = swap₊
-TOFFOLI {suc (suc n)} = CIF₂ TOFFOLI
-
---------------------------------------------------------------------------------
---------------------------------------------------------------------------------
---}
