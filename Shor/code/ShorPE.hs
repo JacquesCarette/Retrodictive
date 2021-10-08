@@ -90,8 +90,11 @@ bools2nat bs = foldr (\b n -> fromEnum b + 2*n) 0 (reverse bs)
 addGen :: Gen W
 addGen = do n <- chooseInt (1, 2)
             let wn = 3 * n + 1
-            bools <- vector wn
-            return (W wn (fromList bools))
+            let cs = replicate n False
+            as <- vector n
+            lowbs <- vector n
+            let bs = False : lowbs
+            return (W wn (fromList (cs ++ as ++ bs)))
 
 instance Arbitrary W where
   arbitrary = addGen
