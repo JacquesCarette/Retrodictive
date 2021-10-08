@@ -3,6 +3,7 @@
 module ShorPE where
 
 import Data.Vector hiding (foldr, length, replicate, reverse, splitAt, (++))
+import qualified Data.Vector as V (replicate, drop, (++))
 import Test.QuickCheck
 import Numeric
 import Control.Exception.Assert
@@ -18,6 +19,9 @@ data Op = Swap Int Int
         | X Int
         | CX Int Int
         | CCX Int Int Int
+        | Controlled Int Op
+        | Alloc Int
+        | DeAlloc Int
 
 invert :: Op -> Op
 invert (Swap i j) = Swap i j
@@ -25,6 +29,9 @@ invert (op1 :.: op2) = invert op2 :.: invert op1
 invert (X i) = X i
 invert (CX i j) = CX i j
 invert (CCX i j k) = CCX i j k
+invert (Controlled i op) = Controlled i (invert op)
+invert (Alloc i) = DeAlloc i
+invert (DeAlloc i) = Alloc i
 
 neg :: Vector Bool -> Int -> Vector Bool
 neg vec i = vec // [(i , not (vec ! i))]
@@ -39,11 +46,18 @@ interp (CX i j) w@(W n vec)
 interp (CCX i j k) w@(W n vec)
   | vec ! i && vec ! j = W n (neg vec k)
   | otherwise = w
+interp (Controlled i op) w@(W n vec)
+  | vec ! i = interp op w
+  | otherwise = w
+interp (Alloc i) w@(W n vec) =
+  W (n+i) (V.replicate i False V.++ vec)
+interp (DeAlloc i) w@(W n vec) =
+  W (n - i) (V.drop i vec)
 
 ------------------------------------------------------------------------------
 -- Follow Rieffel & Polak
 
--- sum (c , a , b)
+-- sum c a b
 sumOp :: Int -> Int -> Int -> Op
 sumOp c a b =
   CX a b :.:
@@ -58,7 +72,6 @@ carryOp c a b c' =
   CX a b
 
 -- add c a b
--- range inclusive
 addOp :: (Int,Int) -> (Int,Int) -> (Int,Int) -> Op
 addOp (ci,ce) (ai,ae) (bi,be)
   | be - bi == 1 =
@@ -70,6 +83,21 @@ addOp (ci,ce) (ai,ae) (bi,be)
     addOp (ci,ce-1) (ai,ae-1) (bi,be-1) :.:
     invert (carryOp ce ae be (ce-1)) :.:
     sumOp ce ae be
+
+-- addMod a b m
+addModOp :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> Op
+addModOp n (ai,ae) (bi,be) (mi,me) = 
+  Alloc 1 :.: -- t
+  Alloc n :.: -- carry
+  addOp (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
+  invert (addOp (1,n) (mi+n+1,me+n+1) (bi+n+1,be+n+1)) :.:
+  CX bi 0 :.:
+  Controlled 0 (addOp (1,n) (mi+n+1,me+n+1) (bi+n+1,be+n+1)) :.:
+  invert (addOp (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1)) :.:
+  X bi :.:
+  CX bi 0 :.:
+  X bi :.:
+  addOp (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) 
   
 ------------------------------------------------------------------------------
 -- Testing
@@ -88,7 +116,7 @@ bools2nat :: [Bool] -> Int
 bools2nat bs = foldr (\b n -> fromEnum b + 2*n) 0 (reverse bs)
 
 addGen :: Gen W
-addGen = do n <- chooseInt (1, 2)
+addGen = do n <- chooseInt (1, 20)
             let wn = 3 * n + 1
             let cs = replicate n False
             as <- vector n
@@ -96,8 +124,18 @@ addGen = do n <- chooseInt (1, 2)
             let bs = False : lowbs
             return (W wn (fromList (cs ++ as ++ bs)))
 
+addModGen :: Gen W
+addModGen = do n <- chooseInt (1, 20)
+               let wn = 3 * n + 1
+               as <- vector n
+               lowbs <- suchThat (vector n) (\ms -> bools2nat ms > 0)
+               let bs = False : lowbs
+               ms <- suchThat (vector n) (\ms -> bools2nat ms > bools2nat bs)
+               return (W wn (fromList (as ++ bs ++ ms)))
+
 instance Arbitrary W where
-  arbitrary = addGen
+--  arbitrary = addGen
+  arbitrary = addModGen
 
 addProp :: W -> Bool
 addProp w@(W wn vec) =
@@ -111,5 +149,19 @@ addProp w@(W wn vec) =
       sum = (a + b + c) `mod` (2 ^ (n + 1))
       expected = W wn (fromList (cs ++ as ++ nat2bools (n+1) sum))
   in actual == expected 
+
+addModProp :: W -> Bool
+addModProp w@(W wn vec) =
+  let n = (wn - 1) `div` 3
+      actual = interp (addModOp n (0,n-1) (n,2*n) (2*n+1,3*n)) w
+      (as,r) = splitAt n (toList vec)
+      (bs,ms) = splitAt (n+1) r
+      a = bools2nat as
+      b = bools2nat bs
+      m = bools2nat ms
+      sum = (a + b) `mod` m
+      expected = W wn (fromList (as ++ nat2bools (n+1) sum ++ ms))
+  in actual == expected 
+
 
 ------------------------------------------------------------------------------
