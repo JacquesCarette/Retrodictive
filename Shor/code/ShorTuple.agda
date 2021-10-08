@@ -24,7 +24,7 @@ data 𝕌 : Set where
 ⟦ 𝟚 ⟧ = Bool
 ⟦ t₁ ×ᵤ t₂ ⟧ = ⟦ t₁ ⟧ × ⟦ t₂ ⟧
 
--- Given that we will not the sizes, partial evaluation will be
+-- Given that we will know the sizes, partial evaluation will be
 -- exact on every operation except X, CX, and CCX when their
 -- inputs are only partially known
 
@@ -113,6 +113,7 @@ ADD {suc (suc n)} =
   (ROTATER ⊗ ROTATER ⊗ ROTATER) ⨾
   ((id↔ ⊗ ROTATER) ⊗ id↔ ⊗ id↔) ⨾
   {!!} 
+
 
 {--
 c a b

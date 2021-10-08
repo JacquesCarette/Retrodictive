@@ -18,7 +18,6 @@ data a :<=> b where
   Div2R :: (Integer,Integer) :<=> (Integer,Integer)
   MultModL :: (Integer,Integer,Integer,Integer) :<=> (Integer,Integer,Integer,Integer) 
   MultModR :: (Integer,Integer,Integer,Integer) :<=> (Integer,Integer,Integer,Integer)
-  
 
 interp :: (a :<=> b) -> a -> b
 interp Id v = v
@@ -46,12 +45,19 @@ modexp a x m
   where
     r = modexp a (x `div` 2) m
 
+
+Expand for a=8, m=15
+
+modexp x
+  | even x    = (r*r) `mod` 15
+  | otherwise = (8*r*r) `mod` 15
+  where
+    r = modexp 8 (x `div` 2) 15
+
 --}
 
 -----------------------------------------------------------------------------
 -- Tests
-
-x = interp 
 
 -----------------------------------------------------------------------------
 
