@@ -1,5 +1,6 @@
 module ShorPE where
 
+import Data.Char
 import Data.Vector (Vector, fromList, toList, (!), (//))
 import qualified Data.Vector as V 
 
@@ -22,6 +23,7 @@ data OP = CX Int Int                    -- if first true; negate second
         | ALLOC Int                     -- alloc n bits to front
         | DEALLOC Int                   -- dealloc n bits from front
         | LOOP [Int] (Int -> OP)        -- apply fun to each of indices
+        | ASSERT (W -> Bool)            -- no op; used for debugging
 
 instance Show OP where
   show op = showH "" op
@@ -38,6 +40,8 @@ instance Show OP where
       showH d (LOOP [] f)     = printf ""
       showH d (LOOP [i] f)    = printf "%s" (showH d (f i))
       showH d (LOOP (i:is) f) = printf "%s\n%s" (showH d (f i)) (showH d (LOOP is f))
+      showH d (ASSERT f)      = printf ""
+
 
 invert :: OP -> OP
 invert (CX i j)         = CX i j
@@ -50,6 +54,7 @@ invert (op1 :.: op2)    = invert op2 :.: invert op1
 invert (ALLOC i)        = DEALLOC i
 invert (DEALLOC i)      = ALLOC i
 invert (LOOP indices f) = LOOP (reverse indices) (\k -> invert (f k))
+invert (ASSERT f)       = ASSERT f
        
 ------------------------------------------------------------------------------
 -- Mini reversible language for expmod circuits
@@ -58,6 +63,9 @@ invert (LOOP indices f) = LOOP (reverse indices) (\k -> invert (f k))
 -- W size bits
 data W = W Int (Vector Bool)
   deriving Eq
+
+makeW :: String -> W
+makeW bits = W (length bits) (fromList (map (toEnum . digitToInt) bits))
 
 instance Show W where
   show (W n vec) =
@@ -108,7 +116,8 @@ interp op w@(W n vec) =
       trace (printf "%s\n%s" (show w) (show op)) $
       W (n+i) (V.replicate i False V.++ vec)
 
-    DEALLOC i -> 
+    DEALLOC i ->
+      assert (n > i) $
       trace (printf "%s\n%s" (show w) (show op)) $
       W (n-i) (V.drop i vec)
 
@@ -117,15 +126,29 @@ interp op w@(W n vec) =
         where loop [] w = w
               loop (i:is) w = loop is (interp (f i) w)
 
+    ASSERT f ->
+      assert (f w) $ w
 
 ------------------------------------------------------------------------------
--- Circuits following Rieffel & Polak
+-- Circuits following Ch.6 of:
+-- Quantum Computing: A Gentle Introduction by Rieffel & Polak
 
--- sum c a b
+-- Small functions tested here; more complex ones tested with QuickCheck
+
+-- sum: c, a, b => c, a, (a+b+c) mod 2
 sumOP :: Int -> Int -> Int -> OP
 sumOP c a b =
   CX a b :.:
   CX c b
+
+t0 = interp (sumOP 0 1 2) (makeW "000") -- 000
+t1 = interp (sumOP 0 1 2) (makeW "001") -- 001
+t2 = interp (sumOP 0 1 2) (makeW "010") -- 011
+t3 = interp (sumOP 0 1 2) (makeW "011") -- 010
+t4 = interp (sumOP 0 1 2) (makeW "100") -- 101
+t5 = interp (sumOP 0 1 2) (makeW "101") -- 100
+t6 = interp (sumOP 0 1 2) (makeW "110") -- 110
+t7 = interp (sumOP 0 1 2) (makeW "111") -- 111
 
 -- carry c a b c'
 carryOP :: Int -> Int -> Int -> Int -> OP
@@ -227,14 +250,10 @@ expModOP n k (ai,ae) (bi,be) (mi,me) (pi,pe) (ei,ee)
 ------------------------------------------------------------------------------
 -- Testing
 
-bit :: Int -> Bool
-bit 0 = False
-bit 1 = True
-
 nat2bools :: Int -> Int -> [Bool]
 nat2bools len n = replicate (len - length bits) False ++ bits
   where bin 0 = []
-        bin n = let (q,r) = quotRem n 2 in bit r : bin q
+        bin n = let (q,r) = quotRem n 2 in toEnum r : bin q
         bits = reverse (bin n)
   
 bools2nat :: [Bool] -> Int
