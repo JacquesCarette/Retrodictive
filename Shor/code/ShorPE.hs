@@ -1,200 +1,227 @@
 module ShorPE where
 
-import Data.Vector hiding (foldr, length, replicate, reverse, drop, take, splitAt, (++))
-import qualified Data.Vector as V (replicate, drop, take, all, (++))
-import Test.QuickCheck
-import Numeric
-import Control.Exception.Assert
+import Data.Vector (Vector, fromList, toList, (!), (//))
+import qualified Data.Vector as V 
+
 import Debug.Trace
 import Text.Printf
+import Test.QuickCheck
+import Control.Exception.Assert
 
 ------------------------------------------------------------------------------
--- Mini reversible language for expmod
+-- Mini reversible language for expmod circuits
+-- Syntax
 
-data W = W Int (Vector Bool)
-  deriving (Eq,Show)
+data OP = CX Int Int                    -- if first true; negate second
+        | NCX Int Int                   -- if first false; negate second
+        | CCX Int Int Int               -- if first,second true; negate third
+        | COP Int OP                    -- if first true; apply op
+        | NCOP Int OP                   -- if first false; apply op
+        | SWAP Int Int                  -- swap values at given indices
+        | (:.:) OP OP                   -- sequential composition
+        | ALLOC Int                     -- alloc n bits to front
+        | DEALLOC Int                   -- dealloc n bits from front
+        | LOOP [Int] (Int -> OP)        -- apply fun to each of indices
 
-data Op = X Int
-        | CX Int Int
-        | NCX Int Int
-        | CCX Int Int Int
-        | COp Int Op
-        | NCOp Int Op
-        | SWAP Int Int
-        | (:.:) Op Op
-        | Alloc Int
-        | DeAlloc Int
-        | Loop [Int] (Int -> Op)
+instance Show OP where
+  show op = showH "" op
+    where
+      showH d (CX i j)        = printf "%sCX %d %d" d i j
+      showH d (NCX i j)       = printf "%sNCX %d %d" d i j
+      showH d (CCX i j k)     = printf "%sCCX %d %d %d" d i j k
+      showH d (COP i op)      = printf "%sCOP %d (\n%s)" d i (showH ("  " ++ d) op)
+      showH d (NCOP i op)     = printf "%sNCOP %d (\n%s)" d i (showH ("  " ++ d) op)
+      showH d (SWAP i j)      = printf "%sSWAP %d %d" d i j
+      showH d (op1 :.: op2)   = printf "%s :.:\n%s" (showH d op1) (showH d op2)
+      showH d (ALLOC i)       = printf "%sALLOC %d" d i
+      showH d (DEALLOC i)     = printf "%sDEALLOC %d" d i
+      showH d (LOOP [] f)     = printf ""
+      showH d (LOOP [i] f)    = printf "%s" (showH d (f i))
+      showH d (LOOP (i:is) f) = printf "%s\n%s" (showH d (f i)) (showH d (LOOP is f))
 
-instance Show Op where
-  show (X i) = printf "X(%d)" i
-  show (CX i j) = printf "CX(%d,%d)" i j
-  show (NCX i j) = printf "NCX(%d,%d)" i j
-  show (CCX i j k) = printf "CCX(%d,%d,%d)" i j k
-  show (COp i op) = printf "COp(%d,%s" i (show op)
-  show (NCOp i op) = printf "NCOp(%d,%s" i (show op)
-  show (SWAP i j) = printf "SWAP(%d,%d)" i j
-  show (op1 :.: op2) = printf "%s\n%s" (show op1) (show op2)
-  show (Alloc i) = printf "Alloc(%d)" i
-  show (DeAlloc i) = printf "DeAlloc(%d)" i
-  show (Loop indices f) = printf "Loop %s %s" (show indices) (show (f 0))
-
-invert :: Op -> Op
-invert (X i) = X i
-invert (CX i j) = CX i j
-invert (NCX i j) = NCX i j
-invert (CCX i j k) = CCX i j k
-invert (COp i op) = COp i (invert op)
-invert (NCOp i op) = NCOp i (invert op)
-invert (SWAP i j) = SWAP i j
-invert (op1 :.: op2) = invert op2 :.: invert op1
-invert (Alloc i) = DeAlloc i
-invert (DeAlloc i) = Alloc i
-invert (Loop indices f) = Loop (reverse indices) (\k -> invert (f k))
+invert :: OP -> OP
+invert (CX i j)         = CX i j
+invert (NCX i j)        = NCX i j
+invert (CCX i j k)      = CCX i j k
+invert (COP i op)       = COP i (invert op)
+invert (NCOP i op)      = NCOP i (invert op)
+invert (SWAP i j)       = SWAP i j
+invert (op1 :.: op2)    = invert op2 :.: invert op1
+invert (ALLOC i)        = DEALLOC i
+invert (DEALLOC i)      = ALLOC i
+invert (LOOP indices f) = LOOP (reverse indices) (\k -> invert (f k))
        
-neg :: Vector Bool -> Int -> Vector Bool
-neg vec i = vec // [(i , not (vec ! i))]
+------------------------------------------------------------------------------
+-- Mini reversible language for expmod circuits
+-- Interpreter: state is maintained as a vector of booleaans
 
-interp :: Op -> W -> W
-interp (X i) w@(W n vec) = -- trace ("X: " ++ show w ++ "\n") $
-  W n (neg vec i)
-interp (CX i j) w@(W n vec)
-  | vec ! i = -- trace ("CX: " ++ show w ++ "\n") $
-    W n (neg vec j)
-  | otherwise = w
-interp (NCX i j) w@(W n vec)
-  | not (vec ! i) = -- trace ("CX: " ++ show w ++ "\n") $
-    W n (neg vec j)
-  | otherwise = w
-interp (CCX i j k) w@(W n vec)
-  | vec ! i && vec ! j = -- trace ("CCX: " ++ show w ++ "\n") $
-    W n (neg vec k)
-  | otherwise = w
-interp (COp i op) w@(W n vec)
-  | vec ! i = -- trace ("COp: " ++ show w ++ "\n") $
-    interp op w
-  | otherwise = w
-interp (NCOp i op) w@(W n vec)
-  | not (vec ! i) = -- trace ("COp: " ++ show w ++ "\n") $
-    interp op w
-  | otherwise = w
-interp (SWAP i j) w@(W n vec) =
-  W n (vec // [ (i , vec ! j), (j , (vec ! i)) ])
-interp (op1 :.: op2) w = -- trace ("Seq: " ++ show w ++ "\n") $
-  interp op2 (interp op1 w)
-interp (Alloc i) w@(W n vec) = -- trace ("Alloc: " ++ show w ++ "\n") $
-  W (n+i) (V.replicate i False V.++ vec)
-interp (DeAlloc i) w@(W n vec) = -- trace ("DeAlloc: " ++ show w ++ "\n") $
-  W (n-i) (V.drop i vec)
-interp (Loop indices f) w =
-  loop indices w
-  where loop [] w = w
-        loop (i:is) w = loop is (interp (f i) w)
+-- W size bits
+data W = W Int (Vector Bool)
+  deriving Eq
+
+instance Show W where
+  show (W n vec) =
+    printf "\t[%d] %s" n (concat (V.map (show . fromEnum) vec))
+
+notI :: Vector Bool -> Int -> Vector Bool
+notI vec i = vec // [(i , not (vec ! i))]
+
+interp :: OP -> W -> W
+interp op w@(W n vec) = 
+  case op of                         
+
+    CX i j | vec ! i ->
+      assert (j < n) $
+      trace (printf "%s\n%s" (show w) (show op)) $
+      W n (notI vec j)
+    CX _ _ -> w
+
+    NCX i j | not (vec ! i) ->
+      assert (j < n) $ 
+      trace (printf "%s\n%s" (show w) (show op)) $
+      W n (notI vec j)
+    NCX _ _ -> w
+
+    CCX i j k | vec ! i && vec ! j -> 
+      assert (k < n) $ 
+      trace (printf "%s\n%s" (show w) (show op)) $
+      W n (notI vec k)
+    CCX _ _ _ -> w
+
+    COP i op | vec ! i ->
+      interp op w
+    COP _ _ -> w
+
+    NCOP i op | not (vec ! i) ->
+      interp op w
+    NCOP _ _ -> w
+
+    SWAP i j ->
+      assert (i < n && j < n) $ 
+      trace (printf "%s\n%s" (show w) (show op)) $
+      W n (vec // [ (i , vec ! j), (j , (vec ! i)) ])
+
+    op1 :.: op2 -> 
+      interp op2 (interp op1 w)
+
+    ALLOC i -> 
+      trace (printf "%s\n%s" (show w) (show op)) $
+      W (n+i) (V.replicate i False V.++ vec)
+
+    DEALLOC i -> 
+      trace (printf "%s\n%s" (show w) (show op)) $
+      W (n-i) (V.drop i vec)
+
+    LOOP indices f -> 
+      loop indices w
+        where loop [] w = w
+              loop (i:is) w = loop is (interp (f i) w)
+
 
 ------------------------------------------------------------------------------
--- Follow Rieffel & Polak
+-- Circuits following Rieffel & Polak
 
 -- sum c a b
-sumOp :: Int -> Int -> Int -> Op
-sumOp c a b =
+sumOP :: Int -> Int -> Int -> OP
+sumOP c a b =
   CX a b :.:
   CX c b
 
 -- carry c a b c'
-carryOp :: Int -> Int -> Int -> Int -> Op
-carryOp c a b c' =
+carryOP :: Int -> Int -> Int -> Int -> OP
+carryOP c a b c' =
   CCX a b c' :.:
   CX a b :.:
   CCX c b c' :.:
   CX a b
 
 -- add c a b
-addOp :: (Int,Int) -> (Int,Int) -> (Int,Int) -> Op
-addOp (ci,ce) (ai,ae) (bi,be)
+addOP :: (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
+addOP (ci,ce) (ai,ae) (bi,be)
   | be - bi == 1 =
     assert (ci == ce && ai == ae) $ 
-    carryOp ci ai (bi+1) bi :.:
-    sumOp ci ai (bi+1)
+    carryOP ci ai (bi+1) bi :.:
+    sumOP ci ai (bi+1)
   | otherwise =
-    carryOp ce ae be (ce-1) :.:
-    addOp (ci,ce-1) (ai,ae-1) (bi,be-1) :.:
-    invert (carryOp ce ae be (ce-1)) :.:
-    sumOp ce ae be
+    carryOP ce ae be (ce-1) :.:
+    addOP (ci,ce-1) (ai,ae-1) (bi,be-1) :.:
+    invert (carryOP ce ae be (ce-1)) :.:
+    sumOP ce ae be
 
 -- addMod a b m
-addModOp :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> Op
-addModOp n (ai,ae) (bi,be) (mi,me) = 
-  Alloc n :.: -- carry
-  Alloc 1 :.: -- t
-  addOp (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
-  invert (addOp (1,n) (mi+n+1,me+n+1) (bi+n+1,be+n+1)) :.:
+addModOP :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
+addModOP n (ai,ae) (bi,be) (mi,me) = 
+  ALLOC n :.: -- carry
+  ALLOC 1 :.: -- t
+  addOP (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
+  invert (addOP (1,n) (mi+n+1,me+n+1) (bi+n+1,be+n+1)) :.:
   CX (bi+n+1) 0 :.:
-  COp 0 (addOp (1,n) (mi+n+1,me+n+1) (bi+n+1,be+n+1)) :.:
-  invert (addOp (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1)) :.:
+  COP 0 (addOP (1,n) (mi+n+1,me+n+1) (bi+n+1,be+n+1)) :.:
+  invert (addOP (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1)) :.:
   NCX (bi+n+1) 0 :.:
-  addOp (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
-  DeAlloc 1 :.:
-  DeAlloc n
+  addOP (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
+  DEALLOC 1 :.:
+  DEALLOC n
   
 -- shift
-shiftOp :: (Int,Int) -> Op
-shiftOp (i,e) =
-  Loop [i..(e-1)] (\k -> SWAP k (k+1))
+shiftOP :: (Int,Int) -> OP
+shiftOP (i,e) =
+  LOOP [i..(e-1)] (\k -> SWAP k (k+1))
 
 -- copy a b
-copyOp :: Int -> (Int,Int) -> (Int,Int) -> Op
-copyOp n (ai,ae) (bi,be) =
-  Loop [0..(n-1)] (\k -> CX (ai+k) (bi+k))
+copyOP :: Int -> (Int,Int) -> (Int,Int) -> OP
+copyOP n (ai,ae) (bi,be) =
+  LOOP [0..(n-1)] (\k -> CX (ai+k) (bi+k))
 
 -- timesMod a b m p
-timesModOp :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> Op
-timesModOp n (ai,ae) (bi,be) (mi,me) (pi,pe) =
-  Alloc n :.: -- carry
-  Alloc n :.: -- t
-  Loop [0..(n-1)] (\i ->
-    invert (addOp (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)) :.:
+timesModOP :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
+timesModOP n (ai,ae) (bi,be) (mi,me) (pi,pe) =
+  ALLOC n :.: -- carry
+  ALLOC n :.: -- t
+  LOOP [0..(n-1)] (\i ->
+    invert (addOP (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)) :.:
     CX (ai+2*n) i :.:
-    COp i (addOp (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)) :.: 
-    COp (be+2*n-i) (addModOp n (ai+2*n+1,ae+2*n) (pi+2*n,pe+2*n) (mi+2*n,me+2*n)) :.: 
-    shiftOp (ai+2*n,ae+2*n) 
+    COP i (addOP (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)) :.: 
+    COP (be+2*n-i) (addModOP n (ai+2*n+1,ae+2*n) (pi+2*n,pe+2*n) (mi+2*n,me+2*n)) :.: 
+    shiftOP (ai+2*n,ae+2*n) 
   ) :.:
-  Loop [(n-1),(n-2)..0] (\i ->
-    invert (shiftOp (ai+2*n,ae+2*n)) :.:
-    COp i (invert (addOp (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n))) :.: 
+  LOOP [(n-1),(n-2)..0] (\i ->
+    invert (shiftOP (ai+2*n,ae+2*n)) :.:
+    COP i (invert (addOP (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n))) :.: 
     CX (ai+2*n) i :.:
-    addOp (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)
+    addOP (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)
   ) :.:
-  DeAlloc n :.:
-  DeAlloc n
+  DEALLOC n :.:
+  DEALLOC n
 
 -- squareMod a m s
-squareModOp :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> Op
-squareModOp n (ai,ae) (mi,me) (si,se) =
-  Alloc n :.: -- t
-  copyOp n (ai+n+1,ae+n) (0,n-1) :.:
-  timesModOp n (ai+n,ae+n) (0,n-1) (mi+n,me+n) (si+n,se+n) :.:
-  invert (copyOp n (ai+n+1,ae+n) (0,n-1)) :.:
-  DeAlloc n
+squareModOP :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
+squareModOP n (ai,ae) (mi,me) (si,se) =
+  ALLOC n :.: -- t
+  copyOP n (ai+n+1,ae+n) (0,n-1) :.:
+  timesModOP n (ai+n,ae+n) (0,n-1) (mi+n,me+n) (si+n,se+n) :.:
+  invert (copyOP n (ai+n+1,ae+n) (0,n-1)) :.:
+  DEALLOC n
 
 -- expMod a b m p e
-expModOp :: Int -> Int ->
-            (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> Op
-expModOp n k (ai,ae) (bi,be) (mi,me) (pi,pe) (ei,ee)
+expModOP :: Int -> Int ->
+            (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
+expModOP n k (ai,ae) (bi,be) (mi,me) (pi,pe) (ei,ee)
   | k == 1 =
-    NCOp bi (copyOp (n+1) (pi,pe) (ei,ee)) :.:
-    COp bi (timesModOp n (ai,ae) (pi,pe) (mi,me) (ei,ee)) 
+    NCOP bi (copyOP (n+1) (pi,pe) (ei,ee)) :.:
+    COP bi (timesModOP n (ai,ae) (pi,pe) (mi,me) (ei,ee)) 
   | otherwise =
-    Alloc (n+1) :.: -- v
-    Alloc (n+1) :.: -- u
-    NCOp (be+d) (copyOp (n+1) (pi+d,pe+d) (n+1,2*n+1)) :.:
-    COp (be+d) (timesModOp n (ai+d,ae+d) (pi+d,pe+d) (mi+d,me+d) (ei+d,ee+d)) :.:
-    squareModOp n (ai+d,ae+d) (mi+d,me+d) (0,n) :.:
-    expModOp n (k-1) (0,n) (bi+d,be+d-1) (mi+d,me+d) (n+1,2*n+1) (ei+d,ee+d) :.:
-    invert (squareModOp n (ai+d,ae+d) (mi+d,me+d) (0,n)) :.:
-    COp (be+d) (invert (timesModOp n (ai+d,ae+d) (pi+d,pe+d) (mi+d,me+d) (ei+d,ee+d))) :.:
-    NCOp (be+d) (invert (copyOp (n+1) (pi+d,pe+d) (n+1,2*n+1))) :.:
-    DeAlloc (n+1) :.: 
-    DeAlloc (n+1) 
+    ALLOC (n+1) :.: -- v
+    ALLOC (n+1) :.: -- u
+    NCOP (be+d) (copyOP (n+1) (pi+d,pe+d) (n+1,2*n+1)) :.:
+    COP (be+d) (timesModOP n (ai+d,ae+d) (pi+d,pe+d) (mi+d,me+d) (ei+d,ee+d)) :.:
+    squareModOP n (ai+d,ae+d) (mi+d,me+d) (0,n) :.:
+    expModOP n (k-1) (0,n) (bi+d,be+d-1) (mi+d,me+d) (n+1,2*n+1) (ei+d,ee+d) :.:
+    invert (squareModOP n (ai+d,ae+d) (mi+d,me+d) (0,n)) :.:
+    COP (be+d) (invert (timesModOP n (ai+d,ae+d) (pi+d,pe+d) (mi+d,me+d) (ei+d,ee+d))) :.:
+    NCOP (be+d) (invert (copyOP (n+1) (pi+d,pe+d) (n+1,2*n+1))) :.:
+    DEALLOC (n+1) :.: 
+    DEALLOC (n+1) 
     where d = 2*n + 2
 
 ------------------------------------------------------------------------------
@@ -239,7 +266,7 @@ timesModGen = do n <- chooseInt (2, 20)
                  return (W wn (fromList ((False : lowasbsms) ++ (False : ps))))
 
 expModGen :: Gen W
-expModGen = do n <- chooseInt (2, 2)
+expModGen = do n <- chooseInt (2, 20)
                let wn = 5 * n + 3
                lowas <- suchThat (vector n) $ \bits -> bools2nat bits > 0
                let as = False : lowas
@@ -258,7 +285,7 @@ instance Arbitrary W where
 addProp :: W -> Bool
 addProp w@(W wn vec) =
   let n = (wn - 1) `div` 3
-      actual = interp (addOp (0,n-1) (n,2*n-1) (2*n,3*n)) w
+      actual = interp (addOP (0,n-1) (n,2*n-1) (2*n,3*n)) w
       (cs,r) = splitAt n (toList vec)
       (as,bs) = splitAt n r
       a = bools2nat as
@@ -271,7 +298,7 @@ addProp w@(W wn vec) =
 addModProp :: W -> Bool
 addModProp w@(W wn vec) =
   let n = (wn - 1) `div` 3
-      actual = interp (addModOp n (0,n-1) (n,2*n) (2*n+1,3*n)) w
+      actual = interp (addModOP n (0,n-1) (n,2*n) (2*n+1,3*n)) w
       (as,r) = splitAt n (toList vec)
       (bs,ms) = splitAt (n+1) r
       a = bools2nat as
@@ -284,7 +311,7 @@ addModProp w@(W wn vec) =
 timesModProp :: W -> Bool
 timesModProp w@(W wn vec) =
   let n = (wn - 2) `div` 4
-      actual = interp (timesModOp n (0,n) (n+1,2*n) (2*n+1,3*n) (3*n+1,4*n+1)) w
+      actual = interp (timesModOP n (0,n) (n+1,2*n) (2*n+1,3*n) (3*n+1,4*n+1)) w
       (as,r) = splitAt (n+1) (toList vec)
       (bs,r') = splitAt n r
       (ms,ps) = splitAt n r'
@@ -300,7 +327,7 @@ expModProp :: W -> Bool
 expModProp w@(W wn vec) =
   let n = (wn - 3) `div` 5
       actual = interp
-                 (expModOp n n
+                 (expModOP n n
                   (0,n) (n+1,2*n) (2*n+1,3*n) (3*n+1,4*n+1) (4*n+2,5*n+2))
                w
       (as,r) = splitAt (n+1) (toList vec)
@@ -315,5 +342,5 @@ expModProp w@(W wn vec) =
       expected = W wn (fromList (as ++ bs ++ ms ++ ps ++ nat2bools (n+1) res))
   in actual == expected 
 
-
+------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
