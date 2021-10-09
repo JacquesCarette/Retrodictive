@@ -6,6 +6,7 @@ import Test.QuickCheck
 import Numeric
 import Control.Exception.Assert
 import Debug.Trace
+import Text.Printf
 
 ------------------------------------------------------------------------------
 -- Mini reversible language for expmod
@@ -22,6 +23,17 @@ data Op = X Int
         | Alloc Int
         | DeAlloc Int
         | Loop [Int] (Int -> Op)
+
+instance Show Op where
+  show (X i) = printf "X(%d)" i
+  show (CX i j) = printf "CX(%d,%d)" i j
+  show (CCX i j k) = printf "CCX(%d,%d,%d)" i j k
+  show (COp i op) = printf "COp(%d,%s" i (show op)
+  show (SWAP i j) = printf "SWAP(%d,%d)" i j
+  show (op1 :.: op2) = printf "%s\n%s" (show op1) (show op2)
+  show (Alloc i) = printf "Alloc(%d)" i
+  show (DeAlloc i) = printf "DeAlloc(%d)" i
+  show (Loop indices f) = printf "Loop %s %s" (show indices) (show (f 0))
 
 invert :: Op -> Op
 invert (X i) = X i
@@ -117,6 +129,11 @@ shiftOp :: (Int,Int) -> Op
 shiftOp (i,e) =
   Loop [i..(e-1)] (\k -> SWAP k (k+1))
 
+-- copy a b
+copyOp :: Int -> (Int,Int) -> (Int,Int) -> Op
+copyOp n (ai,ae) (bi,be) =
+  Loop [0..(n-1)] (\k -> CX (ai+k) (bi+k))
+
 -- timesMod a b m p
 timesModOp :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> Op
 timesModOp n (ai,ae) (bi,be) (mi,me) (pi,pe) =
@@ -137,6 +154,18 @@ timesModOp n (ai,ae) (bi,be) (mi,me) (pi,pe) =
   ) :.:
   DeAlloc n :.:
   DeAlloc n
+
+-- squareMod a m s
+squareModOp :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> Op
+squareModOp n (ai,ae) (mi,me) (si,se) =
+  Alloc n :.: -- t
+  copyOp n (ai+n+1,ae+n) (0,n-1) :.:
+  timesModOp n (ai+n,ae+n) (0,n-1) (mi+n,me+n) (si+n,se+n) :.:
+  invert (copyOp n (ai+n+1,ae+n) (0,n-1)) :.:
+  DeAlloc n
+
+
+
 
 ------------------------------------------------------------------------------
 -- Testing
