@@ -1,12 +1,11 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
-
 module ShorPE where
 
-import Data.Vector hiding (foldr, length, replicate, reverse, splitAt, (++))
-import qualified Data.Vector as V (replicate, drop, (++))
+import Data.Vector hiding (foldr, length, replicate, reverse, drop, take, splitAt, (++))
+import qualified Data.Vector as V (replicate, drop, take, all, (++))
 import Test.QuickCheck
 import Numeric
 import Control.Exception.Assert
+import Debug.Trace
 
 ------------------------------------------------------------------------------
 -- Mini reversible language for expmod
@@ -14,22 +13,20 @@ import Control.Exception.Assert
 data W = W Int (Vector Bool)
   deriving (Eq,Show)
 
-data Op = Swap Int Int 
-        | (:.:) Op Op
-        | X Int
+data Op = X Int
         | CX Int Int
         | CCX Int Int Int
-        | Controlled Int Op
+        | COp Int Op
+        | (:.:) Op Op
         | Alloc Int
         | DeAlloc Int
 
 invert :: Op -> Op
-invert (Swap i j) = Swap i j
-invert (op1 :.: op2) = invert op2 :.: invert op1
 invert (X i) = X i
 invert (CX i j) = CX i j
 invert (CCX i j k) = CCX i j k
-invert (Controlled i op) = Controlled i (invert op)
+invert (op1 :.: op2) = invert op2 :.: invert op1
+invert (COp i op) = COp i (invert op)
 invert (Alloc i) = DeAlloc i
 invert (DeAlloc i) = Alloc i
 
@@ -37,22 +34,27 @@ neg :: Vector Bool -> Int -> Vector Bool
 neg vec i = vec // [(i , not (vec ! i))]
 
 interp :: Op -> W -> W
-interp (Swap i j) (W n vec) = W n (vec // [(i , vec ! j), (j , vec ! i)])
-interp (op1 :.: op2) w = interp op2 (interp op1 w)
-interp (X i) (W n vec) = W n (neg vec i)
+interp (X i) w@(W n vec) = -- trace ("X: " ++ show w ++ "\n") $
+  W n (neg vec i)
 interp (CX i j) w@(W n vec)
-  | vec ! i = W n (neg vec j)
+  | vec ! i = -- trace ("CX: " ++ show w ++ "\n") $
+    W n (neg vec j)
   | otherwise = w
 interp (CCX i j k) w@(W n vec)
-  | vec ! i && vec ! j = W n (neg vec k)
+  | vec ! i && vec ! j = -- trace ("CCX: " ++ show w ++ "\n") $
+    W n (neg vec k)
   | otherwise = w
-interp (Controlled i op) w@(W n vec)
-  | vec ! i = interp op w
+interp (COp i op) w@(W n vec)
+  | vec ! i = -- trace ("COp: " ++ show w ++ "\n") $
+    interp op w
   | otherwise = w
-interp (Alloc i) w@(W n vec) =
+interp (op1 :.: op2) w = -- trace ("Seq: " ++ show w ++ "\n") $
+  interp op2 (interp op1 w)
+interp (Alloc i) w@(W n vec) = -- trace ("Alloc: " ++ show w ++ "\n") $
   W (n+i) (V.replicate i False V.++ vec)
-interp (DeAlloc i) w@(W n vec) =
-  W (n - i) (V.drop i vec)
+interp (DeAlloc i) w@(W n vec) = -- trace ("DeAlloc: " ++ show w ++ "\n") $
+  assert (V.all not (V.take i vec)) $   
+  W (n-i) (V.drop i vec)
 
 ------------------------------------------------------------------------------
 -- Follow Rieffel & Polak
@@ -87,17 +89,19 @@ addOp (ci,ce) (ai,ae) (bi,be)
 -- addMod a b m
 addModOp :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> Op
 addModOp n (ai,ae) (bi,be) (mi,me) = 
-  Alloc 1 :.: -- t
   Alloc n :.: -- carry
+  Alloc 1 :.: -- t
   addOp (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
   invert (addOp (1,n) (mi+n+1,me+n+1) (bi+n+1,be+n+1)) :.:
-  CX bi 0 :.:
-  Controlled 0 (addOp (1,n) (mi+n+1,me+n+1) (bi+n+1,be+n+1)) :.:
+  CX (bi+n+1) 0 :.:
+  COp 0 (addOp (1,n) (mi+n+1,me+n+1) (bi+n+1,be+n+1)) :.:
   invert (addOp (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1)) :.:
-  X bi :.:
-  CX bi 0 :.:
-  X bi :.:
-  addOp (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) 
+  X (bi+n+1) :.:
+  CX (bi+n+1) 0 :.:
+  X (bi+n+1) :.:
+  addOp (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
+  DeAlloc 1 :.:
+  DeAlloc n
   
 ------------------------------------------------------------------------------
 -- Testing
@@ -125,13 +129,12 @@ addGen = do n <- chooseInt (1, 20)
             return (W wn (fromList (cs ++ as ++ bs)))
 
 addModGen :: Gen W
-addModGen = do n <- chooseInt (1, 20)
+addModGen = do n <- chooseInt (2, 10)
                let wn = 3 * n + 1
                as <- vector n
-               lowbs <- suchThat (vector n) (\ms -> bools2nat ms > 0)
-               let bs = False : lowbs
-               ms <- suchThat (vector n) (\ms -> bools2nat ms > bools2nat bs)
-               return (W wn (fromList (as ++ bs ++ ms)))
+               lowbsms <- suchThat (vector (2*n)) $ \bits ->
+                            bools2nat (drop n bits) > max 1 (bools2nat (take n bits))
+               return (W wn (fromList (as ++ (False : lowbsms))))
 
 instance Arbitrary W where
 --  arbitrary = addGen
@@ -159,7 +162,7 @@ addModProp w@(W wn vec) =
       a = bools2nat as
       b = bools2nat bs
       m = bools2nat ms
-      sum = (a + b) `mod` m
+      sum = if (a + b) >= m then (a + b) - m else (a + b)
       expected = W wn (fromList (as ++ nat2bools (n+1) sum ++ ms))
   in actual == expected 
 
