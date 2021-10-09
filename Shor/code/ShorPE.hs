@@ -16,8 +16,10 @@ data W = W Int (Vector Bool)
 
 data Op = X Int
         | CX Int Int
+        | NCX Int Int
         | CCX Int Int Int
         | COp Int Op
+        | NCOp Int Op
         | SWAP Int Int
         | (:.:) Op Op
         | Alloc Int
@@ -27,8 +29,10 @@ data Op = X Int
 instance Show Op where
   show (X i) = printf "X(%d)" i
   show (CX i j) = printf "CX(%d,%d)" i j
+  show (NCX i j) = printf "NCX(%d,%d)" i j
   show (CCX i j k) = printf "CCX(%d,%d,%d)" i j k
   show (COp i op) = printf "COp(%d,%s" i (show op)
+  show (NCOp i op) = printf "NCOp(%d,%s" i (show op)
   show (SWAP i j) = printf "SWAP(%d,%d)" i j
   show (op1 :.: op2) = printf "%s\n%s" (show op1) (show op2)
   show (Alloc i) = printf "Alloc(%d)" i
@@ -38,8 +42,10 @@ instance Show Op where
 invert :: Op -> Op
 invert (X i) = X i
 invert (CX i j) = CX i j
+invert (NCX i j) = NCX i j
 invert (CCX i j k) = CCX i j k
 invert (COp i op) = COp i (invert op)
+invert (NCOp i op) = NCOp i (invert op)
 invert (SWAP i j) = SWAP i j
 invert (op1 :.: op2) = invert op2 :.: invert op1
 invert (Alloc i) = DeAlloc i
@@ -56,12 +62,20 @@ interp (CX i j) w@(W n vec)
   | vec ! i = -- trace ("CX: " ++ show w ++ "\n") $
     W n (neg vec j)
   | otherwise = w
+interp (NCX i j) w@(W n vec)
+  | not (vec ! i) = -- trace ("CX: " ++ show w ++ "\n") $
+    W n (neg vec j)
+  | otherwise = w
 interp (CCX i j k) w@(W n vec)
   | vec ! i && vec ! j = -- trace ("CCX: " ++ show w ++ "\n") $
     W n (neg vec k)
   | otherwise = w
 interp (COp i op) w@(W n vec)
   | vec ! i = -- trace ("COp: " ++ show w ++ "\n") $
+    interp op w
+  | otherwise = w
+interp (NCOp i op) w@(W n vec)
+  | not (vec ! i) = -- trace ("COp: " ++ show w ++ "\n") $
     interp op w
   | otherwise = w
 interp (SWAP i j) w@(W n vec) =
@@ -117,9 +131,7 @@ addModOp n (ai,ae) (bi,be) (mi,me) =
   CX (bi+n+1) 0 :.:
   COp 0 (addOp (1,n) (mi+n+1,me+n+1) (bi+n+1,be+n+1)) :.:
   invert (addOp (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1)) :.:
-  X (bi+n+1) :.:
-  CX (bi+n+1) 0 :.:
-  X (bi+n+1) :.:
+  NCX (bi+n+1) 0 :.:
   addOp (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
   DeAlloc 1 :.:
   DeAlloc n
@@ -164,8 +176,26 @@ squareModOp n (ai,ae) (mi,me) (si,se) =
   invert (copyOp n (ai+n+1,ae+n) (0,n-1)) :.:
   DeAlloc n
 
-
-
+-- expMod a b m p e
+expModOp :: Int -> Int ->
+            (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> Op
+expModOp n k (ai,ae) (bi,be) (mi,me) (pi,pe) (ei,ee)
+  | k == 1 =
+    NCOp bi (copyOp (n+1) (pi,pe) (ei,ee)) :.:
+    COp bi (timesModOp n (ai,ae) (pi,pe) (mi,me) (ei,ee)) 
+  | otherwise =
+    Alloc (n+1) :.: -- v
+    Alloc (n+1) :.: -- u
+    NCOp (be+d) (copyOp (n+1) (pi+d,pe+d) (n+1,2*n+1)) :.:
+    COp (be+d) (timesModOp n (ai+d,ae+d) (pi+d,pe+d) (mi+d,me+d) (ei+d,ee+d)) :.:
+    squareModOp n (ai+d,ae+d) (mi+d,me+d) (0,n) :.:
+    expModOp n (k-1) (0,n) (bi+d,be+d-1) (mi+d,me+d) (n+1,2*n+1) (ei+d,ee+d) :.:
+    invert (squareModOp n (ai+d,ae+d) (mi+d,me+d) (0,n)) :.:
+    COp (be+d) (invert (timesModOp n (ai+d,ae+d) (pi+d,pe+d) (mi+d,me+d) (ei+d,ee+d))) :.:
+    NCOp (be+d) (invert (copyOp (n+1) (pi+d,pe+d) (n+1,2*n+1))) :.:
+    DeAlloc (n+1) :.: 
+    DeAlloc (n+1) 
+    where d = 2*n + 2
 
 ------------------------------------------------------------------------------
 -- Testing
@@ -201,17 +231,29 @@ addModGen = do n <- chooseInt (2, 20)
                return (W wn (fromList (as ++ (False : lowbsms))))
 
 timesModGen :: Gen W
-timesModGen = do n <- chooseInt (2, 2)
+timesModGen = do n <- chooseInt (2, 20)
                  let wn = 4 * n + 2
                  lowasbsms <- suchThat (vector (3*n)) $ \bits ->
                                 bools2nat (take n bits) < bools2nat (drop (2*n) bits)
                  let ps = replicate n False 
                  return (W wn (fromList ((False : lowasbsms) ++ (False : ps))))
 
+expModGen :: Gen W
+expModGen = do n <- chooseInt (2, 2)
+               let wn = 5 * n + 3
+               lowas <- suchThat (vector n) $ \bits -> bools2nat bits > 0
+               let as = False : lowas
+               bs <- vector n
+               ms <- suchThat (vector n) $ \bits -> bools2nat bits > 1
+               let ps = (replicate n False) ++ [True]
+               let es = replicate (n+1) False
+               return (W wn (fromList (as ++ bs ++ ms ++ ps ++ es)))
+
 instance Arbitrary W where
 --  arbitrary = addGen
 --  arbitrary = addModGen
-    arbitrary = timesModGen
+--  arbitrary = timesModGen
+  arbitrary = expModGen
 
 addProp :: W -> Bool
 addProp w@(W wn vec) =
@@ -253,5 +295,25 @@ timesModProp w@(W wn vec) =
       res = (p + b * a) `mod` m
       expected = W wn (fromList (as ++ bs ++ ms ++ nat2bools (n+1) res))
   in actual == expected 
+
+expModProp :: W -> Bool
+expModProp w@(W wn vec) =
+  let n = (wn - 3) `div` 5
+      actual = interp
+                 (expModOp n n
+                  (0,n) (n+1,2*n) (2*n+1,3*n) (3*n+1,4*n+1) (4*n+2,5*n+2))
+               w
+      (as,r) = splitAt (n+1) (toList vec)
+      (bs,r') = splitAt n r
+      (ms,r'') = splitAt n r'
+      (ps,_) = splitAt (n+1) r''
+      a = bools2nat as
+      b = bools2nat bs
+      m = bools2nat ms
+      p = bools2nat ps
+      res = (a ^ b) `mod` m
+      expected = W wn (fromList (as ++ bs ++ ms ++ ps ++ nat2bools (n+1) res))
+  in actual == expected 
+
 
 ------------------------------------------------------------------------------
