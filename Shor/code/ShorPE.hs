@@ -46,7 +46,6 @@ instance Show OP where
       showH d (LOOP (i:is) f) = printf "%s\n%s" (showH d (f i)) (showH d (LOOP is f))
       showH d (ASSERT s s' f) = printf ""
 
-
 invert :: OP -> OP
 invert (CX i j)         = CX i j
 invert (NCX i j)        = NCX i j
@@ -256,26 +255,20 @@ addOP n (ci,ce) (ai,ae) (bi,be)
 addOPGuard :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
 addOPGuard n (ci,ce) (ai,ae) (bi,be) =
   assert ((ce-ci) == (n-1) && (ae-ai) == (n-1) && (be-bi) == n) $ 
-  ASSERT "addOP" "Precondition wn /= 3n+1 failed"
-    (\ (W wn _) -> wn == 3*n + 1) :.:
-  ASSERT "addOP" "Precondition c /= 0 failed'"
-    (\ (W _ vec) -> bits2nat (V.take n vec) == 0) :.:
-  ASSERT "addOP" "Precondition b[n] /= 0 failed"
-    (\ (W _ vec) -> V.head (V.drop (2*n) vec) == False) :.:
+  ASSERT "addOP" "Precondition wn >= 3n+1 failed"
+    (\ (W wn _) -> wn >= 3*n + 1) :.:
+  ASSERT "addOP" "Precondition c == 0 failed'"
+    (\ (W _ vec) -> bits2nat (V.slice ci n vec) == 0) :.:
+  ASSERT "addOP" "Precondition b[n] == 0 failed"
+    (\ (W _ vec) -> vec ! bi == False) :.:
   addOP n (ci,ce) (ai,ae) (bi,be) :.:
-  ASSERT "addOP" "Postcondition c /= 0 failed"
-    (\ (W _ vec) -> bits2nat (V.take n vec) == 0)
+  ASSERT "addOP" "Postcondition c == 0 failed"
+    (\ (W _ vec) -> bits2nat (V.slice ci n vec) == 0)
 
 -- Testing
 
-instance Arbitrary W where
-  arbitrary = addGen
---  arbitrary = addModGen
---  arbitrary = timesModGen
---  arbitrary = expModGen
-
 addGen :: Gen W
-addGen = do n <- chooseInt (1, 20)
+addGen = do n <- chooseInt (1, 40)
             let wn = 3 * n + 1
             let cs = replicate n False
             as <- vector n
@@ -283,35 +276,24 @@ addGen = do n <- chooseInt (1, 20)
             let bs = False : lowbs
             return (W wn (fromList (cs ++ as ++ bs)))
 
-addProp :: W -> Bool
+addProp :: W -> Property
 addProp w@(W wn vec) =
-  let n = (wn - 1) `div` 3
+  let -- run circuit
+      n = (wn - 1) `div` 3
       actual = interp (addOPGuard n (0,n-1) (n,2*n-1) (2*n,3*n)) w
-      --(cs,r) = splitAt n (toList vec)
+      -- compute expected result
       (cs,r) = V.splitAt n vec
       (as,bs) = V.splitAt n r
-      a = bits2nat as
-      b = bits2nat bs
-      c = bits2nat cs
-      sum = a + b
+      sum = bits2nat as + bits2nat bs
       expected = W wn (cs V.++ as V.++ nat2bits (n+1) sum)
-  in actual == expected 
+      -- compare
+  in actual === expected 
 
+checkAddOP = quickCheck (forAll addGen addProp)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+-- *******
+-- HERE
+-- *******
 
 -- addMod a b m
 addModOP :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
@@ -336,7 +318,7 @@ addModGen = do n <- chooseInt (2, 20)
                             bits2nat (V.drop n (fromList bits)) > max 1 (bits2nat (V.take n (fromList bits)))
                return (W wn (fromList (as ++ (False : lowbsms))))
 
-addModProp :: W -> Bool
+addModProp :: W -> Property
 addModProp w@(W wn vec) =
   let n = (wn - 1) `div` 3
       actual = interp (addModOP n (0,n-1) (n,2*n) (2*n+1,3*n)) w
@@ -348,7 +330,9 @@ addModProp w@(W wn vec) =
       m = bits2nat ms
       sum = if (a + b) >= m then (a + b) - m else (a + b)
       expected = W wn (as V.++ nat2bits (n+1) sum V.++ ms)
-  in actual == expected 
+  in actual === expected 
+
+checkAddModOP = quickCheck (forAll addModGen addModProp)
 
 {--
 
