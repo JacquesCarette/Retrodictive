@@ -4,26 +4,30 @@ import Data.Char
 import Data.Vector (Vector, fromList, toList, (!), (//))
 import qualified Data.Vector as V 
 
-import Debug.Trace
 import Text.Printf
 import Test.QuickCheck
 import Control.Exception.Assert
+
+-- import Debug.Trace
+
+trace :: String -> a -> a
+trace s a = a
 
 ------------------------------------------------------------------------------
 -- Mini reversible language for expmod circuits
 -- Syntax
 
-data OP = CX Int Int                    -- if first true; negate second
-        | NCX Int Int                   -- if first false; negate second
-        | CCX Int Int Int               -- if first,second true; negate third
-        | COP Int OP                    -- if first true; apply op
-        | NCOP Int OP                   -- if first false; apply op
-        | SWAP Int Int                  -- swap values at given indices
-        | (:.:) OP OP                   -- sequential composition
-        | ALLOC Int                     -- alloc n bits to front
-        | DEALLOC Int                   -- dealloc n bits from front
-        | LOOP [Int] (Int -> OP)        -- apply fun to each of indices
-        | ASSERT (W -> Bool)            -- no op; used for debugging
+data OP = CX Int Int                       -- if first true; negate second
+        | NCX Int Int                      -- if first false; negate second
+        | CCX Int Int Int                  -- if first,second true; negate third
+        | COP Int OP                       -- if first true; apply op
+        | NCOP Int OP                      -- if first false; apply op
+        | SWAP Int Int                     -- swap values at given indices
+        | (:.:) OP OP                      -- sequential composition
+        | ALLOC Int                        -- alloc n bits to front
+        | DEALLOC Int                      -- dealloc n bits from front
+        | LOOP [Int] (Int -> OP)           -- apply fun to each of indices
+        | ASSERT String String (W -> Bool) -- no op; used for debugging
 
 instance Show OP where
   show op = showH "" op
@@ -40,7 +44,7 @@ instance Show OP where
       showH d (LOOP [] f)     = printf ""
       showH d (LOOP [i] f)    = printf "%s" (showH d (f i))
       showH d (LOOP (i:is) f) = printf "%s\n%s" (showH d (f i)) (showH d (LOOP is f))
-      showH d (ASSERT f)      = printf ""
+      showH d (ASSERT s s' f) = printf ""
 
 
 invert :: OP -> OP
@@ -54,25 +58,42 @@ invert (op1 :.: op2)    = invert op2 :.: invert op1
 invert (ALLOC i)        = DEALLOC i
 invert (DEALLOC i)      = ALLOC i
 invert (LOOP indices f) = LOOP (reverse indices) (\k -> invert (f k))
-invert (ASSERT f)       = ASSERT f
+invert (ASSERT s s' f)  = ASSERT s s' f
        
 ------------------------------------------------------------------------------
 -- Mini reversible language for expmod circuits
--- Interpreter: state is maintained as a vector of booleaans
+-- Runtime state is a vector of booleans
 
 -- W size bits
+
 data W = W Int (Vector Bool)
   deriving Eq
-
-makeW :: String -> W
-makeW bits = W (length bits) (fromList (map (toEnum . digitToInt) bits))
 
 instance Show W where
   show (W n vec) =
     printf "\t[%d] %s" n (concat (V.map (show . fromEnum) vec))
 
+list2W :: [Bool] -> W
+list2W bits = W (length bits) (fromList bits)
+
+bits2W :: String -> W
+bits2W bits = list2W (map (toEnum . digitToInt) bits)
+
+bits2nat :: Vector Bool -> Int
+bits2nat bs = V.foldr (\b n -> fromEnum b + 2*n) 0 (V.reverse bs)
+
+nat2bits :: Int -> Int -> Vector Bool
+nat2bits len n = V.replicate (len - length bits) False V.++ fromList bits
+  where bin 0 = []
+        bin n = let (q,r) = quotRem n 2 in toEnum r : bin q
+        bits = reverse (bin n)
+
 notI :: Vector Bool -> Int -> Vector Bool
 notI vec i = vec // [(i , not (vec ! i))]
+
+------------------------------------------------------------------------------
+-- Mini reversible language for expmod circuits
+-- Interpreter
 
 interp :: OP -> W -> W
 interp op w@(W n vec) = 
@@ -126,8 +147,8 @@ interp op w@(W n vec) =
         where loop [] w = w
               loop (i:is) w = loop is (interp (f i) w)
 
-    ASSERT f ->
-      assert (f w) $ w
+    ASSERT s s' f ->
+      assertMessage s s' (assert (f w)) w
 
 ------------------------------------------------------------------------------
 -- Circuits following Ch.6 of:
@@ -142,14 +163,26 @@ sumOP c a b =
   CX a b :.:
   CX c b
 
-t0 = interp (sumOP 0 1 2) (makeW "000") -- 000
-t1 = interp (sumOP 0 1 2) (makeW "001") -- 001
-t2 = interp (sumOP 0 1 2) (makeW "010") -- 011
-t3 = interp (sumOP 0 1 2) (makeW "011") -- 010
-t4 = interp (sumOP 0 1 2) (makeW "100") -- 101
-t5 = interp (sumOP 0 1 2) (makeW "101") -- 100
-t6 = interp (sumOP 0 1 2) (makeW "110") -- 110
-t7 = interp (sumOP 0 1 2) (makeW "111") -- 111
+t0 = interp (sumOP 0 1 2) (bits2W "000") -- 000
+t1 = interp (sumOP 0 1 2) (bits2W "001") -- 001
+t2 = interp (sumOP 0 1 2) (bits2W "010") -- 011
+t3 = interp (sumOP 0 1 2) (bits2W "011") -- 010
+t4 = interp (sumOP 0 1 2) (bits2W "100") -- 101
+t5 = interp (sumOP 0 1 2) (bits2W "101") -- 100
+t6 = interp (sumOP 0 1 2) (bits2W "110") -- 110
+t7 = interp (sumOP 0 1 2) (bits2W "111") -- 111
+
+checkSumOP :: Bool
+checkSumOP =
+  assert (t0 == bits2W "000") $
+  assert (t1 == bits2W "001") $
+  assert (t2 == bits2W "011") $
+  assert (t3 == bits2W "010") $
+  assert (t4 == bits2W "101") $
+  assert (t5 == bits2W "100") $
+  assert (t6 == bits2W "110") $
+  assert (t7 == bits2W "111") $
+  True
 
 -- carry: c, a, b, c' => c, a, b, c' xor F(a,b,c)
 -- where F(a,b,c) = 1 if two or more inputs are 1
@@ -161,23 +194,42 @@ carryOP c a b c' =
   CCX c b c' :.:
   CX a b
 
-t08 = interp (carryOP 0 1 2 3) (makeW "0000") -- 0000
-t09 = interp (carryOP 0 1 2 3) (makeW "0001") -- 0001
-t10 = interp (carryOP 0 1 2 3) (makeW "0010") -- 0010
-t11 = interp (carryOP 0 1 2 3) (makeW "0011") -- 0011
-t12 = interp (carryOP 0 1 2 3) (makeW "0100") -- 0100
-t13 = interp (carryOP 0 1 2 3) (makeW "0101") -- 0101
-t14 = interp (carryOP 0 1 2 3) (makeW "0110") -- 0111
-t15 = interp (carryOP 0 1 2 3) (makeW "0111") -- 0110
-t16 = interp (carryOP 0 1 2 3) (makeW "1000") -- 1000
-t17 = interp (carryOP 0 1 2 3) (makeW "1001") -- 1001
-t18 = interp (carryOP 0 1 2 3) (makeW "1010") -- 1011
-t19 = interp (carryOP 0 1 2 3) (makeW "1011") -- 1010
-t20 = interp (carryOP 0 1 2 3) (makeW "1100") -- 1101
-t21 = interp (carryOP 0 1 2 3) (makeW "1101") -- 1100
-t22 = interp (carryOP 0 1 2 3) (makeW "1110") -- 1111
-t23 = interp (carryOP 0 1 2 3) (makeW "1111") -- 1110
+t08 = interp (carryOP 0 1 2 3) (bits2W "0000") -- 0000
+t09 = interp (carryOP 0 1 2 3) (bits2W "0001") -- 0001
+t10 = interp (carryOP 0 1 2 3) (bits2W "0010") -- 0010
+t11 = interp (carryOP 0 1 2 3) (bits2W "0011") -- 0011
+t12 = interp (carryOP 0 1 2 3) (bits2W "0100") -- 0100
+t13 = interp (carryOP 0 1 2 3) (bits2W "0101") -- 0101
+t14 = interp (carryOP 0 1 2 3) (bits2W "0110") -- 0111
+t15 = interp (carryOP 0 1 2 3) (bits2W "0111") -- 0110
+t16 = interp (carryOP 0 1 2 3) (bits2W "1000") -- 1000
+t17 = interp (carryOP 0 1 2 3) (bits2W "1001") -- 1001
+t18 = interp (carryOP 0 1 2 3) (bits2W "1010") -- 1011
+t19 = interp (carryOP 0 1 2 3) (bits2W "1011") -- 1010
+t20 = interp (carryOP 0 1 2 3) (bits2W "1100") -- 1101
+t21 = interp (carryOP 0 1 2 3) (bits2W "1101") -- 1100
+t22 = interp (carryOP 0 1 2 3) (bits2W "1110") -- 1111
+t23 = interp (carryOP 0 1 2 3) (bits2W "1111") -- 1110
 
+checkCarryOP :: Bool
+checkCarryOP =
+  assert (t08 == bits2W "0000") $
+  assert (t09 == bits2W "0001") $
+  assert (t10 == bits2W "0010") $
+  assert (t11 == bits2W "0011") $
+  assert (t12 == bits2W "0100") $
+  assert (t13 == bits2W "0101") $
+  assert (t14 == bits2W "0111") $
+  assert (t15 == bits2W "0110") $
+  assert (t16 == bits2W "1000") $
+  assert (t17 == bits2W "1001") $
+  assert (t18 == bits2W "1011") $
+  assert (t19 == bits2W "1010") $
+  assert (t20 == bits2W "1101") $
+  assert (t21 == bits2W "1100") $
+  assert (t22 == bits2W "1111") $
+  assert (t23 == bits2W "1110") $
+  True
 
 ------------------------------------------------------------------------------
 -- Addition of n-bit numbers
@@ -188,12 +240,11 @@ t23 = interp (carryOP 0 1 2 3) (makeW "1111") -- 1110
 -- b has (n+1)-bits in the range (bi,be)
 --   initialized with bi (the most significant bit) = 0
 
--- add:  c, a, b => c, a, (a + b + c) mod (2 ^ (n+1))
+-- add:  c, a, b => c, a, a + b 
 
 addOP :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
 addOP n (ci,ce) (ai,ae) (bi,be)
   | n == 1 =
-    assert (ci == ce && ai == ae && be - bi == 1) $ 
     carryOP ci ai be bi :.:
     sumOP ci ai be
   | otherwise =
@@ -202,22 +253,26 @@ addOP n (ci,ce) (ai,ae) (bi,be)
     invert (carryOP ce ae be (ce-1)) :.:
     sumOP ce ae be
 
+addOPGuard :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
+addOPGuard n (ci,ce) (ai,ae) (bi,be) =
+  assert ((ce-ci) == (n-1) && (ae-ai) == (n-1) && (be-bi) == n) $ 
+  ASSERT "addOP" "Precondition wn /= 3n+1 failed"
+    (\ (W wn _) -> wn == 3*n + 1) :.:
+  ASSERT "addOP" "Precondition c /= 0 failed'"
+    (\ (W _ vec) -> bits2nat (V.take n vec) == 0) :.:
+  ASSERT "addOP" "Precondition b[n] /= 0 failed"
+    (\ (W _ vec) -> V.head (V.drop (2*n) vec) == False) :.:
+  addOP n (ci,ce) (ai,ae) (bi,be) :.:
+  ASSERT "addOP" "Postcondition c /= 0 failed"
+    (\ (W _ vec) -> bits2nat (V.take n vec) == 0)
+
 -- Testing
 
 instance Arbitrary W where
---  arbitrary = addGen
+  arbitrary = addGen
 --  arbitrary = addModGen
 --  arbitrary = timesModGen
-  arbitrary = expModGen
-
-nat2bools :: Int -> Int -> [Bool]
-nat2bools len n = replicate (len - length bits) False ++ bits
-  where bin 0 = []
-        bin n = let (q,r) = quotRem n 2 in toEnum r : bin q
-        bits = reverse (bin n)
-  
-bools2nat :: [Bool] -> Int
-bools2nat bs = foldr (\b n -> fromEnum b + 2*n) 0 (reverse bs)
+--  arbitrary = expModGen
 
 addGen :: Gen W
 addGen = do n <- chooseInt (1, 20)
@@ -231,28 +286,45 @@ addGen = do n <- chooseInt (1, 20)
 addProp :: W -> Bool
 addProp w@(W wn vec) =
   let n = (wn - 1) `div` 3
-      actual = interp (addOP n (0,n-1) (n,2*n-1) (2*n,3*n)) w
-      (cs,r) = splitAt n (toList vec)
-      (as,bs) = splitAt n r
-      a = bools2nat as
-      b = bools2nat bs
-      c = bools2nat cs
-      sum = (a + b + c) `mod` (2 ^ (n + 1))
-      expected = W wn (fromList (cs ++ as ++ nat2bools (n+1) sum))
+      actual = interp (addOPGuard n (0,n-1) (n,2*n-1) (2*n,3*n)) w
+      --(cs,r) = splitAt n (toList vec)
+      (cs,r) = V.splitAt n vec
+      (as,bs) = V.splitAt n r
+      a = bits2nat as
+      b = bits2nat bs
+      c = bits2nat cs
+      sum = a + b
+      expected = W wn (cs V.++ as V.++ nat2bits (n+1) sum)
   in actual == expected 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 -- addMod a b m
 addModOP :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
 addModOP n (ai,ae) (bi,be) (mi,me) = 
   ALLOC n :.: -- carry
   ALLOC 1 :.: -- t
-  addOP n (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
-  invert (addOP n (1,n) (mi+n+1,me+n+1) (bi+n+1,be+n+1)) :.:
+  addOPGuard n (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
+  invert (addOPGuard n (1,n) (mi+n+1,me+n+1) (bi+n+1,be+n+1)) :.:
   CX (bi+n+1) 0 :.:
-  COP 0 (addOP n (1,n) (mi+n+1,me+n+1) (bi+n+1,be+n+1)) :.:
-  invert (addOP n (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1)) :.:
+  COP 0 (addOPGuard n (1,n) (mi+n+1,me+n+1) (bi+n+1,be+n+1)) :.:
+  invert (addOPGuard n (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1)) :.:
   NCX (bi+n+1) 0 :.:
-  addOP n (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
+  addOPGuard n (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
   DEALLOC 1 :.:
   DEALLOC n
   
@@ -261,21 +333,24 @@ addModGen = do n <- chooseInt (2, 20)
                let wn = 3 * n + 1
                as <- vector n
                lowbsms <- suchThat (vector (2*n)) $ \bits ->
-                            bools2nat (drop n bits) > max 1 (bools2nat (take n bits))
+                            bits2nat (V.drop n (fromList bits)) > max 1 (bits2nat (V.take n (fromList bits)))
                return (W wn (fromList (as ++ (False : lowbsms))))
 
 addModProp :: W -> Bool
 addModProp w@(W wn vec) =
   let n = (wn - 1) `div` 3
       actual = interp (addModOP n (0,n-1) (n,2*n) (2*n+1,3*n)) w
-      (as,r) = splitAt n (toList vec)
-      (bs,ms) = splitAt (n+1) r
-      a = bools2nat as
-      b = bools2nat bs
-      m = bools2nat ms
+      --(as,r) = splitAt n (toList vec)
+      (as,r) = V.splitAt n vec
+      (bs,ms) = V.splitAt (n+1) r
+      a = bits2nat as
+      b = bits2nat bs
+      m = bits2nat ms
       sum = if (a + b) >= m then (a + b) - m else (a + b)
-      expected = W wn (fromList (as ++ nat2bools (n+1) sum ++ ms))
+      expected = W wn (as V.++ nat2bits (n+1) sum V.++ ms)
   in actual == expected 
+
+{--
 
 ------------------------------------------------------------------------------
 -- 
@@ -296,17 +371,17 @@ timesModOP n (ai,ae) (bi,be) (mi,me) (pi,pe) =
   ALLOC n :.: -- carry
   ALLOC n :.: -- t
   LOOP [0..(n-1)] (\i ->
-    invert (addOP n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)) :.:
+    invert (addOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)) :.:
     CX (ai+2*n) i :.:
-    COP i (addOP n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)) :.: 
+    COP i (addOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)) :.: 
     COP (be+2*n-i) (addModOP n (ai+2*n+1,ae+2*n) (pi+2*n,pe+2*n) (mi+2*n,me+2*n)) :.: 
     shiftOP (ai+2*n,ae+2*n) 
   ) :.:
   LOOP [(n-1),(n-2)..0] (\i ->
     invert (shiftOP (ai+2*n,ae+2*n)) :.:
-    COP i (invert (addOP n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n))) :.: 
+    COP i (invert (addOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n))) :.: 
     CX (ai+2*n) i :.:
-    addOP n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)
+    addOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)
   ) :.:
   DEALLOC n :.:
   DEALLOC n
@@ -348,17 +423,17 @@ timesModGen :: Gen W
 timesModGen = do n <- chooseInt (2, 20)
                  let wn = 4 * n + 2
                  lowasbsms <- suchThat (vector (3*n)) $ \bits ->
-                                bools2nat (take n bits) < bools2nat (drop (2*n) bits)
+                                bits2nat (take n bits) < bits2nat (drop (2*n) bits)
                  let ps = replicate n False 
                  return (W wn (fromList ((False : lowasbsms) ++ (False : ps))))
 
 expModGen :: Gen W
 expModGen = do n <- chooseInt (2, 20)
                let wn = 5 * n + 3
-               lowas <- suchThat (vector n) $ \bits -> bools2nat bits > 0
+               lowas <- suchThat (vector n) $ \bits -> bits2nat bits > 0
                let as = False : lowas
                bs <- vector n
-               ms <- suchThat (vector n) $ \bits -> bools2nat bits > 1
+               ms <- suchThat (vector n) $ \bits -> bits2nat bits > 1
                let ps = (replicate n False) ++ [True]
                let es = replicate (n+1) False
                return (W wn (fromList (as ++ bs ++ ms ++ ps ++ es)))
@@ -370,12 +445,12 @@ timesModProp w@(W wn vec) =
       (as,r) = splitAt (n+1) (toList vec)
       (bs,r') = splitAt n r
       (ms,ps) = splitAt n r'
-      a = bools2nat as
-      b = bools2nat bs
-      m = bools2nat ms
-      p = bools2nat ps
+      a = bits2nat as
+      b = bits2nat bs
+      m = bits2nat ms
+      p = bits2nat ps
       res = (p + b * a) `mod` m
-      expected = W wn (fromList (as ++ bs ++ ms ++ nat2bools (n+1) res))
+      expected = W wn (fromList (as ++ bs ++ ms ++ nat2bits (n+1) res))
   in actual == expected 
 
 expModProp :: W -> Bool
@@ -389,13 +464,14 @@ expModProp w@(W wn vec) =
       (bs,r') = splitAt n r
       (ms,r'') = splitAt n r'
       (ps,_) = splitAt (n+1) r''
-      a = bools2nat as
-      b = bools2nat bs
-      m = bools2nat ms
-      p = bools2nat ps
+      a = bits2nat as
+      b = bits2nat bs
+      m = bits2nat ms
+      p = bits2nat ps
       res = (a ^ b) `mod` m
-      expected = W wn (fromList (as ++ bs ++ ms ++ ps ++ nat2bools (n+1) res))
+      expected = W wn (fromList (as ++ bs ++ ms ++ ps ++ nat2bits (n+1) res))
   in actual == expected 
 
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
+--}
