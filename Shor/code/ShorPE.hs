@@ -155,7 +155,7 @@ interp op w@(W n vec) =
 -- Circuits following Ch.6 of:
 -- Quantum Computing: A Gentle Introduction by Rieffel & Polak
 
--- One-bit helpers
+-- Simple helpers
 
 -- sum: c, a, b => c, a, (a+b+c) mod 2
 
@@ -173,8 +173,8 @@ t5 = interp (sumOP 0 1 2) (string2W "101") -- 100
 t6 = interp (sumOP 0 1 2) (string2W "110") -- 110
 t7 = interp (sumOP 0 1 2) (string2W "111") -- 111
 
-checkSumOP :: Bool
-checkSumOP =
+prop_sum :: Bool
+prop_sum =
   assert (t0 == string2W "000") $
   assert (t1 == string2W "001") $
   assert (t2 == string2W "011") $
@@ -212,8 +212,8 @@ t21 = interp (carryOP 0 1 2 3) (string2W "1101") -- 1100
 t22 = interp (carryOP 0 1 2 3) (string2W "1110") -- 1111
 t23 = interp (carryOP 0 1 2 3) (string2W "1111") -- 1110
 
-checkCarryOP :: Bool
-checkCarryOP =
+prop_carry :: Bool
+prop_carry =
   assert (t08 == string2W "0000") $
   assert (t09 == string2W "0001") $
   assert (t10 == string2W "0010") $
@@ -232,6 +232,65 @@ checkCarryOP =
   assert (t23 == string2W "1110") $
   True
 
+-- takes n-bits [a, b, c, ... , y, z] stored in the range (i,e)
+-- and produces [b, c, ... , y, z, a]
+--
+-- when a=0, this is multiplication by 2
+
+shiftOP :: (Int,Int) -> OP
+shiftOP (i,e) =
+  LOOP [i..(e-1)] (\k -> SWAP k (k+1))
+
+shiftOPGuard :: (Int,Int) -> OP
+shiftOPGuard (i,e) =
+  ASSERT "shiftOP" "Precondition wn >= n failed"
+    (\w@(W wn vec) -> wn >= e-i+1) :.:
+  ASSERT "shiftOP" "Precondition x[n] == 0 failed"
+    (\w@(W wn vec) -> vec ! i == False) :.:
+  shiftOP (i,e)
+
+prop_shift :: Property
+prop_shift = forAll
+  (do n <- chooseInt (1,40)
+      xs <- vector n
+      return (W (n+1) (fromList (False : xs))))
+  (\ w@(W wn vec) ->
+    let actual = interp (shiftOPGuard (0,wn-1)) w
+        res = 2 * toInt vec
+        expected = W wn (fromInt wn res)
+    in actual === expected)
+
+-- a has n-bits stored in the range (ai,ae)
+-- b has n-bits stored in the range (bi,be)
+--   initialized to 0
+
+-- copy: a , 0 => a, a
+
+copyOP :: Int -> (Int,Int) -> (Int,Int) -> OP
+copyOP n (ai,ae) (bi,be) =
+  LOOP [0..(n-1)] (\k -> CX (ai+k) (bi+k))
+
+copyOPGuard :: Int -> (Int,Int) -> (Int,Int) -> OP
+copyOPGuard n (ai,ae) (bi,be) =
+  ASSERT "copyOP" "Precondition wn >= 2n failed"
+    (\w@(W wn vec) -> wn >= 2*n) :.:
+  ASSERT "copyOP" "Precondition b == 0 failed"
+    (\w@(W wn vec) -> toInt (V.slice n n vec) == 0) :.:
+  copyOP n (ai,ae) (bi,be)
+
+prop_copy :: Property
+prop_copy = forAll
+  (do n <- chooseInt (1,40)
+      as <- vector n
+      let bs = replicate n False
+      return (W (2*n) (fromList (as ++ bs))))
+  (\ w@(W wn vec) ->
+    let n = wn `div` 2
+        actual = interp (copyOPGuard n (0,n-1) (n,2*n-1)) w
+        as = V.take n vec
+        expected = W wn (as V.++ as)
+    in actual === expected)
+
 ------------------------------------------------------------------------------
 -- Addition of n-bit numbers
 
@@ -240,8 +299,8 @@ checkCarryOP =
 -- a has n bits stored in the range (ai,ae)
 -- b has (n+1)-bits stored in the range (bi,be)
 
--- add:  c, a, b => c, a, (a + b) `mod` (2 ^ (n+1))
--- sub:  c, a, b => c, a, (b - a) (+ 2 ^ (n+1) if (b-a) negative)
+-- add:  0, a, b => 0, a, (a + b) `mod` (2 ^ (n+1))
+-- sub:  0, a, b => 0, a, (b - a) (+ 2 ^ (n+1) if (b-a) negative)
 
 addOP :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
 addOP n (ci,ce) (ai,ae) (bi,be)
@@ -398,20 +457,10 @@ prop_subMod = forAll addModGen $ \ w@(W wn vec) ->
       expected = W wn (as V.++ diffs V.++ ms)
   in actual === expected
 
-{--
 ------------------------------------------------------------------------------
 -- 
 
--- shift
-shiftOP :: (Int,Int) -> OP
-shiftOP (i,e) =
-  LOOP [i..(e-1)] (\k -> SWAP k (k+1))
-
--- copy a b
-copyOP :: Int -> (Int,Int) -> (Int,Int) -> OP
-copyOP n (ai,ae) (bi,be) =
-  LOOP [0..(n-1)] (\k -> CX (ai+k) (bi+k))
-
+{--
 -- timesMod a b m p
 timesModOP :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
 timesModOP n (ai,ae) (bi,be) (mi,me) (pi,pe) =
@@ -421,11 +470,11 @@ timesModOP n (ai,ae) (bi,be) (mi,me) (pi,pe) =
     invert (addOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)) :.:
     CX (ai+2*n) i :.:
     COP i (addOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)) :.: 
-    COP (be+2*n-i) (addModOP n (ai+2*n+1,ae+2*n) (pi+2*n,pe+2*n) (mi+2*n,me+2*n)) :.: 
-    shiftOP (ai+2*n,ae+2*n) 
+    COP (be+2*n-i) (addModOPGuard n (ai+2*n+1,ae+2*n) (pi+2*n,pe+2*n) (mi+2*n,me+2*n)) :.: 
+    shiftOPGuard (ai+2*n,ae+2*n) 
   ) :.:
   LOOP [(n-1),(n-2)..0] (\i ->
-    invert (shiftOP (ai+2*n,ae+2*n)) :.:
+    invert (shiftOPGuard (ai+2*n,ae+2*n)) :.:
     COP i (invert (addOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n))) :.: 
     CX (ai+2*n) i :.:
     addOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)
@@ -437,9 +486,9 @@ timesModOP n (ai,ae) (bi,be) (mi,me) (pi,pe) =
 squareModOP :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
 squareModOP n (ai,ae) (mi,me) (si,se) =
   ALLOC n :.: -- t
-  copyOP n (ai+n+1,ae+n) (0,n-1) :.:
+  copyOPGuard n (ai+n+1,ae+n) (0,n-1) :.:
   timesModOP n (ai+n,ae+n) (0,n-1) (mi+n,me+n) (si+n,se+n) :.:
-  invert (copyOP n (ai+n+1,ae+n) (0,n-1)) :.:
+  invert (copyOPGuard n (ai+n+1,ae+n) (0,n-1)) :.:
   DEALLOC n
 
 -- expMod a b m p e
@@ -447,18 +496,18 @@ expModOP :: Int -> Int ->
             (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
 expModOP n k (ai,ae) (bi,be) (mi,me) (pi,pe) (ei,ee)
   | k == 1 =
-    NCOP bi (copyOP (n+1) (pi,pe) (ei,ee)) :.:
+    NCOP bi (copyOPGuard (n+1) (pi,pe) (ei,ee)) :.:
     COP bi (timesModOP n (ai,ae) (pi,pe) (mi,me) (ei,ee)) 
   | otherwise =
     ALLOC (n+1) :.: -- v
     ALLOC (n+1) :.: -- u
-    NCOP (be+d) (copyOP (n+1) (pi+d,pe+d) (n+1,2*n+1)) :.:
+    NCOP (be+d) (copyOPGuard (n+1) (pi+d,pe+d) (n+1,2*n+1)) :.:
     COP (be+d) (timesModOP n (ai+d,ae+d) (pi+d,pe+d) (mi+d,me+d) (ei+d,ee+d)) :.:
     squareModOP n (ai+d,ae+d) (mi+d,me+d) (0,n) :.:
     expModOP n (k-1) (0,n) (bi+d,be+d-1) (mi+d,me+d) (n+1,2*n+1) (ei+d,ee+d) :.:
     invert (squareModOP n (ai+d,ae+d) (mi+d,me+d) (0,n)) :.:
     COP (be+d) (invert (timesModOP n (ai+d,ae+d) (pi+d,pe+d) (mi+d,me+d) (ei+d,ee+d))) :.:
-    NCOP (be+d) (invert (copyOP (n+1) (pi+d,pe+d) (n+1,2*n+1))) :.:
+    NCOP (be+d) (invert (copyOPGuard (n+1) (pi+d,pe+d) (n+1,2*n+1))) :.:
     DEALLOC (n+1) :.: 
     DEALLOC (n+1) 
     where d = 2*n + 2
