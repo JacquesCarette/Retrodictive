@@ -1,5 +1,17 @@
 {-# LANGUAGE TemplateHaskell #-}
 
+{--
+
+NOTE:
+
+Need bignums
+
+Multiplication of 20 bit numbers already overflows
+Subtle distinction between Int (used for indices) and
+Integer used for actual values that are added, multiplied, etc.
+
+--}
+
 module ShorPE where
 
 import Data.Char
@@ -10,7 +22,7 @@ import Text.Printf
 import Test.QuickCheck
 import Control.Exception.Assert
 
--- import Debug.Trace
+--import Debug.Trace
 
 trace :: String -> a -> a
 trace s a = a
@@ -80,13 +92,13 @@ list2W bits = W (length bits) (fromList bits)
 string2W :: String -> W
 string2W bits = list2W (map (toEnum . digitToInt) bits)
 
-toInt :: Vector Bool -> Int
-toInt bs = V.foldr (\b n -> fromEnum b + 2*n) 0 (V.reverse bs)
+toInt :: Vector Bool -> Integer
+toInt bs = V.foldr (\b n -> toInteger (fromEnum b) + 2*n) 0 (V.reverse bs)
 
-fromInt :: Int -> Int -> Vector Bool
+fromInt :: Int -> Integer -> Vector Bool
 fromInt len n = V.replicate (len - length bits) False V.++ fromList bits
   where bin 0 = []
-        bin n = let (q,r) = quotRem n 2 in toEnum r : bin q
+        bin n = let (q,r) = quotRem n 2 in toEnum (fromInteger r) : bin q
         bits = reverse (bin n)
 
 notI :: Vector Bool -> Int -> Vector Bool
@@ -241,13 +253,21 @@ shiftOP :: (Int,Int) -> OP
 shiftOP (i,e) =
   LOOP [i..(e-1)] (\k -> SWAP k (k+1))
 
-shiftOPGuard :: (Int,Int) -> OP
-shiftOPGuard (i,e) =
+shiftLOPGuard :: (Int,Int) -> OP
+shiftLOPGuard (i,e) =
   ASSERT "shiftOP" "Precondition wn >= n failed"
     (\w@(W wn vec) -> wn >= e-i+1) :.:
   ASSERT "shiftOP" "Precondition x[n] == 0 failed"
     (\w@(W wn vec) -> vec ! i == False) :.:
   shiftOP (i,e)
+
+shiftROPGuard :: (Int,Int) -> OP
+shiftROPGuard (i,e) =
+  ASSERT "shiftROP" "Precondition wn >= n failed"
+    (\w@(W wn vec) -> wn >= e-i+1) :.:
+  invert (shiftOP (i,e)) :.:
+  ASSERT "shiftROP" "Postcondition x[n] == 0 failed"
+    (\w@(W wn vec) -> vec ! i == False)
 
 prop_shift :: Property
 prop_shift = forAll
@@ -255,7 +275,7 @@ prop_shift = forAll
       xs <- vector n
       return (W (n+1) (fromList (False : xs))))
   (\ w@(W wn vec) ->
-    let actual = interp (shiftOPGuard (0,wn-1)) w
+    let actual = interp (shiftLOPGuard (0,wn-1)) w
         res = 2 * toInt vec
         expected = W wn (fromInt wn res)
     in actual === expected)
@@ -425,9 +445,9 @@ addModGen :: Gen W
 addModGen =
   do n <- chooseInt (1, 40)
      let wn = 3 * n + 1
-     m <- chooseInt (1, 2^n-1)
-     a <- chooseInt (0,m-1)
-     b <- chooseInt (0,m-1)
+     m <- chooseInteger (1, 2^n-1)
+     a <- chooseInteger (0,m-1)
+     b <- chooseInteger (0,m-1)
      return (W wn (fromInt n a V.++ fromInt (n+1) b V.++ fromInt n m))
 
 prop_addMod :: Property
@@ -458,36 +478,121 @@ prop_subMod = forAll addModGen $ \ w@(W wn vec) ->
   in actual === expected
 
 ------------------------------------------------------------------------------
--- 
+-- Multiply two n-bit numbers mod another n-bit number
 
-{--
--- timesMod a b m p
+-- a has (n+1)-bits stored in the range (ai,ae)
+-- b has n-bits stored in the range (bi,be)
+-- m has n-bits stored in the range (mi,me)
+-- p has (n+1)-bits stored in the range (pi,pe)
+-- precondition: a < m, p < m, and m > 0 to make sense of mod
+
+-- timesMod: a, b, m, p => a, b, m, (p + ab) `mod` m
+-- divMod: a, b, m, p => a, b, m, (p - ab `mod` m) (add m if negative)
+
 timesModOP :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
 timesModOP n (ai,ae) (bi,be) (mi,me) (pi,pe) =
   ALLOC n :.: -- carry
   ALLOC n :.: -- t
   LOOP [0..(n-1)] (\i ->
-    invert (addOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)) :.:
+    subOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n) :.:
     CX (ai+2*n) i :.:
     COP i (addOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)) :.: 
     COP (be+2*n-i) (addModOPGuard n (ai+2*n+1,ae+2*n) (pi+2*n,pe+2*n) (mi+2*n,me+2*n)) :.: 
-    shiftOPGuard (ai+2*n,ae+2*n) 
+    shiftLOPGuard (ai+2*n,ae+2*n) 
   ) :.:
   LOOP [(n-1),(n-2)..0] (\i ->
-    invert (shiftOPGuard (ai+2*n,ae+2*n)) :.:
-    COP i (invert (addOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n))) :.: 
+    shiftROPGuard (ai+2*n,ae+2*n) :.:
+    COP i (subOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)) :.: 
     CX (ai+2*n) i :.:
     addOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)
   ) :.:
+  ASSERT "timesModOP" "Failed to restore temporary register to 0"
+    (\ (W _ vec) -> toInt (V.slice 0 n vec) == 0) :.:
   DEALLOC n :.:
+  ASSERT "timesModOP" "Failed to restore carry to 0"
+    (\ (W _ vec) -> toInt (V.slice 0 n vec) == 0) :.:
   DEALLOC n
+
+timesModOPGuard :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
+timesModOPGuard n (ai,ae) (bi,be) (mi,me) (pi,pe) =
+  assert ((ae-ai) == n && (be-bi) == n-1 && (me-mi) == n-1 && (pe-pi) == n) $
+  ASSERT "timesModOP" "Precondition wn >= 4n+2 failed"
+    (\ w@(W wn _) -> wn >= 4 * n + 2) :.:
+  ASSERT "timesModOP" "Precondition a < m failed'"
+    (\ (W _ vec) -> toInt (V.slice ai n vec) < toInt (V.slice mi n vec)) :.:
+  ASSERT "timesModOP" "Precondition p < m failed'"
+    (\ (W _ vec) -> toInt (V.slice pi n vec) < toInt (V.slice mi n vec)) :.:
+  timesModOP n (ai,ae) (bi,be) (mi,me) (pi,pe)
+
+divModOPGuard :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
+divModOPGuard n (ai,ae) (bi,be) (mi,me) (pi,pe) =
+  assert ((ae-ai) == n && (be-bi) == n-1 && (me-mi) == n-1 && (pe-pi) == n) $
+  ASSERT "divModOP" "Precondition wn >= 4n+2 failed"
+    (\ w@(W wn _) -> wn >= 4 * n + 2) :.:
+  ASSERT "divModOP" "Precondition a < m failed'"
+    (\ (W _ vec) -> toInt (V.slice ai n vec) < toInt (V.slice mi n vec)) :.:
+  ASSERT "divModOP" "Precondition p < m failed'"
+    (\ (W _ vec) -> toInt (V.slice pi n vec) < toInt (V.slice mi n vec)) :.:
+  invert (timesModOP n (ai,ae) (bi,be) (mi,me) (pi,pe))
+
+timesModGen :: Gen W
+timesModGen =
+  do n <- chooseInt (1, 40)
+     let wn = 4 * n + 2
+     m <- chooseInteger (1, 2 ^ n - 1)
+     a <- chooseInteger (0, m - 1)
+     b <- chooseInteger (0, 2 ^ n - 1)
+     p <- chooseInteger (0, m - 1)
+     return (W wn (fromInt (n+1) a V.++ fromInt n b V.++ fromInt n m V.++ fromInt (n+1) p))
+
+prop_timesMod :: Property
+prop_timesMod = forAll timesModGen $ \ w@(W wn vec) ->
+  let n = (wn - 2) `div` 4
+      actual = interp (timesModOPGuard n (0,n) (n+1,2*n) (2*n+1,3*n) (3*n+1,4*n+1)) w
+      (as,r) = V.splitAt (n+1) vec
+      (bs,r') = V.splitAt n r
+      (ms,ps) = V.splitAt n r'
+      a = toInt as
+      b = toInt bs
+      m = toInt ms
+      p = toInt ps
+      prod = (p + a * b) `mod` m
+      prods = fromInt (n+1) prod
+      expected = W wn (as V.++ bs V.++ ms V.++ prods)
+  in actual == expected
+
+prop_divMod :: Property
+prop_divMod = forAll timesModGen $ \ w@(W wn vec) ->
+  let n = (wn - 2) `div` 4
+      actual = interp (divModOPGuard n (0,n) (n+1,2*n) (2*n+1,3*n) (3*n+1,4*n+1)) w
+      (as,r) = V.splitAt (n+1) vec
+      (bs,r') = V.splitAt n r
+      (ms,ps) = V.splitAt n r'
+      a = toInt as
+      b = toInt bs
+      m = toInt ms
+      p = toInt ps
+      pres = p - ((a * b) `mod` m)
+      quot = if (pres < 0) then pres + m else pres
+      quots = fromInt (n+1) quot
+      expected = W wn (as V.++ bs V.++ ms V.++ quots)
+  in actual == expected
+
+------------------------------------------------------------------------------
+-- 
+
+
+
+
+
+{--
 
 -- squareMod a m s
 squareModOP :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
 squareModOP n (ai,ae) (mi,me) (si,se) =
   ALLOC n :.: -- t
   copyOPGuard n (ai+n+1,ae+n) (0,n-1) :.:
-  timesModOP n (ai+n,ae+n) (0,n-1) (mi+n,me+n) (si+n,se+n) :.:
+  timesModOPGuard n (ai+n,ae+n) (0,n-1) (mi+n,me+n) (si+n,se+n) :.:
   invert (copyOPGuard n (ai+n+1,ae+n) (0,n-1)) :.:
   DEALLOC n
 
@@ -497,16 +602,16 @@ expModOP :: Int -> Int ->
 expModOP n k (ai,ae) (bi,be) (mi,me) (pi,pe) (ei,ee)
   | k == 1 =
     NCOP bi (copyOPGuard (n+1) (pi,pe) (ei,ee)) :.:
-    COP bi (timesModOP n (ai,ae) (pi,pe) (mi,me) (ei,ee)) 
+    COP bi (timesModOPGuard n (ai,ae) (pi,pe) (mi,me) (ei,ee)) 
   | otherwise =
     ALLOC (n+1) :.: -- v
     ALLOC (n+1) :.: -- u
     NCOP (be+d) (copyOPGuard (n+1) (pi+d,pe+d) (n+1,2*n+1)) :.:
-    COP (be+d) (timesModOP n (ai+d,ae+d) (pi+d,pe+d) (mi+d,me+d) (ei+d,ee+d)) :.:
+    COP (be+d) (timesModOPGuard n (ai+d,ae+d) (pi+d,pe+d) (mi+d,me+d) (ei+d,ee+d)) :.:
     squareModOP n (ai+d,ae+d) (mi+d,me+d) (0,n) :.:
     expModOP n (k-1) (0,n) (bi+d,be+d-1) (mi+d,me+d) (n+1,2*n+1) (ei+d,ee+d) :.:
     invert (squareModOP n (ai+d,ae+d) (mi+d,me+d) (0,n)) :.:
-    COP (be+d) (invert (timesModOP n (ai+d,ae+d) (pi+d,pe+d) (mi+d,me+d) (ei+d,ee+d))) :.:
+    COP (be+d) (invert (timesModOPGuard n (ai+d,ae+d) (pi+d,pe+d) (mi+d,me+d) (ei+d,ee+d))) :.:
     NCOP (be+d) (invert (copyOPGuard (n+1) (pi+d,pe+d) (n+1,2*n+1))) :.:
     DEALLOC (n+1) :.: 
     DEALLOC (n+1) 
@@ -514,14 +619,6 @@ expModOP n k (ai,ae) (bi,be) (mi,me) (pi,pe) (ei,ee)
 
 ------------------------------------------------------------------------------
 -- Testing
-
-timesModGen :: Gen W
-timesModGen = do n <- chooseInt (2, 20)
-                 let wn = 4 * n + 2
-                 lowasbsms <- suchThat (vector (3*n)) $ \bits ->
-                                toInt (take n bits) < toInt (drop (2*n) bits)
-                 let ps = replicate n False 
-                 return (W wn (fromList ((False : lowasbsms) ++ (False : ps))))
 
 expModGen :: Gen W
 expModGen = do n <- chooseInt (2, 20)
@@ -533,21 +630,6 @@ expModGen = do n <- chooseInt (2, 20)
                let ps = (replicate n False) ++ [True]
                let es = replicate (n+1) False
                return (W wn (fromList (as ++ bs ++ ms ++ ps ++ es)))
-
-timesModProp :: W -> Bool
-timesModProp w@(W wn vec) =
-  let n = (wn - 2) `div` 4
-      actual = interp (timesModOP n (0,n) (n+1,2*n) (2*n+1,3*n) (3*n+1,4*n+1)) w
-      (as,r) = splitAt (n+1) (toList vec)
-      (bs,r') = splitAt n r
-      (ms,ps) = splitAt n r'
-      a = toInt as
-      b = toInt bs
-      m = toInt ms
-      p = toInt ps
-      res = (p + b * a) `mod` m
-      expected = W wn (fromList (as ++ bs ++ ms ++ fromInt (n+1) res))
-  in actual == expected 
 
 expModProp :: W -> Bool
 expModProp w@(W wn vec) =
