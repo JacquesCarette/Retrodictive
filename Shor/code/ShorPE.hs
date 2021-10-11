@@ -253,20 +253,20 @@ shiftOP :: (Int,Int) -> OP
 shiftOP (i,e) =
   LOOP [i..(e-1)] (\k -> SWAP k (k+1))
 
-shiftLOPGuard :: (Int,Int) -> OP
-shiftLOPGuard (i,e) =
+shiftOPGuard :: (Int,Int) -> OP
+shiftOPGuard (i,e) =
   ASSERT "shiftOP" "Precondition wn >= n failed"
     (\w@(W wn vec) -> wn >= e-i+1) :.:
   ASSERT "shiftOP" "Precondition x[n] == 0 failed"
     (\w@(W wn vec) -> vec ! i == False) :.:
   shiftOP (i,e)
 
-shiftROPGuard :: (Int,Int) -> OP
-shiftROPGuard (i,e) =
-  ASSERT "shiftROP" "Precondition wn >= n failed"
+unShiftOPGuard :: (Int,Int) -> OP
+unShiftOPGuard (i,e) =
+  ASSERT "unShiftOP" "Precondition wn >= n failed"
     (\w@(W wn vec) -> wn >= e-i+1) :.:
   invert (shiftOP (i,e)) :.:
-  ASSERT "shiftROP" "Postcondition x[n] == 0 failed"
+  ASSERT "unShiftOP" "Postcondition x[n] == 0 failed"
     (\w@(W wn vec) -> vec ! i == False)
 
 prop_shift :: Property
@@ -275,7 +275,7 @@ prop_shift = forAll
       xs <- vector n
       return (W (n+1) (fromList (False : xs))))
   (\ w@(W wn vec) ->
-    let actual = interp (shiftLOPGuard (0,wn-1)) w
+    let actual = interp (shiftOPGuard (0,wn-1)) w
         res = 2 * toInt vec
         expected = W wn (fromInt wn res)
     in actual === expected)
@@ -295,8 +295,16 @@ copyOPGuard n (ai,ae) (bi,be) =
   ASSERT "copyOP" "Precondition wn >= 2n failed"
     (\w@(W wn vec) -> wn >= 2*n) :.:
   ASSERT "copyOP" "Precondition b == 0 failed"
-    (\w@(W wn vec) -> toInt (V.slice n n vec) == 0) :.:
+    (\w@(W wn vec) -> toInt (V.slice bi n vec) == 0) :.:
   copyOP n (ai,ae) (bi,be)
+
+uncopyOPGuard :: Int -> (Int,Int) -> (Int,Int) -> OP
+uncopyOPGuard n (ai,ae) (bi,be) =
+  ASSERT "uncopyOP" "Precondition wn >= 2n failed"
+    (\w@(W wn vec) -> wn >= 2*n) :.:
+  invert (copyOP n (ai,ae) (bi,be)) :.:
+  ASSERT "uncopyOP" "Postcondition b == 0 failed"
+    (\w@(W wn vec) -> toInt (V.slice bi n vec) == 0) 
 
 prop_copy :: Property
 prop_copy = forAll
@@ -320,7 +328,7 @@ prop_copy = forAll
 -- b has (n+1)-bits stored in the range (bi,be)
 
 -- add:  0, a, b => 0, a, (a + b) `mod` (2 ^ (n+1))
--- sub:  0, a, b => 0, a, (b - a) (+ 2 ^ (n+1) if (b-a) negative)
+-- unAdd:  0, a, b => 0, a, (b - a) (+ 2 ^ (n+1) if (b-a) negative)
 
 addOP :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
 addOP n (ci,ce) (ai,ae) (bi,be)
@@ -346,15 +354,15 @@ addOPGuard n (ci,ce) (ai,ae) (bi,be) =
   ASSERT "addOP" "Postcondition c == 0 failed"
     (\ (W _ vec) -> toInt (V.slice ci n vec) == 0)
 
-subOPGuard :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
-subOPGuard n (ci,ce) (ai,ae) (bi,be) =
+unAddOPGuard :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
+unAddOPGuard n (ci,ce) (ai,ae) (bi,be) =
   assert ((ce-ci) == (n-1) && (ae-ai) == (n-1) && (be-bi) == n) $ 
-  ASSERT "subOP" "Precondition wn >= 3n+1 failed"
+  ASSERT "unAddOP" "Precondition wn >= 3n+1 failed"
     (\ (W wn _) -> wn >= 3*n + 1) :.:
-  ASSERT "subOP" "Precondition c == 0 failed'"
+  ASSERT "unAddOP" "Precondition c == 0 failed'"
     (\ (W _ vec) -> toInt (V.slice ci n vec) == 0) :.:
   invert (addOP n (ci,ce) (ai,ae) (bi,be)) :.:
-  ASSERT "subOP" "Postcondition c == 0 failed"
+  ASSERT "unAddOP" "Postcondition c == 0 failed"
     (\ (W _ vec) -> toInt (V.slice ci n vec) == 0)
 
 addGen :: Gen W
@@ -377,10 +385,10 @@ prop_add = forAll addGen $ \ w@(W wn vec) ->
       expected = W wn (cs V.++ as V.++ sums)
   in actual === expected
 
-prop_sub :: Property
-prop_sub = forAll addGen $ \ w@(W wn vec) ->
+prop_unAdd :: Property
+prop_unAdd = forAll addGen $ \ w@(W wn vec) ->
   let n = (wn - 1) `div` 3
-      actual = interp (subOPGuard n (0,n-1) (n,2*n-1) (2*n,3*n)) w
+      actual = interp (unAddOPGuard n (0,n-1) (n,2*n-1) (2*n,3*n)) w
       (cs,r) = V.splitAt n vec
       (as,bs) = V.splitAt n r
       diff = toInt bs - toInt as
@@ -397,17 +405,17 @@ prop_sub = forAll addGen $ \ w@(W wn vec) ->
 -- precondition: a < m and b < m and m > 0 to make sense of mod
 
 -- addMod: a, b, m => a, (a+b) `mod` m, m
--- subMod: a, b, m => a, (b-a)*, m where we add m to (b-a) if negative
+-- unAddMod: a, b, m => a, (b-a)*, m where we add m to (b-a) if negative
 
 addModOP :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
 addModOP n (ai,ae) (bi,be) (mi,me) = 
   ALLOC n :.: -- carry
   ALLOC 1 :.: -- t
   addOPGuard n (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
-  subOPGuard n (1,n) (mi+n+1,me+n+1) (bi+n+1,be+n+1) :.:
+  unAddOPGuard n (1,n) (mi+n+1,me+n+1) (bi+n+1,be+n+1) :.:
   CX (bi+n+1) 0 :.:
   COP 0 (addOPGuard n (1,n) (mi+n+1,me+n+1) (bi+n+1,be+n+1)) :.:
-  subOPGuard n (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
+  unAddOPGuard n (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
   NCX (bi+n+1) 0 :.:
   addOPGuard n (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
   ASSERT "addModOP" "Failed to restore t to 0"
@@ -430,14 +438,14 @@ addModOPGuard n (ai,ae) (bi,be) (mi,me) =
     (\ (W _ vec) -> toInt (V.slice bi n vec) < toInt (V.slice mi n vec)) :.:
   addModOP n (ai,ae) (bi,be) (mi,me) 
 
-subModOPGuard :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
-subModOPGuard n (ai,ae) (bi,be) (mi,me) = 
+unAddModOPGuard :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
+unAddModOPGuard n (ai,ae) (bi,be) (mi,me) = 
   assert ((ae-ai) == (n-1) && (be-bi) == n && (me-mi) == (n-1)) $ 
-  ASSERT "subModOP" "Precondition wn >= 3n+1 failed"
+  ASSERT "unAddModOP" "Precondition wn >= 3n+1 failed"
     (\ (W wn _) -> wn >= 3*n + 1) :.:
-  ASSERT "subModOP" "Precondition a < m failed'"
+  ASSERT "unAddModOP" "Precondition a < m failed'"
     (\ (W _ vec) -> toInt (V.slice ai n vec) < toInt (V.slice mi n vec)) :.:
-  ASSERT "subModOP" "Precondition b < m failed'"
+  ASSERT "unAddModOP" "Precondition b < m failed'"
     (\ (W _ vec) -> toInt (V.slice bi n vec) < toInt (V.slice mi n vec)) :.:
   invert (addModOP n (ai,ae) (bi,be) (mi,me))
 
@@ -463,10 +471,10 @@ prop_addMod = forAll addModGen $ \ w@(W wn vec) ->
       expected = W wn (as V.++ fromInt (n+1) sum V.++ ms)
   in actual === expected
 
-prop_subMod :: Property
-prop_subMod = forAll addModGen $ \ w@(W wn vec) ->
+prop_unAddMod :: Property
+prop_unAddMod = forAll addModGen $ \ w@(W wn vec) ->
   let n = (wn - 1) `div` 3
-      actual = interp (subModOPGuard n (0,n-1) (n,2*n) (2*n+1,3*n)) w
+      actual = interp (unAddModOPGuard n (0,n-1) (n,2*n) (2*n+1,3*n)) w
       (as,r) = V.splitAt n vec
       (bs,ms) = V.splitAt (n+1) r
       a = toInt as
@@ -487,22 +495,22 @@ prop_subMod = forAll addModGen $ \ w@(W wn vec) ->
 -- precondition: a < m, p < m, and m > 0 to make sense of mod
 
 -- timesMod: a, b, m, p => a, b, m, (p + ab) `mod` m
--- divMod: a, b, m, p => a, b, m, (p - ab `mod` m) (add m if negative)
+-- unTimesMod: a, b, m, p => a, b, m, (p - ab `mod` m) (add m if negative)
 
 timesModOP :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
 timesModOP n (ai,ae) (bi,be) (mi,me) (pi,pe) =
   ALLOC n :.: -- carry
   ALLOC n :.: -- t
   LOOP [0..(n-1)] (\i ->
-    subOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n) :.:
+    unAddOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n) :.:
     CX (ai+2*n) i :.:
     COP i (addOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)) :.: 
     COP (be+2*n-i) (addModOPGuard n (ai+2*n+1,ae+2*n) (pi+2*n,pe+2*n) (mi+2*n,me+2*n)) :.: 
-    shiftLOPGuard (ai+2*n,ae+2*n) 
+    shiftOPGuard (ai+2*n,ae+2*n) 
   ) :.:
   LOOP [(n-1),(n-2)..0] (\i ->
-    shiftROPGuard (ai+2*n,ae+2*n) :.:
-    COP i (subOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)) :.: 
+    unShiftOPGuard (ai+2*n,ae+2*n) :.:
+    COP i (unAddOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)) :.: 
     CX (ai+2*n) i :.:
     addOPGuard n (n,2*n-1) (mi+2*n,me+2*n) (ai+2*n,ae+2*n)
   ) :.:
@@ -524,14 +532,14 @@ timesModOPGuard n (ai,ae) (bi,be) (mi,me) (pi,pe) =
     (\ (W _ vec) -> toInt (V.slice pi n vec) < toInt (V.slice mi n vec)) :.:
   timesModOP n (ai,ae) (bi,be) (mi,me) (pi,pe)
 
-divModOPGuard :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
-divModOPGuard n (ai,ae) (bi,be) (mi,me) (pi,pe) =
+unTimesModOPGuard :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
+unTimesModOPGuard n (ai,ae) (bi,be) (mi,me) (pi,pe) =
   assert ((ae-ai) == n && (be-bi) == n-1 && (me-mi) == n-1 && (pe-pi) == n) $
-  ASSERT "divModOP" "Precondition wn >= 4n+2 failed"
+  ASSERT "unTimesModOP" "Precondition wn >= 4n+2 failed"
     (\ w@(W wn _) -> wn >= 4 * n + 2) :.:
-  ASSERT "divModOP" "Precondition a < m failed'"
+  ASSERT "unTimesModOP" "Precondition a < m failed'"
     (\ (W _ vec) -> toInt (V.slice ai n vec) < toInt (V.slice mi n vec)) :.:
-  ASSERT "divModOP" "Precondition p < m failed'"
+  ASSERT "unTimesModOP" "Precondition p < m failed'"
     (\ (W _ vec) -> toInt (V.slice pi n vec) < toInt (V.slice mi n vec)) :.:
   invert (timesModOP n (ai,ae) (bi,be) (mi,me) (pi,pe))
 
@@ -561,10 +569,10 @@ prop_timesMod = forAll timesModGen $ \ w@(W wn vec) ->
       expected = W wn (as V.++ bs V.++ ms V.++ prods)
   in actual == expected
 
-prop_divMod :: Property
-prop_divMod = forAll timesModGen $ \ w@(W wn vec) ->
+prop_unTimesMod :: Property
+prop_unTimesMod = forAll timesModGen $ \ w@(W wn vec) ->
   let n = (wn - 2) `div` 4
-      actual = interp (divModOPGuard n (0,n) (n+1,2*n) (2*n+1,3*n) (3*n+1,4*n+1)) w
+      actual = interp (unTimesModOPGuard n (0,n) (n+1,2*n) (2*n+1,3*n) (3*n+1,4*n+1)) w
       (as,r) = V.splitAt (n+1) vec
       (bs,r') = V.splitAt n r
       (ms,ps) = V.splitAt n r'
@@ -579,22 +587,68 @@ prop_divMod = forAll timesModGen $ \ w@(W wn vec) ->
   in actual == expected
 
 ------------------------------------------------------------------------------
--- 
+-- Square mod n
+-- Special case of multiplication
 
+-- a has (n+1)-bits stored in the range (ai,ae)
+-- m has n-bits stored in the range (mi,me)
+-- s has (n+1)-bits stored in the range (si,se)
+-- precondition: a < m, s < m, and m > 0 to make sense of mod
 
+-- squareMod: a, m, s => a, m, (s + a^2) `mod` m
+-- unSquareMod: a, m, s => a, m, (s - a^2 `mod` m) (add m if negative)
 
-
-
-{--
-
--- squareMod a m s
 squareModOP :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
 squareModOP n (ai,ae) (mi,me) (si,se) =
   ALLOC n :.: -- t
   copyOPGuard n (ai+n+1,ae+n) (0,n-1) :.:
   timesModOPGuard n (ai+n,ae+n) (0,n-1) (mi+n,me+n) (si+n,se+n) :.:
-  invert (copyOPGuard n (ai+n+1,ae+n) (0,n-1)) :.:
+  uncopyOPGuard n (ai+n+1,ae+n) (0,n-1) :.:
+  ASSERT "squareModOP" "Failed to restore temporary register to 0"
+    (\ (W _ vec) -> toInt (V.slice 0 n vec) == 0) :.:
   DEALLOC n
+
+squareModGen :: Gen W
+squareModGen =
+  do n <- chooseInt (1, 40)
+     let wn = 3 * n + 2
+     m <- chooseInteger (1, 2 ^ n - 1)
+     a <- chooseInteger (0, m - 1)
+     s <- chooseInteger (0, m - 1)
+     return (W wn (fromInt (n+1) a V.++ fromInt n m V.++ fromInt (n+1) s))
+
+prop_squareMod :: Property
+prop_squareMod = forAll squareModGen $ \ w@(W wn vec) ->
+  let n = (wn - 2) `div` 3
+      actual = interp (squareModOP n (0,n) (n+1,2*n) (2*n+1,3*n+1)) w
+      (as,r) = V.splitAt (n+1) vec
+      (ms,ss) = V.splitAt n r
+      a = toInt as
+      m = toInt ms
+      s = toInt ss
+      prod = (s + a * a) `mod` m
+      prods = fromInt (n+1) prod
+      expected = W wn (as V.++ ms V.++ prods)
+  in actual == expected
+
+prop_unSquareMod :: Property
+prop_unSquareMod = forAll squareModGen $ \ w@(W wn vec) ->
+  let n = (wn - 2) `div` 3
+      actual = interp (invert (squareModOP n (0,n) (n+1,2*n) (2*n+1,3*n+1))) w
+      (as,r) = V.splitAt (n+1) vec
+      (ms,ss) = V.splitAt n r
+      a = toInt as
+      m = toInt ms
+      s = toInt ss
+      pres = s - ((a * a) `mod` m)
+      quot = if (pres < 0) then pres + m else pres
+      quots = fromInt (n+1) quot
+      expected = W wn (as V.++ ms V.++ quots)
+  in actual == expected
+
+
+{--
+
 
 -- expMod a b m p e
 expModOP :: Int -> Int ->
