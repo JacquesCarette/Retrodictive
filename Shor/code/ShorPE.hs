@@ -279,12 +279,13 @@ subOPGuard n (ci,ce) (ai,ae) (bi,be) =
     (\ (W _ vec) -> toInt (V.slice ci n vec) == 0)
 
 addGen :: Gen W
-addGen = do n <- chooseInt (1, 40)
-            let wn = 3 * n + 1
-            let cs = replicate n False
-            as <- vector n
-            bs <- vector (n+1)
-            return (W wn (fromList (cs ++ as ++ bs)))
+addGen =
+  do n <- chooseInt (1, 40)
+     let wn = 3 * n + 1
+     let cs = replicate n False
+     as <- vector n
+     bs <- vector (n+1)
+     return (W wn (fromList (cs ++ as ++ bs)))
 
 prop_add :: Property
 prop_add = forAll addGen $ \ w@(W wn vec) ->
@@ -311,7 +312,14 @@ prop_sub = forAll addGen $ \ w@(W wn vec) ->
 ------------------------------------------------------------------------------
 -- Addition of n-bit numbers modulo another n-bit number
 
--- addMod a b m
+-- a has n-bits stored in the range (ai,ae)
+-- b has (n+1)-bits stored in the range (bi,be)
+-- m has n-bits stored in the range (mi,me)
+-- precondition: a < m and b < m and m > 0 to make sense of mod
+
+-- addMod: a, b, m => a, (a+b) `mod` m, m
+-- subMod: a, b, m => a, (b-a)*, m where we add m to (b-a) if negative
+
 addModOP :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
 addModOP n (ai,ae) (bi,be) (mi,me) = 
   ALLOC n :.: -- carry
@@ -323,32 +331,71 @@ addModOP n (ai,ae) (bi,be) (mi,me) =
   subOPGuard n (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
   NCX (bi+n+1) 0 :.:
   addOPGuard n (1,n) (ai+n+1,ae+n+1) (bi+n+1,be+n+1) :.:
+  ASSERT "addModOP" "Failed to restore t to 0"
+    (\ (W _ vec) -> vec ! 0 == False) :.:
   DEALLOC 1 :.:
+  ASSERT "addModOP" "Failed to restore carry to 0"
+    (\ (W _ vec) -> toInt (V.slice 0 n vec) == 0) :.:
   DEALLOC n
 
--- guard; assertions; run backwards etc
--- as < ms !!! HAD MISSED THAT
--- ms < ms
+-- Assertions and testing
+
+addModOPGuard :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
+addModOPGuard n (ai,ae) (bi,be) (mi,me) = 
+  assert ((ae-ai) == (n-1) && (be-bi) == n && (me-mi) == (n-1)) $ 
+  ASSERT "addModOP" "Precondition wn >= 3n+1 failed"
+    (\ (W wn _) -> wn >= 3*n + 1) :.:
+  ASSERT "addModOP" "Precondition a < m failed'"
+    (\ (W _ vec) -> toInt (V.slice ai n vec) < toInt (V.slice mi n vec)) :.:
+  ASSERT "addModOP" "Precondition b < m failed'"
+    (\ (W _ vec) -> toInt (V.slice bi n vec) < toInt (V.slice mi n vec)) :.:
+  addModOP n (ai,ae) (bi,be) (mi,me) 
+
+subModOPGuard :: Int -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
+subModOPGuard n (ai,ae) (bi,be) (mi,me) = 
+  assert ((ae-ai) == (n-1) && (be-bi) == n && (me-mi) == (n-1)) $ 
+  ASSERT "subModOP" "Precondition wn >= 3n+1 failed"
+    (\ (W wn _) -> wn >= 3*n + 1) :.:
+  ASSERT "subModOP" "Precondition a < m failed'"
+    (\ (W _ vec) -> toInt (V.slice ai n vec) < toInt (V.slice mi n vec)) :.:
+  ASSERT "subModOP" "Precondition b < m failed'"
+    (\ (W _ vec) -> toInt (V.slice bi n vec) < toInt (V.slice mi n vec)) :.:
+  invert (addModOP n (ai,ae) (bi,be) (mi,me))
 
 addModGen :: Gen W
-addModGen = do n <- chooseInt (2, 20)
-               let wn = 3 * n + 1
-               as <- vector n
-               lowbsms <- suchThat (vector (2*n)) $ \bits ->
-                            toInt (V.drop n (fromList bits)) > max 1 (toInt (V.take n (fromList bits)))
-               return (W wn (fromList (as ++ (False : lowbsms))))
+addModGen =
+  do n <- chooseInt (1, 40)
+     let wn = 3 * n + 1
+     m <- chooseInt (1, 2^n-1)
+     a <- chooseInt (0,m-1)
+     b <- chooseInt (0,m-1)
+     return (W wn (fromInt n a V.++ fromInt (n+1) b V.++ fromInt n m))
 
 prop_addMod :: Property
 prop_addMod = forAll addModGen $ \ w@(W wn vec) ->
   let n = (wn - 1) `div` 3
-      actual = interp (addModOP n (0,n-1) (n,2*n) (2*n+1,3*n)) w
+      actual = interp (addModOPGuard n (0,n-1) (n,2*n) (2*n+1,3*n)) w
       (as,r) = V.splitAt n vec
       (bs,ms) = V.splitAt (n+1) r
       a = toInt as
       b = toInt bs
       m = toInt ms
-      sum = if (a + b) >= m then (a + b) - m else (a + b)
+      sum = (a + b) `mod` m
       expected = W wn (as V.++ fromInt (n+1) sum V.++ ms)
+  in actual === expected
+
+prop_subMod :: Property
+prop_subMod = forAll addModGen $ \ w@(W wn vec) ->
+  let n = (wn - 1) `div` 3
+      actual = interp (subModOPGuard n (0,n-1) (n,2*n) (2*n+1,3*n)) w
+      (as,r) = V.splitAt n vec
+      (bs,ms) = V.splitAt (n+1) r
+      a = toInt as
+      b = toInt bs
+      m = toInt ms
+      diff = b - a
+      diffs = fromInt (n+1) (if diff < 0 then diff + m else diff)
+      expected = W wn (as V.++ diffs V.++ ms)
   in actual === expected
 
 {--
