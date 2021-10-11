@@ -681,7 +681,8 @@ expModOP :: Int -> Int ->
             (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> (Int,Int) -> OP
 expModOP n k (ai,ae) (bi,be) (mi,me) (pi,pe) (ei,ee)
   | k == 1 =
-    NCOP bi (copyOPGuard (n+1) (pi,pe) (ei,ee)) :.:
+--    NCOP bi (copyOPGuard (n+1) (pi,pe) (ei,ee)) :.:
+--    NCOP bi (addModOPGuard
     COP bi (timesModOPGuard n (ai,ae) (pi,pe) (mi,me) (ei,ee)) 
   | otherwise =
     ALLOC (n+1) :.: -- v
@@ -691,15 +692,19 @@ expModOP n k (ai,ae) (bi,be) (mi,me) (pi,pe) (ei,ee)
     squareModOP n (ai+d,ae+d) (mi+d,me+d) (0,n) :.:
     expModOP n (k-1) (0,n) (bi+d,be+d-1) (mi+d,me+d) (n+1,2*n+1) (ei+d,ee+d) :.:
     unSquareModOP n (ai+d,ae+d) (mi+d,me+d) (0,n) :.:
-    COP (be+d) (unTimesModOPGuard n (ai+d,ae+d) (pi+d,pe+d) (mi+d,me+d) (ei+d,ee+d)) :.:
+--    COP (be+d) (unTimesModOPGuard n (ai+d,ae+d) (pi+d,pe+d) (mi+d,me+d) (ei+d,ee+d)) :.:
     NCOP (be+d) (unCopyOPGuard (n+1) (pi+d,pe+d) (n+1,2*n+1)) :.:
     DEALLOC (n+1) :.: 
     DEALLOC (n+1) 
     where d = 2*n + 2
 
+
+
+{--
+
 expModGen :: Gen W
 expModGen =
-  do n <- chooseInt (2, 10)
+  do n <- chooseInt (2, 2)
      let wn = 5 * n + 3
      m <- chooseInteger (2, 2 ^ n - 1)
      a <- chooseInteger (1, m - 1)
@@ -727,10 +732,11 @@ prop_expMod = forAll expModGen $ \ w@(W wn vec) ->
       m = toInt ms
       p = toInt ps
       e = toInt es
-      res = (p * powModInteger a b m) `mod` m
-      expected = W wn (as V.++ bs V.++ ms V.++ ps V.++
-                       V.zipWith (/=) es (fromInt (n+1) res))
+      res = (e + p * powModInteger a b m) `mod` m
+      expected = W wn (as V.++ bs V.++ ms V.++ ps V.++ fromInt (n+1) res)
   in actual === expected 
+
+--}
 
 -------------------------------------------------------------------------------
 -- Run all tests
