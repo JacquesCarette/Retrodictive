@@ -38,17 +38,19 @@ class Monad m => Circuit m where
   ccx  :: (Bit,Bit,Bit) -> m (Bit,Bit,Bit)
 
 -- Is there an elegant way to invert circuits???
+-- Ans: yes, you need to interpret within the language, soemething like
+{-
+newtype Inv m = Inv {unInv :: m}
 
-invert :: Circuit m => (a -> m b) -> b -> m a
-invert f out = undefined
+instance Circuit m => Circuit (Inv m) where
+  cx   c = Inv c -- assuming cx is its own inverse
+  ccx  c = Inv c -- assuming ccx is its own inverse
+-}
 
 ------------------------------------------------------------------------------
 -- Standard interpreter
 
-data Std a = Std a
-
-simulate :: Std a -> a
-simulate (Std a) = a
+data Std a = Std {simulate :: a}
 
 instance Functor Std where
   fmap f (Std a) = Std (f a)
