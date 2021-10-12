@@ -287,7 +287,7 @@ unShiftOPGuard (i,e) =
 
 prop_shift :: Property
 prop_shift = forAll
-  (do n <- chooseInt (1,40)
+  (do n <- chooseInt (1,100)
       xs <- vector n
       return (W (n+1) (fromList (False : xs))))
   (\ w@(W wn vec) ->
@@ -319,7 +319,7 @@ unCopyOPGuard n (ai,ae) (bi,be) =
 
 prop_copy :: Property
 prop_copy = forAll
-  (do n <- chooseInt (1,40)
+  (do n <- chooseInt (1,100)
       as <- vector n
       let bs = replicate n False
       return (W (2*n) (fromList (as ++ bs))))
@@ -378,7 +378,7 @@ unAddOPGuard n (ci,ce) (ai,ae) (bi,be) =
 
 addGen :: Gen W
 addGen =
-  do n <- chooseInt (1, 40)
+  do n <- chooseInt (1, 100)
      let wn = 3 * n + 1
      let cs = replicate n False
      as <- vector n
@@ -462,7 +462,7 @@ unAddModOPGuard n (ai,ae) (bi,be) (mi,me) =
 
 addModGen :: Gen W
 addModGen =
-  do n <- chooseInt (1, 40)
+  do n <- chooseInt (1, 100)
      let wn = 3 * n + 1
      m <- chooseInteger (1, 2^n-1)
      a <- chooseInteger (0,m-1)
@@ -557,7 +557,7 @@ unTimesModOPGuard n (ai,ae) (bi,be) (mi,me) (pi,pe) =
 
 timesModGen :: Gen W
 timesModGen =
-  do n <- chooseInt (1, 40)
+  do n <- chooseInt (1, 100)
      let wn = 4 * n + 3
      m <- chooseInteger (1, 2 ^ n - 1)
      a <- chooseInteger (0, m - 1)
@@ -628,7 +628,7 @@ unSquareModOP n (ai,ae) (mi,me) (si,se) =
 
 squareModGen :: Gen W
 squareModGen =
-  do n <- chooseInt (1, 40)
+  do n <- chooseInt (1, 100)
      let wn = 3 * n + 2
      m <- chooseInteger (1, 2 ^ n - 1)
      a <- chooseInteger (0, m - 1)
