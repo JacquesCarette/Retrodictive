@@ -140,13 +140,25 @@ showM (op1 :.: op2) d = do
   return (printf "%s :.:\n%s" s1 s2)
 
 ------------------------------------------------------------------------------
--- Actual circuits
+-- Helpers
 
 fromInt :: Int -> Integer -> [Bool]
 fromInt len n = bits ++ replicate (len - length bits) False 
   where bin 0 = []
         bin n = let (q,r) = quotRem n 2 in toEnum (fromInteger r) : bin q
         bits = bin n
+
+toInt :: [Bool] -> Integer
+toInt bs = foldr (\b n -> toInteger (fromEnum b) + 2*n) 0 bs
+
+var :: String -> Bool -> ST s (Var s)
+var s v = newSTRef (s,v)
+
+vars :: String -> [Bool] -> ST s [Var s]
+vars s vs = mapM (\ (v,i) -> newSTRef (s ++ show i, v))
+                 (zip vs [0..(length vs)])
+
+-- Actual circuits 
 
 sumOP :: Var s -> Var s -> Var s -> OP s
 sumOP c a b =
@@ -161,9 +173,7 @@ carryOP c a b c' =
 --           n    [a0,a1,...an][b0,b1,...bn]
 makeAdder :: Int -> [ Var s ] -> [ Var s ] -> ST s (OP s)
 makeAdder n as bs =
-  do cs <- mapM
-           (\ (v,i) -> newSTRef ("c"++show i,v))
-           (zip (replicate (n+1) False) [0..(n+1)])
+  do cs <- vars "c" (replicate (n+1) False)
      return (loop as bs cs)
        where loop [a] [b] [c,c'] =
                carryOP c a b c' :.:
@@ -178,8 +188,8 @@ makeAdder n as bs =
 --              n      m       [a0,a1,...an] [b0,b1,...bn]
 makeAdderMod :: Int -> Integer -> [ Var s ] -> [ Var s ] -> ST s (OP s)
 makeAdderMod n m as bs = 
-  do ms <- mapM (\(v,i) -> newSTRef ("m"++show i,v)) (zip (fromInt n m) [0..n])
-     t <- newSTRef ("t",False)
+  do ms <- vars "m" (fromInt n m)
+     t <- var "t" False
      adder1 <- makeAdder n as bs
      adder2 <- makeAdder n ms bs
      return (adder1 :.: invert adder2) -- TO BE CTD
@@ -189,32 +199,32 @@ makeAdderMod n m as bs =
 
 test :: (String,Bool)
 test = runST $
-  do a <- newSTRef ("a",False)
-     b <- newSTRef ("b",True)
-     c <- newSTRef ("c",False)
+  do a <- var "a" False
+     b <- var "b" True
+     c <- var "c" False
      interpM (sumOP a b c)
      readSTRef c
 
 test2 :: (String,Bool)
 test2 = runST $
-  do a <- newSTRef ("a",False)
-     b <- newSTRef ("b",True)
-     c <- newSTRef ("c",False)
+  do a <- var "a" False
+     b <- var "b" True
+     c <- var "c" False
      interpM (invert (sumOP a b c))
      readSTRef c
 
 test3 :: [(String,Bool)]
 test3 = runST $
-  do as <- mapM (\(v,i) -> newSTRef ("a"++show i,v)) (zip [False, True, False] [0..2])
-     bs <- mapM (\(v,i) -> newSTRef ("b"++show i,v)) (zip [False, False, True] [0..2])
+  do as <- vars "a" [False, True, False]
+     bs <- vars "b" [False, False, True]
      adderOP <- makeAdder 3 as bs
      interpM adderOP
      mapM readSTRef bs
 
 test4 :: IO ()
 test4 = printf "%s\n" $ runST $
-  do as <- mapM (\(v,i) -> newSTRef ("a"++show i,v)) (zip [False, True, False] [0..2])
-     bs <- mapM (\(v,i) -> newSTRef ("b"++show i,v)) (zip [False, False, True] [0..2])
+  do as <- vars "a" [False, True, False]
+     bs <- vars "b" [False, False, True]
      adderOP <- makeAdder 3 as bs
      showM adderOP ""
 
