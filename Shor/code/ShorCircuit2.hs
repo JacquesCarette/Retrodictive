@@ -36,10 +36,12 @@ trace s a = if debug then Debug.Trace.trace s a else a
 -- Mini reversible language for expmod circuits
 -- Syntax
 
+type Var s = STRef s (String,Bool)
+
 data OP s = 
     ID
-  | CX (STRef s Bool) (STRef s Bool)
-  | CCX (STRef s Bool) (STRef s Bool) (STRef s Bool)
+  | CX (Var s) (Var s)
+  | CCX (Var s) (Var s) (Var s)
   | (:.:) (OP s) (OP s)
 {--
     NCX :: OP (Bool,Bool) (Bool,Bool)
@@ -53,28 +55,10 @@ data OP s =
     (:*:) :: OP a b -> OP c d -> OP (a,c) (b,d)
 --}
 
-{--
-instance Show OP where
-  show op = showH "" op
-    where
-      showH d (CX i j)        = printf "%sCX %d %d" d i j
-      showH d (NCX i j)       = printf "%sNCX %d %d" d i j
-      showH d (CCX i j k)     = printf "%sCCX %d %d %d" d i j k
-      showH d (COP i op)      = printf "%sCOP %d (\n%s)" d i (showH ("  " ++ d) op)
-      showH d (NCOP i op)     = printf "%sNCOP %d (\n%s)" d i (showH ("  " ++ d) op)
-      showH d (SWAP i j)      = printf "%sSWAP %d %d" d i j
-      showH d (op1 :.: op2)   = printf "%s :.:\n%s" (showH d op1) (showH d op2)
-      showH d (ALLOC i)       = printf "%sALLOC %d" d i
-      showH d (DEALLOC i)     = printf "%sDEALLOC %d" d i
-      showH d (LOOP [] f)     = printf ""
-      showH d (LOOP [i] f)    = printf "%s" (showH d (f i))
-      showH d (LOOP (i:is) f) = printf "%s\n%s" (showH d (f i)) (showH d (LOOP is f))
---}
-
 invert :: OP s -> OP s
 invert ID = ID
-invert (CX ra rb) = CX ra rb
-invert (CCX ra rb rc) = CCX ra rb rc
+invert (CX a b) = CX a b
+invert (CCX a b c) = CCX a b c
 invert (op1 :.: op2) = invert op2 :.: invert op1
 {--
 invert CCX = CCX
@@ -91,11 +75,11 @@ invert (LOOP indices f) = LOOP (reverse indices) (\k -> invert (f k))
 -- count number of primitive operations
 
 size :: OP s -> Int
-size ID = 1
+size ID                = 1
 size (CX _ _)          = 1
+size (CCX _ _ _)       = 1
+size (op1 :.: op2)     = size op1 + size op2
 {--
-size CCX         = 1
-size (op1 :.: op2)    = size op1 + size op2
 size (op1 :*: op2)    = size op1 + size op2
 size (NCX i j)        = 1
 size (COP i op)       = size op
@@ -111,15 +95,15 @@ size (LOOP indices f) = size (f 0) * length indices
 
 interpM :: OP s -> ST s ()
 interpM ID = return () 
-interpM (CX ra rb) = do
-  a <- readSTRef ra
-  b <- readSTRef rb
-  writeSTRef rb (if a then not b else b)
-interpM (CCX ra rb rc) = do
-  a <- readSTRef ra
-  b <- readSTRef rb
-  c <- readSTRef rc
-  writeSTRef rc (if a && b then not c else c)
+interpM (CX a b) = do
+  (sa,va) <- readSTRef a
+  (sb,vb) <- readSTRef b
+  writeSTRef b (sb, if va then not vb else vb)
+interpM (CCX a b c) = do
+  (sa,va) <- readSTRef a
+  (sb,vb) <- readSTRef b
+  (sc,vc) <- readSTRef c
+  writeSTRef c (sc, if va && vb then not vc else vc)
 interpM (op1 :.: op2) =
   do interpM op1 ; interpM op2
 {--
@@ -138,6 +122,22 @@ interpM CCX r = do
     (:.:) :: OP a b -> OP b c -> OP a c
     (:*:) :: OP a b -> OP c d -> OP (a,c) (b,d)
 --}
+ 
+showM :: OP s -> String -> ST s String
+showM ID d = return d
+showM (CX a b) d = do
+  (sa,va) <- readSTRef a
+  (sb,vb) <- readSTRef b
+  return (printf "%sCX (%s,%s) (%s,%s)" d sa (show va) sb (show vb))
+showM (CCX a b c) d = do
+  (sa,va) <- readSTRef a
+  (sb,vb) <- readSTRef b
+  (sc,vc) <- readSTRef c
+  return (printf "%sCCX (%s,%s) (%s,%s) (%s,%s)" d sa (show va) sb (show vb) sc (show vc))
+showM (op1 :.: op2) d = do
+  s1 <- showM op1 d
+  s2 <- showM op2 d
+  return (printf "%s :.:\n%s" s1 s2)
 
 ------------------------------------------------------------------------------
 -- Actual circuits
@@ -148,20 +148,22 @@ fromInt len n = bits ++ replicate (len - length bits) False
         bin n = let (q,r) = quotRem n 2 in toEnum (fromInteger r) : bin q
         bits = bin n
 
-sumOP :: STRef s Bool -> STRef s Bool -> STRef s Bool -> OP s
-sumOP rc ra rb =
-  CX ra rb :.: CX rc rb
+sumOP :: Var s -> Var s -> Var s -> OP s
+sumOP c a b =
+  CX a b :.: CX c b
 
-carryOP :: STRef s Bool -> STRef s Bool -> STRef s Bool -> STRef s Bool -> OP s
-carryOP rc ra rb rc' =
-  CCX ra rb rc' :.:
-  CX ra rb :.:
-  CCX rc rb rc'
+carryOP :: Var s -> Var s -> Var s -> Var s -> OP s
+carryOP c a b c' =
+  CCX a b c' :.:
+  CX a b :.:
+  CCX c b c'
 
---           n      [a0,a1,...an]       [b0,b1,...bn]
-makeAdder :: Int -> [ STRef s Bool ] -> [ STRef s Bool ] -> ST s (OP s)
+--           n    [a0,a1,...an][b0,b1,...bn]
+makeAdder :: Int -> [ Var s ] -> [ Var s ] -> ST s (OP s)
 makeAdder n as bs =
-  do cs <- mapM newSTRef (replicate (n+1) False)
+  do cs <- mapM
+           (\ (v,i) -> newSTRef ("c"++show i,v))
+           (zip (replicate (n+1) False) [0..(n+1)])
      return (loop as bs cs)
        where loop [a] [b] [c,c'] =
                carryOP c a b c' :.:
@@ -173,11 +175,11 @@ makeAdder n as bs =
                invert (carryOP c a b c') :.:
                sumOP c a b
 
---              n      m          [a0,a1,...an]       [b0,b1,...bn]
-makeAdderMod :: Int -> Integer -> [ STRef s Bool ] -> [ STRef s Bool ] -> ST s (OP s)
+--              n      m       [a0,a1,...an] [b0,b1,...bn]
+makeAdderMod :: Int -> Integer -> [ Var s ] -> [ Var s ] -> ST s (OP s)
 makeAdderMod n m as bs = 
-  do ms <- mapM newSTRef (fromInt n m)
-     t <- newSTRef False
+  do ms <- mapM (\(v,i) -> newSTRef ("m"++show i,v)) (zip (fromInt n m) [0..n])
+     t <- newSTRef ("t",False)
      adder1 <- makeAdder n as bs
      adder2 <- makeAdder n ms bs
      return (adder1 :.: invert adder2) -- TO BE CTD
@@ -185,28 +187,36 @@ makeAdderMod n m as bs =
 ------------------------------------------------------------------------------
 -- Testing
 
-test :: Bool
+test :: (String,Bool)
 test = runST $
-  do ra <- newSTRef False
-     rb <- newSTRef True
-     rc <- newSTRef False
-     interpM (sumOP ra rb rc)
-     readSTRef rc
+  do a <- newSTRef ("a",False)
+     b <- newSTRef ("b",True)
+     c <- newSTRef ("c",False)
+     interpM (sumOP a b c)
+     readSTRef c
 
-test2 :: Bool
+test2 :: (String,Bool)
 test2 = runST $
-  do ra <- newSTRef False
-     rb <- newSTRef True
-     rc <- newSTRef False
-     interpM (invert (sumOP ra rb rc))
-     readSTRef rc
+  do a <- newSTRef ("a",False)
+     b <- newSTRef ("b",True)
+     c <- newSTRef ("c",False)
+     interpM (invert (sumOP a b c))
+     readSTRef c
 
-test3 :: [Bool]
+test3 :: [(String,Bool)]
 test3 = runST $
-  do as <- mapM newSTRef [False, True, False]
-     bs <- mapM newSTRef [False, False, True]
+  do as <- mapM (\(v,i) -> newSTRef ("a"++show i,v)) (zip [False, True, False] [0..2])
+     bs <- mapM (\(v,i) -> newSTRef ("b"++show i,v)) (zip [False, False, True] [0..2])
      adderOP <- makeAdder 3 as bs
      interpM adderOP
      mapM readSTRef bs
 
+test4 :: IO ()
+test4 = printf "%s\n" $ runST $
+  do as <- mapM (\(v,i) -> newSTRef ("a"++show i,v)) (zip [False, True, False] [0..2])
+     bs <- mapM (\(v,i) -> newSTRef ("b"++show i,v)) (zip [False, False, True] [0..2])
+     adderOP <- makeAdder 3 as bs
+     showM adderOP ""
+
+------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
