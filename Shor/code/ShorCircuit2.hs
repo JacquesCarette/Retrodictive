@@ -42,14 +42,14 @@ type Var s = STRef s (String,Bit)
 
 data OP s = 
     ID
-  | CX (Var s) (Var s)
-  | NCX (Var s) (Var s)
-  | CCX (Var s) (Var s) (Var s)
-  | COP (Var s) (OP s)
+  | CX    (Var s) (Var s)
+  | NCX   (Var s) (Var s)
+  | CCX   (Var s) (Var s) (Var s)
+  | COP   (Var s) (OP s)
+  | NCOP  (Var s) (OP s)
+  | CCOP  (Var s) (Var s) (OP s)
   | (:.:) (OP s) (OP s)
 {--
-    CCX :: OP (Bool,Bool,Bool) (Bool,Bool,Bool)
-    NCOP :: OP Bool (OP a b)
     SWAP :: OP (a,b) (b,a)
     ALLOC :: a -> OP () a
     DEALLOC :: OP a ()
@@ -58,16 +58,16 @@ data OP s =
 --}
 
 invert :: OP s -> OP s
-invert ID = ID
-invert (CX a b) = CX a b
-invert (NCX a b) = NCX a b
-invert (CCX a b c) = CCX a b c
-invert (COP a op) = COP a (invert op)
+invert ID            = ID
+invert (CX a b)      = CX a b
+invert (NCX a b)     = NCX a b
+invert (CCX a b c)   = CCX a b c
+invert (COP a op)    = COP a (invert op)
+invert (NCOP a op)   = NCOP a (invert op)
+invert (CCOP a b op) = CCOP a b (invert op)
 invert (op1 :.: op2) = invert op2 :.: invert op1
 {--
-invert CCX = CCX
 invert (op1 :*: op2)    = invert op1 :*: invert op2
-invert (NCOP i op)      = NCOP i (invert op)
 invert (SWAP i j)       = SWAP i j
 invert (ALLOC i)        = DEALLOC i
 invert (DEALLOC i)      = ALLOC i
@@ -82,10 +82,11 @@ size (CX _ _)          = 1
 size (NCX _ _)         = 1
 size (CCX _ _ _)       = 1
 size (COP _ op)        = size op
+size (NCOP _ op)       = size op
+size (CCOP _ _ op)     = size op
 size (op1 :.: op2)     = size op1 + size op2
 {--
 size (op1 :*: op2)    = size op1 + size op2
-size (NCOP i op)      = size op
 size (SWAP i j)       = 1
 size (ALLOC i)        = 1
 size (DEALLOC i)      = 1
@@ -125,10 +126,22 @@ interpM (COP a op) = do
     Static ba -> 
       if ba then interpM op else return ()
     x -> error (printf "COP %s not done" (show x))
+interpM (NCOP a op) = do
+  (sa,va) <- readSTRef a
+  case va of
+    Static ba -> 
+      if ba then return () else interpM op 
+    x -> error (printf "NCOP %s not done" (show x))
+interpM (CCOP a b op) = do
+  (sa,va) <- readSTRef a
+  (sb,vb) <- readSTRef b
+  case (va,vb) of
+    (Static ba, Static bb) -> 
+      if ba && bb then interpM op else return ()
+    (x,y) -> error (printf "CCOP %s %s not done" (show x) (show y))
 interpM (op1 :.: op2) =
   do interpM op1 ; interpM op2
 {--
-    NCOP :: OP Bool (OP a b)
     SWAP :: OP (a,b) (b,a)
     ALLOC :: a -> OP () a
     DEALLOC :: OP a ()
@@ -156,6 +169,15 @@ showM (COP a op) d = do
   (sa,va) <- readSTRef a
   s <- showM op ("  " ++ d)
   return (printf "%sCOP %s (\n%s)" d sa s)
+showM (NCOP a op) d = do
+  (sa,va) <- readSTRef a
+  s <- showM op ("  " ++ d)
+  return (printf "%sNCOP %s (\n%s)" d sa s)
+showM (CCOP a b op) d = do
+  (sa,va) <- readSTRef a
+  (sb,vb) <- readSTRef b
+  s <- showM op ("  " ++ d)
+  return (printf "%sCCOP %s %s (\n%s)" d sa sb s)
 showM (op1 :.: op2) d = do
   s1 <- showM op1 d
   s2 <- showM op2 d
@@ -180,7 +202,6 @@ vars :: String -> [Bool] -> ST s [Var s]
 vars s vs = mapM (\ (v,i) -> newSTRef (s ++ show i, Static v))
                  (zip vs [0..(length vs)])
 
-
 dvars :: String -> [String] -> ST s [Var s]
 dvars s vs = mapM (\ (v,i) -> newSTRef (s ++ show i, Dynamic v))
                  (zip vs [0..(length vs)])
@@ -193,7 +214,7 @@ dvars s vs = mapM (\ (v,i) -> newSTRef (s ++ show i, Dynamic v))
 --           n    [a0,a1,...an][b0,b1,...bn]
 makeAdder :: Int -> [ Var s ] -> [ Var s ] -> ST s (OP s)
 makeAdder n as bs =
-  do cs <- vars "c" (replicate (n+2) False)
+  do cs <- vars "c" (fromInt (n+2) 0)
      return (loop as bs cs)
        where loop [a] [b] [c,c'] =
                carryOP c a b c' :.:
@@ -247,7 +268,21 @@ makeAdderMod n m as bs =
 
 -- Fig. 5 in paper
 
---cMulMod 
+--             n      a          m          c      [x0,x1,...xn] [t0,t1,..,tn]
+makeCMulMod :: Int -> Integer -> Integer -> Var s -> [ Var s ] -> [ Var s ]
+            -> ST s (OP s)
+makeCMulMod n a m c xs ts =
+  do ps <- vars "p" (fromInt (n+1) 0)
+     as <- vars "a" (fromInt (n+1) a)
+     adderPT <- makeAdderMod n m ps ts
+     return (loop adderPT as c xs ps ts)
+       where loop adderPT as c [] ps ts = 
+               NCOP c (copyOP xs ts)
+             loop adderPT as c (x:xs) ps ts = 
+               CCOP c x (copyOP as ps) :.:
+               adderPT :.:
+               CCOP c x (copyOP as ps) :.:
+               loop adderPT as c xs ps ts
 
 -- Fig. 6 in paper
 
@@ -273,7 +308,15 @@ prop_add = forAll adderGen $ \ (n, a, b) -> runST $
      let actual = toInt (map snd bs)
      return (actual === a+b)
 
--- test minus
+prop_sub :: Property
+prop_sub = forAll adderGen $ \ (n, a, b) -> runST $ 
+  do as <- vars "a" (fromInt (n+1) a)
+     bs <- vars "b" (fromInt (n+1) b)
+     adder <- makeAdder n as bs
+     interpM (invert adder)
+     bs <- mapM readSTRef bs
+     let actual = toInt (map snd bs)
+     return (actual === (b-a) `mod` (2 ^ (n+1))) 
 
 adderModGen :: Gen (Int,Integer,Integer,Integer)
 adderModGen =
@@ -293,8 +336,36 @@ prop_addmod = forAll adderModGen $ \ (n, m, a, b) -> runST $
      let actual = toInt (map snd bs)
      return (actual === (a+b) `mod` m)
 
--- test minus mod M
+prop_submod :: Property
+prop_submod = forAll adderModGen $ \ (n, m, a, b) -> runST $
+  do as <- vars "a" (fromInt (n+1) a)
+     bs <- vars "b" (fromInt (n+1) b)
+     adderMod <- makeAdderMod n m as bs
+     interpM (invert adderMod)
+     bs <- mapM readSTRef bs
+     let actual = toInt (map snd bs)
+     return (actual === (b-a) `mod` m)
 
+cMulModGen :: Gen (Int,Integer,Bool,Integer,Integer)
+cMulModGen =
+  do n <- chooseInt (1, 10) -- 100
+     m <- chooseInteger (1,2^n-1)
+     c <- elements [False,True]
+     x <- chooseInteger (0,2^n-1)
+     a <- chooseInteger (0,m-1)
+     return (n,m,c,x,a)
+
+xprop_cmulmod :: Property
+xprop_cmulmod = forAll cMulModGen $ \ (n, m, c, x, a) -> runST $
+  do cvar <- var "c" c
+     xs <- vars "x" (fromInt (n+1) x)
+     ts <- vars "t" (fromInt (n+1) 0)
+     cMulMod <- makeCMulMod n a m cvar xs ts
+     interpM cMulMod
+     ts <- mapM readSTRef ts
+     let actual = toInt (map snd ts)
+     return (actual === if c then (a * x) `mod` m else x)
+                        
 -------------------------------------------------------------------------------
 -- Run all tests
 
