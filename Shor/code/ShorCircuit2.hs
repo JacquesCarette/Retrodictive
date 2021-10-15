@@ -27,8 +27,8 @@ import qualified Debug.Trace
 
 -- Toggle 
 
-debug = False
---debug = True
+--debug = False
+debug = True
 
 trace :: String -> a -> a
 trace s a = if debug then Debug.Trace.trace s a else a
@@ -37,7 +37,8 @@ trace s a = if debug then Debug.Trace.trace s a else a
 -- Mini reversible language for expmod circuits
 -- Syntax
 
-type Var s = STRef s (String,Bool)
+data Bit = Static Bool | Dynamic String deriving Show
+type Var s = STRef s (String,Bit)
 
 data OP s = 
     ID
@@ -99,19 +100,31 @@ interpM ID = return ()
 interpM (CX a b) = do
   (sa,va) <- readSTRef a
   (sb,vb) <- readSTRef b
-  writeSTRef b (sb, if va then not vb else vb)
+  case (va,vb) of
+    (Static ba, Static bb) -> 
+      writeSTRef b (sb, Static $ if ba then not bb else bb)
+    (x,y) -> error (printf "CX %s %s not done" (show x) (show y))
 interpM (NCX a b) = do
   (sa,va) <- readSTRef a
   (sb,vb) <- readSTRef b
-  writeSTRef b (sb, if va then vb else not vb)
+  case (va,vb) of
+    (Static ba, Static bb) -> 
+      writeSTRef b (sb, Static $ if ba then bb else not bb)
+    (x,y) -> error (printf "NCX %s %s not done" (show x) (show y))
 interpM (CCX a b c) = do
   (sa,va) <- readSTRef a
   (sb,vb) <- readSTRef b
   (sc,vc) <- readSTRef c
-  writeSTRef c (sc, if va && vb then not vc else vc)
+  case (va,vb,vc) of
+    (Static ba, Static bb, Static bc) -> 
+      writeSTRef c (sc, Static $ if ba && bb then not bc else bc)
+    (x,y,z) -> error (printf "CCX %s %s %s not done" (show x) (show y) (show z))
 interpM (COP a op) = do
   (sa,va) <- readSTRef a
-  if va then interpM op else return ()
+  case va of
+    Static ba -> 
+      if ba then interpM op else return ()
+    x -> error (printf "COP %s not done" (show x))
 interpM (op1 :.: op2) =
   do interpM op1 ; interpM op2
 {--
@@ -129,20 +142,20 @@ showM ID d = return d
 showM (CX a b) d = do
   (sa,va) <- readSTRef a
   (sb,vb) <- readSTRef b
-  return (printf "%sCX (%s,%s) (%s,%s)" d sa (show va) sb (show vb))
+  return (printf "%sCX %s %s" d sa sb)
 showM (NCX a b) d = do
   (sa,va) <- readSTRef a
   (sb,vb) <- readSTRef b
-  return (printf "%sNCX (%s,%s) (%s,%s)" d sa (show va) sb (show vb))
+  return (printf "%sNCX %s %s" d sa sb)
 showM (CCX a b c) d = do
   (sa,va) <- readSTRef a
   (sb,vb) <- readSTRef b
   (sc,vc) <- readSTRef c
-  return (printf "%sCCX (%s,%s) (%s,%s) (%s,%s)" d sa (show va) sb (show vb) sc (show vc))
+  return (printf "%sCCX %s %s %s" d sa sb sc)
 showM (COP a op) d = do
   (sa,va) <- readSTRef a
   s <- showM op ("  " ++ d)
-  return (printf "%sCOP (%s,%s) (\n%s)" d sa (show va) s)
+  return (printf "%sCOP %s (\n%s)" d sa s)
 showM (op1 :.: op2) d = do
   s1 <- showM op1 d
   s2 <- showM op2 d
@@ -157,31 +170,25 @@ fromInt len n = bits ++ replicate (len - length bits) False
         bin n = let (q,r) = quotRem n 2 in toEnum (fromInteger r) : bin q
         bits = bin n
 
-toInt :: [Bool] -> Integer
-toInt bs = foldr (\b n -> toInteger (fromEnum b) + 2*n) 0 bs
+toInt :: [Bit] -> Integer
+toInt bs = foldr (\ (Static b) n -> toInteger (fromEnum b) + 2*n) 0 bs
 
 var :: String -> Bool -> ST s (Var s)
-var s v = newSTRef (s,v)
+var s v = newSTRef (s,Static v)
 
 vars :: String -> [Bool] -> ST s [Var s]
-vars s vs = mapM (\ (v,i) -> newSTRef (s ++ show i, v))
+vars s vs = mapM (\ (v,i) -> newSTRef (s ++ show i, Static v))
+                 (zip vs [0..(length vs)])
+
+
+dvars :: String -> [String] -> ST s [Var s]
+dvars s vs = mapM (\ (v,i) -> newSTRef (s ++ show i, Dynamic v))
                  (zip vs [0..(length vs)])
 
 ------------------------------------------------------------------------------
 -- Actual circuits 
 
-sumOP :: Var s -> Var s -> Var s -> OP s
-sumOP c a b =
-  CX a b :.: CX c b
-
-carryOP :: Var s -> Var s -> Var s -> Var s -> OP s
-carryOP c a b c' =
-  CCX a b c' :.:
-  CX a b :.:
-  CCX c b c'
-
-copyOP :: [ Var s ] -> [ Var s ] -> OP s
-copyOP as bs = foldr (:.:) ID (zipWith CX as bs)
+-- Fig. 2 in paper
 
 --           n    [a0,a1,...an][b0,b1,...bn]
 makeAdder :: Int -> [ Var s ] -> [ Var s ] -> ST s (OP s)
@@ -197,6 +204,27 @@ makeAdder n as bs =
                loop as bs (c':cs) :.:
                invert (carryOP c a b c') :.:
                sumOP c a b
+
+-- Fig. 3i in paper
+
+carryOP :: Var s -> Var s -> Var s -> Var s -> OP s
+carryOP c a b c' =
+  CCX a b c' :.:
+  CX a b :.:
+  CCX c b c'
+
+-- Fig. 3ii in paper
+
+sumOP :: Var s -> Var s -> Var s -> OP s
+sumOP c a b =
+  CX a b :.: CX c b
+
+-- Needed for Fig. 4
+
+copyOP :: [ Var s ] -> [ Var s ] -> OP s
+copyOP as bs = foldr (:.:) ID (zipWith CX as bs)
+
+-- Fig. 4 in paper
 
 --              n      m       [a0,a1,...an] [b0,b1,...bn]
 makeAdderMod :: Int -> Integer -> [ Var s ] -> [ Var s ] -> ST s (OP s)
@@ -217,8 +245,13 @@ makeAdderMod n m as bs =
        CX (bs !! n) t :.:
        adderab
 
---
--- cMulMod :: 
+-- Fig. 5 in paper
+
+--cMulMod 
+
+-- Fig. 6 in paper
+
+--expMod 
 
 ------------------------------------------------------------------------------
 -- Testing
@@ -240,6 +273,8 @@ prop_add = forAll adderGen $ \ (n, a, b) -> runST $
      let actual = toInt (map snd bs)
      return (actual === a+b)
 
+-- test minus
+
 adderModGen :: Gen (Int,Integer,Integer,Integer)
 adderModGen =
   do n <- chooseInt (1, 100)
@@ -258,7 +293,8 @@ prop_addmod = forAll adderModGen $ \ (n, m, a, b) -> runST $
      let actual = toInt (map snd bs)
      return (actual === (a+b) `mod` m)
 
-------------------------------------------------------------------------------
+-- test minus mod M
+
 -------------------------------------------------------------------------------
 -- Run all tests
 
