@@ -1,6 +1,4 @@
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE Arrows #-}
 
 -- Following:
 -- Quantum Networks for Elementary Arithmetic Operations
@@ -8,22 +6,14 @@
 
 module Shor where
 
-import Data.Char
 import GHC.Integer.GMP.Internals
-import Data.Vector (Vector, fromList, toList, (!), (//))
-import qualified Data.Vector as V 
 import Control.Monad.ST
 import Data.STRef
-import Data.Array.ST
-import qualified Control.Category as Cat
-import Control.Arrow
-import qualified GHC.List as GL
   
 import Text.Printf
 import Test.QuickCheck
 import Control.Exception.Assert
-
-import qualified Debug.Trace
+import qualified Debug.Trace as Debug
 
 -- Toggle 
 
@@ -31,158 +21,59 @@ import qualified Debug.Trace
 debug = True
 
 trace :: String -> a -> a
-trace s a = if debug then Debug.Trace.trace s a else a
+trace s a = if debug then Debug.trace s a else a
 
 ------------------------------------------------------------------------------
 -- Mini reversible language for expmod circuits
 -- Syntax
 
-data Bit = Static Bool | Dynamic String deriving Show
-type Var s = STRef s (String,Bit)
+type Var s = STRef s (String,Bool)
 
 data OP s = 
     ID
-  | CX    (Var s) (Var s)
-  | NCX   (Var s) (Var s)
-  | CCX   (Var s) (Var s) (Var s)
-  | COP   (Var s) (OP s)
-  | NCOP  (Var s) (OP s)
-  | CCOP  (Var s) (Var s) (OP s)
+  | GTOFFOLI [Bool] [Var s] (Var s)
   | (:.:) (OP s) (OP s)
-{--
-    SWAP :: OP (a,b) (b,a)
-    ALLOC :: a -> OP () a
-    DEALLOC :: OP a ()
-    LOOP :: [a] -> OP a b -> OP [a] [b]
-    (:*:) :: OP a b -> OP c d -> OP (a,c) (b,d)
---}
 
 invert :: OP s -> OP s
-invert ID            = ID
-invert (CX a b)      = CX a b
-invert (NCX a b)     = NCX a b
-invert (CCX a b c)   = CCX a b c
-invert (COP a op)    = COP a (invert op)
-invert (NCOP a op)   = NCOP a (invert op)
-invert (CCOP a b op) = CCOP a b (invert op)
-invert (op1 :.: op2) = invert op2 :.: invert op1
-{--
-invert (op1 :*: op2)    = invert op1 :*: invert op2
-invert (SWAP i j)       = SWAP i j
-invert (ALLOC i)        = DEALLOC i
-invert (DEALLOC i)      = ALLOC i
-invert (LOOP indices f) = LOOP (reverse indices) (\k -> invert (f k))
---}
+invert ID                 = ID
+invert (GTOFFOLI bs cs t) = GTOFFOLI bs cs t
+invert (op1 :.: op2)      = invert op2 :.: invert op1
        
--- count number of primitive operations
-
 size :: OP s -> Int
-size ID                = 1
-size (CX _ _)          = 1
-size (NCX _ _)         = 1
-size (CCX _ _ _)       = 1
-size (COP _ op)        = size op
-size (NCOP _ op)       = size op
-size (CCOP _ _ op)     = size op
-size (op1 :.: op2)     = size op1 + size op2
-{--
-size (op1 :*: op2)    = size op1 + size op2
-size (SWAP i j)       = 1
-size (ALLOC i)        = 1
-size (DEALLOC i)      = 1
-size (LOOP indices f) = size (f 0) * length indices
---}
+size ID                 = 1
+size (GTOFFOLI bs cs t) = 1
+size (op1 :.: op2)      = size op1 + size op2
+
+--
+
+cx :: Var s -> Var s -> OP s
+cx a b = GTOFFOLI [True] [a] b
+
+ncx :: Var s -> Var s -> OP s
+ncx a b = GTOFFOLI [False] [a] b
+
+ccx :: Var s -> Var s -> Var s -> OP s
+ccx a b c = GTOFFOLI [True,True] [a,b] c
+
+cop :: Var s -> OP s -> OP s
+cop c ID = ID
+cop c (GTOFFOLI bs cs t) = GTOFFOLI (True:bs) (c:cs) t
+cop c (op1 :.: op2) = cop c op1 :.: cop c op2
 
 ------------------------------------------------------------------------------
 -- Monadic interpreter
 
 interpM :: OP s -> ST s ()
 interpM ID = return () 
-interpM (CX a b) = do
-  (sa,va) <- readSTRef a
-  (sb,vb) <- readSTRef b
-  case (va,vb) of
-    (Static ba, Static bb) -> 
-      writeSTRef b (sb, Static $ if ba then not bb else bb)
-    (x,y) -> error (printf "CX %s %s not done" (show x) (show y))
-interpM (NCX a b) = do
-  (sa,va) <- readSTRef a
-  (sb,vb) <- readSTRef b
-  case (va,vb) of
-    (Static ba, Static bb) -> 
-      writeSTRef b (sb, Static $ if ba then bb else not bb)
-    (x,y) -> error (printf "NCX %s %s not done" (show x) (show y))
-interpM (CCX a b c) = do
-  (sa,va) <- readSTRef a
-  (sb,vb) <- readSTRef b
-  (sc,vc) <- readSTRef c
-  case (va,vb,vc) of
-    (Static ba, Static bb, Static bc) -> 
-      writeSTRef c (sc, Static $ if ba && bb then not bc else bc)
-    (x,y,z) -> error (printf "CCX %s %s %s not done" (show x) (show y) (show z))
-interpM (COP a op) = do
-  (sa,va) <- readSTRef a
-  case va of
-    Static ba -> 
-      if ba then interpM op else return ()
-    x -> error (printf "COP %s not done" (show x))
-interpM (NCOP a op) = do
-  (sa,va) <- readSTRef a
-  case va of
-    Static ba -> 
-      if ba then return () else interpM op 
-    x -> error (printf "NCOP %s not done" (show x))
-interpM (CCOP a b op) = do
-  (sa,va) <- readSTRef a
-  (sb,vb) <- readSTRef b
-  case (va,vb) of
-    (Static ba, Static bb) -> 
-      if ba && bb then interpM op else return ()
-    (x,y) -> error (printf "CCOP %s %s not done" (show x) (show y))
+interpM (GTOFFOLI bs cs t) = do
+  controls <- mapM readSTRef cs
+  (st,vt) <- readSTRef t
+  if and (zipWith (\ b (_,c) -> b == c) bs controls)
+    then writeSTRef t (st, not vt)
+    else return ()
 interpM (op1 :.: op2) =
   do interpM op1 ; interpM op2
-{--
-    SWAP :: OP (a,b) (b,a)
-    ALLOC :: a -> OP () a
-    DEALLOC :: OP a ()
-    LOOP :: [a] -> OP a b -> OP [a] [b]
-    (:.:) :: OP a b -> OP b c -> OP a c
-    (:*:) :: OP a b -> OP c d -> OP (a,c) (b,d)
---}
  
-showM :: OP s -> String -> ST s String
-showM ID d = return d
-showM (CX a b) d = do
-  (sa,va) <- readSTRef a
-  (sb,vb) <- readSTRef b
-  return (printf "%sCX %s %s" d sa sb)
-showM (NCX a b) d = do
-  (sa,va) <- readSTRef a
-  (sb,vb) <- readSTRef b
-  return (printf "%sNCX %s %s" d sa sb)
-showM (CCX a b c) d = do
-  (sa,va) <- readSTRef a
-  (sb,vb) <- readSTRef b
-  (sc,vc) <- readSTRef c
-  return (printf "%sCCX %s %s %s" d sa sb sc)
-showM (COP a op) d = do
-  (sa,va) <- readSTRef a
-  s <- showM op ("  " ++ d)
-  return (printf "%sCOP %s (\n%s)" d sa s)
-showM (NCOP a op) d = do
-  (sa,va) <- readSTRef a
-  s <- showM op ("  " ++ d)
-  return (printf "%sNCOP %s (\n%s)" d sa s)
-showM (CCOP a b op) d = do
-  (sa,va) <- readSTRef a
-  (sb,vb) <- readSTRef b
-  s <- showM op ("  " ++ d)
-  return (printf "%sCCOP %s %s (\n%s)" d sa sb s)
-showM (op1 :.: op2) d = do
-  s1 <- showM op1 d
-  s2 <- showM op2 d
-  return (printf "%s :.:\n%s" s1 s2)
-
 ------------------------------------------------------------------------------
 -- Helpers for defining circuits
 
@@ -192,18 +83,14 @@ fromInt len n = bits ++ replicate (len - length bits) False
         bin n = let (q,r) = quotRem n 2 in toEnum (fromInteger r) : bin q
         bits = bin n
 
-toInt :: [Bit] -> Integer
-toInt bs = foldr (\ (Static b) n -> toInteger (fromEnum b) + 2*n) 0 bs
+toInt :: [Bool] -> Integer
+toInt bs = foldr (\ b n -> toInteger (fromEnum b) + 2*n) 0 bs
 
 var :: String -> Bool -> ST s (Var s)
-var s v = newSTRef (s,Static v)
+var s v = newSTRef (s,v)
 
 vars :: String -> [Bool] -> ST s [Var s]
-vars s vs = mapM (\ (v,i) -> newSTRef (s ++ show i, Static v))
-                 (zip vs [0..(length vs)])
-
-dvars :: String -> [String] -> ST s [Var s]
-dvars s vs = mapM (\ (v,i) -> newSTRef (s ++ show i, Dynamic v))
+vars s vs = mapM (\ (v,i) -> newSTRef (s ++ show i, v))
                  (zip vs [0..(length vs)])
 
 ------------------------------------------------------------------------------
@@ -218,7 +105,7 @@ makeAdder n as bs =
      return (loop as bs cs)
        where loop [a] [b] [c,c'] =
                carryOP c a b c' :.:
-               CX a b :.:
+               cx a b :.:
                sumOP c a b
              loop (a:as) (b:bs) (c:c':cs) =
                carryOP c a b c' :.:
@@ -229,21 +116,17 @@ makeAdder n as bs =
 -- Fig. 3i in paper
 
 carryOP :: Var s -> Var s -> Var s -> Var s -> OP s
-carryOP c a b c' =
-  CCX a b c' :.:
-  CX a b :.:
-  CCX c b c'
+carryOP c a b c' = ccx a b c' :.: cx a b :.: ccx c b c'
 
 -- Fig. 3ii in paper
 
 sumOP :: Var s -> Var s -> Var s -> OP s
-sumOP c a b =
-  CX a b :.: CX c b
+sumOP c a b = cx a b :.: cx c b
 
 -- Needed for Fig. 4
 
 copyOP :: [ Var s ] -> [ Var s ] -> OP s
-copyOP as bs = foldr (:.:) ID (zipWith CX as bs)
+copyOP as bs = foldr (:.:) ID (zipWith cx as bs)
 
 -- Fig. 4 in paper
 
@@ -258,13 +141,22 @@ makeAdderMod n m as bs =
      return $
        adderab :.:
        invert addermb :.:
-       NCX (bs !! n) t :.: 
-       COP t (copyOP ms' ms) :.:
+       ncx (bs !! n) t :.: 
+       cop t (copyOP ms' ms) :.:
        addermb :.: 
        copyOP ms' ms :.:
        invert adderab :.:
-       CX (bs !! n) t :.:
+       cx (bs !! n) t :.:
        adderab
+
+{--
+
+-- Needed for Fig. 5
+
+shiftOP :: [ Var s ] -> OP s
+shiftOP xs = loop (reverse xs)
+  where loop [x1,x0] = SWAP x1 x0
+        loop (x:y:xs) = SWAP x y :.: loop (y:xs)
 
 -- Fig. 5 in paper
 
@@ -282,11 +174,14 @@ makeCMulMod n a m c xs ts =
                CCOP c x (copyOP as ps) :.:
                adderPT :.:
                CCOP c x (copyOP as ps) :.:
+               shiftOP as :.:
                loop adderPT as c xs ps ts
 
 -- Fig. 6 in paper
 
 --expMod 
+
+--}
 
 ------------------------------------------------------------------------------
 -- Testing
@@ -346,13 +241,17 @@ prop_submod = forAll adderModGen $ \ (n, m, a, b) -> runST $
      let actual = toInt (map snd bs)
      return (actual === (b-a) `mod` m)
 
+-- For multiplication, we want the most significant half of bits in
+-- 'a' to be 0
+
+{--
 cMulModGen :: Gen (Int,Integer,Bool,Integer,Integer)
 cMulModGen =
-  do n <- chooseInt (1, 10) -- 100
-     m <- chooseInteger (1,2^n-1)
-     c <- elements [False,True]
+  do n <- return 4 -- chooseInt (1, 10) -- 100
+     m <- return 15 -- chooseInteger (1,2^n-1)
+     c <- return False -- elements [False,True]
      x <- chooseInteger (0,2^n-1)
-     a <- chooseInteger (0,m-1)
+     a <- return 2 -- chooseInteger (0,2^(n `div` 2)-1)
      return (n,m,c,x,a)
 
 xprop_cmulmod :: Property
@@ -365,12 +264,13 @@ xprop_cmulmod = forAll cMulModGen $ \ (n, m, c, x, a) -> runST $
      ts <- mapM readSTRef ts
      let actual = toInt (map snd ts)
      return (actual === if c then (a * x) `mod` m else x)
-                        
+--}
+
 -------------------------------------------------------------------------------
 -- Run all tests
 
 return []                  -- ... weird TH hack !!!
-checks = $quickCheckAll
+test = $quickCheckAll
 
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
