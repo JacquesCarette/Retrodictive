@@ -4,7 +4,7 @@
 -- Quantum Networks for Elementary Arithmetic Operations
 -- Vlatko Vedral, Adriano Barenco and Artur Ekert
 
-module Shor where
+module ShorCircuits2 where
 
 import GHC.Integer.GMP.Internals
 import Control.Monad.ST
@@ -25,26 +25,66 @@ trace s a = if debug then Debug.trace s a else a
 
 ------------------------------------------------------------------------------
 -- Mini reversible language for expmod circuits
--- Syntax
 
 type Var s = STRef s (String,Bool)
 
 data OP s = 
     ID
-  | GTOFFOLI [Bool] [Var s] (Var s)
   | (:.:) (OP s) (OP s)
+  | GTOFFOLI [Bool] [Var s] (Var s)
+--  | GSWAP [Bool] [Var s] (Var s) (Var s)
+-- debugging
+  | PRINT String [Var s] String
+  | ASSERT [Var s] Integer
+
+size :: OP s -> Int
+size ID                 = 1
+size (op1 :.: op2)      = size op1 + size op2
+size (GTOFFOLI bs cs t) = 1
+--size (GSWAP bs cs a b)  = 1
 
 invert :: OP s -> OP s
 invert ID                 = ID
-invert (GTOFFOLI bs cs t) = GTOFFOLI bs cs t
 invert (op1 :.: op2)      = invert op2 :.: invert op1
-       
-size :: OP s -> Int
-size ID                 = 1
-size (GTOFFOLI bs cs t) = 1
-size (op1 :.: op2)      = size op1 + size op2
-
+invert (GTOFFOLI bs cs t) = GTOFFOLI bs cs t
+--invert (GSWAP bs cs a b)  = GSWAP bs cs a b
 --
+invert (PRINT sb xs sa) = PRINT sa xs sb
+invert (ASSERT xs i) = ASSERT xs i
+
+interpM :: OP s -> ST s ()
+interpM ID                 = return () 
+interpM (op1 :.: op2)      = do interpM op1 ; interpM op2
+interpM (GTOFFOLI bs cs t) = do
+  controls <- mapM readSTRef cs
+  (st,vt) <- readSTRef t
+  if and (zipWith (\ b (_,c) -> b == c) bs controls)
+    then writeSTRef t (st, not vt)
+    else return ()
+{--
+interpM (GSWAP bs cs a b) = do
+  controls <- mapM readSTRef cs
+  (sa,va) <- readSTRef a
+  (sb,vb) <- readSTRef b
+  if and (zipWith (\ b (_,c) -> b == c) bs controls)
+    then do writeSTRef a (sa, vb)
+            writeSTRef b (sb, va)
+    else return ()
+--}
+interpM (PRINT sb xs sa) = do
+  svs <- mapM readSTRef xs
+  let names = concat (map fst svs)
+  let value = toInt (map snd svs)
+  trace (printf "%s%s = %d%s" sb names value sa) (return ())
+interpM (ASSERT xs i) = do
+  svs <- mapM readSTRef xs
+  let names = concat (map fst svs)
+  let value = toInt (map snd svs)
+  assertMessage "" (printf "Expecting %s = %d but found %d" names i value)
+    (assert (value == i)) (return ())
+
+   
+-- Shorthands
 
 cx :: Var s -> Var s -> OP s
 cx a b = GTOFFOLI [True] [a] b
@@ -55,27 +95,28 @@ ncx a b = GTOFFOLI [False] [a] b
 ccx :: Var s -> Var s -> Var s -> OP s
 ccx a b c = GTOFFOLI [True,True] [a,b] c
 
+{--
+swap :: Var s -> Var s -> OP s
+swap a b = GSWAP [] [] a b
+--}
+
 cop :: Var s -> OP s -> OP s
-cop c ID = ID
+cop c ID                 = ID
+cop c (op1 :.: op2)      = cop c op1 :.: cop c op2
 cop c (GTOFFOLI bs cs t) = GTOFFOLI (True:bs) (c:cs) t
-cop c (op1 :.: op2) = cop c op1 :.: cop c op2
+-- cop c (GSWAP bs cs a b)  = GSWAP (True:bs) (c:cs) a b
+
+ncop :: Var s -> OP s -> OP s
+ncop c ID                 = ID
+ncop c (op1 :.: op2)      = ncop c op1 :.: ncop c op2
+ncop c (GTOFFOLI bs cs t) = GTOFFOLI (False:bs) (c:cs) t
+-- ncop c (GSWAP bs cs a b)  = GSWAP (False:bs) (c:cs) a b
+
+ccop :: OP s -> [Var s] -> OP s
+ccop = foldr cop 
 
 ------------------------------------------------------------------------------
--- Monadic interpreter
-
-interpM :: OP s -> ST s ()
-interpM ID = return () 
-interpM (GTOFFOLI bs cs t) = do
-  controls <- mapM readSTRef cs
-  (st,vt) <- readSTRef t
-  if and (zipWith (\ b (_,c) -> b == c) bs controls)
-    then writeSTRef t (st, not vt)
-    else return ()
-interpM (op1 :.: op2) =
-  do interpM op1 ; interpM op2
- 
-------------------------------------------------------------------------------
--- Helpers for defining circuits
+-- Helpers for defining and testing circuits
 
 fromInt :: Int -> Integer -> [Bool]
 fromInt len n = bits ++ replicate (len - length bits) False 
@@ -94,97 +135,74 @@ vars s vs = mapM (\ (v,i) -> newSTRef (s ++ show i, v))
                  (zip vs [0..(length vs)])
 
 ------------------------------------------------------------------------------
--- Actual circuits 
-
--- Fig. 2 in paper
-
---           n    [a0,a1,...an][b0,b1,...bn]
-makeAdder :: Int -> [ Var s ] -> [ Var s ] -> ST s (OP s)
-makeAdder n as bs =
-  do cs <- vars "c" (fromInt (n+2) 0)
-     return (loop as bs cs)
-       where loop [a] [b] [c,c'] =
-               carryOP c a b c' :.:
-               cx a b :.:
-               sumOP c a b
-             loop (a:as) (b:bs) (c:c':cs) =
-               carryOP c a b c' :.:
-               loop as bs (c':cs) :.:
-               invert (carryOP c a b c') :.:
-               sumOP c a b
-
--- Fig. 3i in paper
+-- Plain addder (Fig. 2 in paper)
+-- adds two n-bit numbers (modulo 2^(n+1))
+-- in reverse, subtracts (modulo 2^(n+1))
 
 carryOP :: Var s -> Var s -> Var s -> Var s -> OP s
 carryOP c a b c' = ccx a b c' :.: cx a b :.: ccx c b c'
 
--- Fig. 3ii in paper
-
 sumOP :: Var s -> Var s -> Var s -> OP s
 sumOP c a b = cx a b :.: cx c b
 
--- Needed for Fig. 4
+-- as = [a0,a1,...an-1, 0]
+-- bs = [b0,b1,...bn-1, 0]]
 
-copyOP :: [ Var s ] -> [ Var s ] -> OP s
-copyOP as bs = foldr (:.:) ID (zipWith cx as bs)
-
--- Fig. 4 in paper
-
---              n      m       [a0,a1,...an] [b0,b1,...bn]
-makeAdderMod :: Int -> Integer -> [ Var s ] -> [ Var s ] -> ST s (OP s)
-makeAdderMod n m as bs = 
-  do ms <- vars "m" (fromInt (n+1) m)
-     ms' <- vars "m'" (fromInt (n+1) m)
-     t <- var "t" False
-     adderab <- makeAdder n as bs
-     addermb <- makeAdder n ms bs
-     return $
-       adderab :.:
-       invert addermb :.:
-       ncx (bs !! n) t :.: 
-       cop t (copyOP ms' ms) :.:
-       addermb :.: 
-       copyOP ms' ms :.:
-       invert adderab :.:
-       cx (bs !! n) t :.:
-       adderab
-
+makeAdder :: Int -> [ Var s ] -> [ Var s ] -> ST s (OP s)
+makeAdder n as bs =
+  do cs <- vars "c" (fromInt n 0)
+     let circuit = loop as bs cs cs
+--     return (loop as bs cs cs)
+     return (circuit :.: ASSERT cs 0)
+       where loop [a,a'] [b,b'] [c] originalcs =
 {--
-
--- Needed for Fig. 5
-
-shiftOP :: [ Var s ] -> OP s
-shiftOP xs = loop (reverse xs)
-  where loop [x1,x0] = SWAP x1 x0
-        loop (x:y:xs) = SWAP x y :.: loop (y:xs)
-
--- Fig. 5 in paper
-
---             n      a          m          c      [x0,x1,...xn] [t0,t1,..,tn]
-makeCMulMod :: Int -> Integer -> Integer -> Var s -> [ Var s ] -> [ Var s ]
-            -> ST s (OP s)
-makeCMulMod n a m c xs ts =
-  do ps <- vars "p" (fromInt (n+1) 0)
-     as <- vars "a" (fromInt (n+1) a)
-     adderPT <- makeAdderMod n m ps ts
-     return (loop adderPT as c xs ps ts)
-       where loop adderPT as c [] ps ts = 
-               NCOP c (copyOP xs ts)
-             loop adderPT as c (x:xs) ps ts = 
-               CCOP c x (copyOP as ps) :.:
-               adderPT :.:
-               CCOP c x (copyOP as ps) :.:
-               shiftOP as :.:
-               loop adderPT as c xs ps ts
-
--- Fig. 6 in paper
-
---expMod 
-
+               PRINT "Base case: " originalcs "" :.:
+               PRINT "" [a,a'] "" :.:
+               PRINT "" [b,b'] "\n" :.:
+--}
+               carryOP c a b b' :.:
+{--
+               PRINT "compute msb: " originalcs "" :.:
+               PRINT "" [a,a'] "" :.:
+               PRINT "" [b,b'] "\n" :.:
+--}
+               cx a b :.:
+{--
+               PRINT "cx a b: " originalcs "" :.:
+               PRINT "" [a,a'] "" :.:
+               PRINT "" [b,b'] "\n" :.:
+--}
+               sumOP c a b {--:.:
+               PRINT "sum c a b: " originalcs "" :.:
+               PRINT "" [a,a'] "" :.:
+               PRINT "" [b,b'] "\n" 
+--}
+             loop (a:as) (b:bs) (c:c':cs) originalcs =
+{--
+               PRINT "Entering loop: " originalcs "" :.:
+               PRINT "" (a:as) "" :.:
+               PRINT "" (b:bs) "\n" :.:
+--}
+               carryOP c a b c' :.:
+{--
+               PRINT "Compute carry: " originalcs "" :.:
+               PRINT "" (a:as) "" :.:
+               PRINT "" (b:bs) "\n" :.:
+--}
+               loop as bs (c':cs) originalcs :.:
+               invert (carryOP c a b c') :.:
+{--
+               PRINT "Uncmpute carry: " originalcs "" :.:
+               PRINT "" (a:as) "" :.:
+               PRINT "" (b:bs) "\n" :.:
+--}
+               sumOP c a b {--:.:
+               PRINT "Sum with no carry: " originalcs "" :.:
+               PRINT "" (a:as) "" :.:
+               PRINT "" (b:bs) "\n" 
 --}
 
-------------------------------------------------------------------------------
--- Testing
+-- Tests
 
 adderGen :: Gen (Int,Integer,Integer)
 adderGen =
@@ -192,6 +210,12 @@ adderGen =
      a <- chooseInteger (0,2^n-1)
      b <- chooseInteger (0,2^n-1)
      return (n,a,b)
+{--
+  do n <- return 3 -- chooseInt (1, 100)
+     a <- return 6 -- chooseInteger (0,2^n-1)
+     b <- return 3 -- chooseInteger (0,2^n-1)
+     return (n,a,b)
+--}
 
 prop_add :: Property
 prop_add = forAll adderGen $ \ (n, a, b) -> runST $ 
@@ -201,7 +225,7 @@ prop_add = forAll adderGen $ \ (n, a, b) -> runST $
      interpM adder
      bs <- mapM readSTRef bs
      let actual = toInt (map snd bs)
-     return (actual === a+b)
+     return (actual === (a+b) `mod` (2 ^ (n+1)))
 
 prop_sub :: Property
 prop_sub = forAll adderGen $ \ (n, a, b) -> runST $ 
@@ -211,7 +235,105 @@ prop_sub = forAll adderGen $ \ (n, a, b) -> runST $
      interpM (invert adder)
      bs <- mapM readSTRef bs
      let actual = toInt (map snd bs)
-     return (actual === (b-a) `mod` (2 ^ (n+1))) 
+     return (actual === (b-a) `mod` (2 ^ (n+1)))
+
+------------------------------------------------------------------------------
+-- Adder modulo m (Fig. 4 in paper)
+
+-- adds two (n+1)-bit numbers (modulo m)
+-- in reverse, subtracts (modulo m)
+
+copyOP :: [ Var s ] -> [ Var s ] -> OP s
+copyOP as bs = foldr (:.:) ID (zipWith cx as bs)
+
+-- as = [a0,a1,...an-1,an]
+-- bs = [b0,b1,...bn-1,bn]
+-- ms = [m0,m1,...mn-1, 0] (most significant bit = 0)
+-- a < m and b < m
+
+makeAdderMod :: Int -> Integer -> [ Var s ] -> [ Var s ] -> ST s (OP s)
+makeAdderMod n m as bs = 
+  do ms <- vars "m" (fromInt (n+1) m)
+     ms' <- vars "m'" (fromInt (n+1) m)
+     t <- var "t" False
+     adderab <- makeAdder n as bs
+     addermb <- makeAdder n ms bs
+     return $
+{--
+       PRINT "" as "" :.:
+       PRINT "" bs "" :.:
+       PRINT "" ms "" :.:
+       PRINT "" ms' "\n\n" :.:
+--}
+       adderab :.:
+{--
+       PRINT "" as "" :.:
+       PRINT "" bs "" :.:
+       PRINT "" ms "" :.:
+       PRINT "" ms' "\n\n" :.:
+--}
+       invert addermb :.:
+{--
+       PRINT "" as "" :.:
+       PRINT "" bs "" :.:
+       PRINT "" ms "" :.:
+       PRINT "" ms' "\n\n" :.:
+--}
+       ncx (bs !! n) t :.: 
+{--
+       PRINT "" as "" :.:
+       PRINT "" bs "" :.:
+       PRINT "" ms "" :.:
+       PRINT "" ms' "\n\n" :.:
+--}
+       cop t (copyOP ms' ms) :.:
+{--
+       PRINT "" as "" :.:
+       PRINT "" bs "" :.:
+       PRINT "" ms "" :.:
+       PRINT "" ms' "\n\n" :.:
+--}
+       addermb :.: 
+{--
+       PRINT "" as "" :.:
+       PRINT "" bs "" :.:
+       PRINT "" ms "" :.:
+       PRINT "" ms' "\n\n" :.:
+--}
+       cop t (copyOP ms' ms) :.:
+{--
+       PRINT "" as "" :.:
+       PRINT "" bs "" :.:
+       PRINT "" ms "" :.:
+       PRINT "" ms' "\n\n" :.:
+--}
+       invert adderab :.:
+{--
+       PRINT "" as "" :.:
+       PRINT "" bs "" :.:
+       PRINT "" ms "" :.:
+       PRINT "" ms' "\n\n" :.:
+--}
+       cx (bs !! n) t :.:
+{--
+       PRINT "" as "" :.:
+       PRINT "" bs "" :.:
+       PRINT "" ms "" :.:
+       PRINT "" ms' "\n\n" :.:
+--}
+       adderab :.:
+{--
+       PRINT "" as "" :.:
+       PRINT "" bs "" :.:
+       PRINT "" ms "" :.:
+       PRINT "" ms' "\n\n"
+--}
+       ASSERT ms m :.:
+       ASSERT ms' m :.:
+       ASSERT [t] 0
+
+
+-- Tests
 
 adderModGen :: Gen (Int,Integer,Integer,Integer)
 adderModGen =
@@ -220,7 +342,7 @@ adderModGen =
      a <- chooseInteger (0,m-1)
      b <- chooseInteger (0,m-1)
      return (n,m,a,b)
-
+  
 prop_addmod :: Property
 prop_addmod = forAll adderModGen $ \ (n, m, a, b) -> runST $
   do as <- vars "a" (fromInt (n+1) a)
@@ -241,21 +363,112 @@ prop_submod = forAll adderModGen $ \ (n, m, a, b) -> runST $
      let actual = toInt (map snd bs)
      return (actual === (b-a) `mod` m)
 
--- For multiplication, we want the most significant half of bits in
--- 'a' to be 0
+------------------------------------------------------------------------------
+-- Controlled multiplier modulo m (Fig. 5 in paper)
+
+-- if control is true
+--   multiply an (n+1)-bit number 'x' by a fixed (n+1)-bit number 'a'
+-- else
+--   return 'x'
 
 {--
+shiftOP :: [ Var s ] -> OP s -- mod m otherwise overflows
+shiftOP xs = loop (reverse xs)
+  where loop [x1,x0]  = swap x1 x0
+        loop (x:y:xs) = swap x y :.: loop (y:xs)
+--}
+
+-- as = [a0,a1,...an-1, 0] (most significant bit = 0)
+-- ms = [m0,m1,...mn-1, 0] (most significant bit = 0)
+-- c  = the control bit
+-- xs = [x0,x1,...xn-1,xn] 
+-- ts = [ 0, 0,      0, 0]
+-- a < m
+
+-- precompute a, 2a, 4a, 8a, ... `mod` m
+
+doublemods :: Integer -> Integer -> [Integer]
+doublemods a m = a : doublemods ((2*a) `mod` m) m
+
+makeCMulMod :: Int -> Integer -> Integer -> Var s -> [ Var s ] -> [ Var s ]
+            -> ST s (OP s)
+makeCMulMod n a m c xs ts =
+  do ps <- vars "p" (fromInt (n+1) 0)
+     as <- mapM (\a -> vars "a" (fromInt (n+1) a)) (take (n+1) (doublemods a m))
+--     as <- vars "a" (fromInt (n+1) a)
+     adderPT <- makeAdderMod n m ps ts
+--     adders <- mapM (\_ -> makeAdderMod n m ps ts) [0..n]
+     return (loop adderPT as xs ps)
+--     return (loop adders as xs ps)
+       where loop adderPT as [] ps =
+--       where loop [] [] [] ps = 
+               ncop c (copyOP xs ts)
+             loop adderPT (a:as) (x:xs) ps =
+--             loop (adderPT:adders) (a:as) (x:xs) ps =
+{--
+               PRINT "Entering loop\n" a "" :.:
+               PRINT "" xs "" :.:
+               PRINT "" ps "" :.:
+               PRINT "" ts "\n" :.:
+--}
+               ccop (copyOP a ps) [c,x] :.:
+{--
+               PRINT "copy before adder\n" a "" :.:
+               PRINT "" xs "" :.:
+               PRINT "" ps "" :.:
+               PRINT "" ts "\n" :.:
+--}
+               adderPT :.:
+{--
+               PRINT "After adderPT\n" a "" :.:
+               PRINT "" xs "" :.:
+               PRINT "" ps "" :.:
+               PRINT "" ts "\n" :.:
+--}
+               ccop (copyOP a ps) [c,x] :.:
+{--
+               PRINT "uncopy after adder\n" a "" :.:
+               PRINT "" xs "" :.:
+               PRINT "" ps "" :.:
+               PRINT "" ts "\n" :.:
+--}
+--               shiftOP as :.: -- can overflow
+{--
+               PRINT "After shift\n" a "" :.:
+               PRINT "" xs "" :.:
+               PRINT "" ps "" :.:
+               PRINT "" ts "\n\n\n" :.:
+--}
+               loop adderPT as xs ps
+--               loop adders as xs ps 
+
+-- Tests
+
 cMulModGen :: Gen (Int,Integer,Bool,Integer,Integer)
 cMulModGen =
-  do n <- return 4 -- chooseInt (1, 10) -- 100
-     m <- return 15 -- chooseInteger (1,2^n-1)
-     c <- return False -- elements [False,True]
-     x <- chooseInteger (0,2^n-1)
-     a <- return 2 -- chooseInteger (0,2^(n `div` 2)-1)
+-- as = [a0,a1,...an-1, 0] (most significant bit = 0)
+-- ms = [m0,m1,...mn-1, 0] (most significant bit = 0)
+-- c  = the control bit
+-- xs = [x0,x1,...xn-1,xn] 
+-- ts = [ 0, 0,      0, 0]
+-- a < m
+  do n <- chooseInt (1, 100) 
+     m <- chooseInteger (1,2^n-1)
+     c <- elements [False,True]
+     x <- chooseInteger (0,2^(n+1)-1)
+     a <- chooseInteger (0,m-1)
      return (n,m,c,x,a)
+{--
+  do n <- return 3
+     m <- return 5
+     c <- return True
+     x <- return 10
+     a <- return 1
+     return (n,m,c,x,a)
+--}
 
-xprop_cmulmod :: Property
-xprop_cmulmod = forAll cMulModGen $ \ (n, m, c, x, a) -> runST $
+prop_cmulmod :: Property
+prop_cmulmod = forAll cMulModGen $ \ (n, m, c, x, a) -> runST $
   do cvar <- var "c" c
      xs <- vars "x" (fromInt (n+1) x)
      ts <- vars "t" (fromInt (n+1) 0)
@@ -264,7 +477,9 @@ xprop_cmulmod = forAll cMulModGen $ \ (n, m, c, x, a) -> runST $
      ts <- mapM readSTRef ts
      let actual = toInt (map snd ts)
      return (actual === if c then (a * x) `mod` m else x)
---}
+
+-------------------------------------------------------------------------------
+-- expmod (Fig. 6 in paper)
 
 -------------------------------------------------------------------------------
 -- Run all tests
