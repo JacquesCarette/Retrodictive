@@ -294,15 +294,63 @@ prop_cmulmod = forAll cMulModGen $ \ (n, m, c, x, a) -> runST $
      let actual = toInt (map snd ts)
      return (actual === if c then (a * x) `mod` m else x)
 
+prop_cdivmod :: Property
+prop_cdivmod = forAll cMulModGen $ \ (n, m, c, x, a) -> runST $
+  do cvar <- var "c" c
+     xs <- vars "x" (fromInt (n+1) x)
+     ts <- if c
+           then vars "t" (fromInt (n+1) ((a * x) `mod` m))
+           else vars "t" (fromInt (n+1) x)
+     cMulMod <- makeCMulMod n a m cvar xs ts
+     interpM (invert cMulMod)
+     ts <- mapM readSTRef ts
+     let actual = toInt (map snd ts)
+     return (actual === 0)
+
 -------------------------------------------------------------------------------
 -- Modular exponentiation (Fig. 6 in paper)
 
 -- Compute (a ^ x) `mod` m
 
 -- precompute a, a^2, a^4, ... `mod` m
+-- and a, a^(-2), a^(-4), ... `mod` m
 
 sqmods :: Integer -> Integer -> [Integer]
-sqmods a m = a : sqmods ((a * a) `mod` m) m
+-- sqmods a m = a : sqmods ((a * a) `mod` m) m
+sqmods a m = am : sqmods (am * am) m
+  where am = a `mod` m
+
+-- https://stackoverflow.com/questions/13096491/multiplicative-inverse-of-modulo-m-in-scheme
+invmod :: Integer -> Integer -> Integer
+invmod x m = loop x m 0 1
+  where
+    loop 0 1 a _ = a `mod` m
+    loop 0 _ _ _ = error "Inputs not coprime"
+    loop x b a u = loop (b `mod` x) x u (a - (u * (b `div` x)))
+
+invsqmods :: Integer -> Integer -> [Integer]
+invsqmods a m = invam : invsqmods (am * am) m
+  where am = a `mod` m
+        invam = a `invmod` m 
+
+makeStages :: Int -> Int -> [Integer] -> [Integer] -> Integer
+          -> [Var s] -> [ Var s ] -> [ Var s ] -> ST s (OP s)
+makeStages i n [] [] m [] ts us = return ID
+makeStages i n (sq:sqs) (invsq:invsqs) m (c:cs) ts us
+  | even i =
+      do mulsqMod <- makeCMulMod n sq m c ts us
+         mulinvsqMod <- makeCMulMod n invsq m c us ts
+         rest <- makeStages (i+1) n sqs invsqs m cs ts us
+         return (mulsqMod :.:
+                 invert mulinvsqMod :.:
+                 rest)
+  | otherwise = 
+      do mulsqMod <- makeCMulMod n sq m c us ts
+         mulinvsqMod <- makeCMulMod n invsq m c ts us
+         rest <- makeStages (i+1) n sqs invsqs m cs ts us
+         return (mulsqMod :.:
+                 invert mulinvsqMod :.:
+                 rest)
 
 -- as = [a0,a1,...an-1, 0] (most significant bit = 0)
 -- ms = [m0,m1,...mn-1, 0] (most significant bit = 0)
@@ -310,31 +358,24 @@ sqmods a m = a : sqmods ((a * a) `mod` m) m
 -- ts = [ 1, 0, .... 0, 0]
 -- us = [ 0, 0, .... 0, 0]
 -- a < m
+-- for all i, gcd(a^(2i),m) = 1
 
 makeExpMod :: Int -> Integer -> Integer -> [ Var s ] -> [ Var s ] -> [ Var s ]
             -> ST s (OP s)
 makeExpMod n a m xs ts us = 
-  do let as = take (n+1) (sqmods a m)
-     cMulMods <- mapM (\ (c,a) -> makeCMulMod n a m c ts us) (zip xs as)     
-     icMulMods <- mapM (\ (c,a) -> makeCMulMod n a m c us ts) (zip xs as)
-     return (foldr (:.:) ID (zipWith (:.:) cMulMods (map invert icMulMods)))
+  do let sqs = take (n+1) (sqmods a m)
+     let invsqs = take (n+1) (invsqmods a m)
+     makeStages 0 n sqs invsqs m xs ts us
 
 -- Tests
 
 expModGen :: Gen (Int,Integer,Integer,Integer)
 expModGen = 
-  do n <- return 3
-     m <- chooseInteger (1,2^n-1)
+  do n <- chooseInt (2, 20) 
+     m <- chooseInteger (2,2^n-1)
      x <- chooseInteger (0,2^(n+1)-1)
-     a <- chooseInteger (0,m-1)
+     a <- suchThat (chooseInteger (1,m-1)) (\a -> gcd a m == 1) 
      return (n,m,x,a)
-{--
-  do n <- chooseInt (1, 10) 
-     m <- chooseInteger (1,2^n-1)
-     x <- chooseInteger (0,2^(n+1)-1)
-     a <- chooseInteger (0,m-1)
-     return (n,m,x,a)
---}
 
 prop_expmod :: Property
 prop_expmod = forAll expModGen $ \ (n, m, x, a) -> runST $
@@ -342,10 +383,9 @@ prop_expmod = forAll expModGen $ \ (n, m, x, a) -> runST $
      ts <- vars "t" (fromInt (n+1) 1)
      us <- vars "u" (fromInt (n+1) 0)
      expMod <- makeExpMod n a m xs ts us
-     trace (printf "Size of circuit = %d" (size expMod)) $
-       interpM expMod
-     ts <- mapM readSTRef ts
-     let actual = toInt (map snd ts)
+     interpM expMod
+     res <- if odd n then mapM readSTRef ts else mapM readSTRef us
+     let actual = toInt (map snd res)
      return (actual === powModInteger a x m)
 
 -------------------------------------------------------------------------------
