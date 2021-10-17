@@ -4,7 +4,7 @@
 -- Quantum Networks for Elementary Arithmetic Operations
 -- Vlatko Vedral, Adriano Barenco and Artur Ekert
 
-module ShorCircuits2 where
+module ShorWIP where
 
 import GHC.Integer.GMP.Internals
 import Control.Monad.ST
@@ -395,5 +395,36 @@ return []                  -- ... weird TH hack !!!
 test = $quickCheckAll
 
 ------------------------------------------------------------------------------
+-- Factoring 15
+-- 
+-- n = 7
+-- a = 7
+-- m = 15
+-- x ranges 0..255 (which is greater than 15 * 15)
+-- t initially 1
+-- u initially 0
+
+shor15 :: Integer -> Integer
+shor15 x = runST $
+  do xs <- vars "x" (fromInt 8 x)
+     ts <- vars "t" (fromInt 8 1)
+     us <- vars "u" (fromInt 8 0)
+     circuit <- makeExpMod 7 7 15 xs ts us
+     interpM circuit
+     res <- mapM readSTRef ts
+     return (toInt (map snd res))
+     
+{--
+
+> map shor15Core [0..10]
+[1,7,4,13,1,7,4,13,1,7,4]
+
+Pick 13 and evaluate backwards symbolically
+
+--}
+
+-- shor15PE :: Integer -> ...
+-- shor15PE fx = ...
+
 ------------------------------------------------------------------------------
 
