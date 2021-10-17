@@ -371,7 +371,7 @@ makeExpMod n a m xs ts us =
 
 expModGen :: Gen (Int,Integer,Integer,Integer)
 expModGen = 
-  do n <- chooseInt (2, 20) 
+  do n <- chooseInt (2, 50) 
      m <- chooseInteger (2,2^n-1)
      x <- chooseInteger (0,2^(n+1)-1)
      a <- suchThat (chooseInteger (1,m-1)) (\a -> gcd a m == 1) 
