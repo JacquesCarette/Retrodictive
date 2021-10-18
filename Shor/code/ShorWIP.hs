@@ -28,6 +28,7 @@ trace s a = if debug then Debug.trace s a else a
 -- Mini reversible language for expmod circuits
 
 data Bit = Bool Bool | Dynamic String | DynamicNot String
+  | AND Bit Bit --- Mmmm
   deriving (Eq,Show)
 
 isStatic :: Bit -> Bool
@@ -90,11 +91,12 @@ invert (ASSERT xs i) = ASSERT xs i
 removeRedundant :: [Bool] -> [ Var s ] -> ST s ([Bool],[Var s])
 removeRedundant [] [] = return ([],[])
 removeRedundant (b:bs) (x:xs) =
-  do (_,v) <- readSTRef x
-     if isStaticB b v
-       then removeRedundant bs xs
-       else do (bs',xs') <- removeRedundant bs xs
-               return (b:bs', x:xs')
+  do (s,v) <- readSTRef x
+     if | isStaticB b v ->
+          removeRedundant bs xs
+        | otherwise ->
+          do (bs',xs') <- removeRedundant bs xs
+             return (b:bs', x:xs')
 
 interpM :: OP s -> ST s ()
 interpM ID                 = return () 
@@ -124,6 +126,13 @@ interpM (GTOFFOLI bs' cs' t) = do
        isStaticB False (snd target) ->
        writeSTRef t (fst target, snd (head controls))
 
+       -- NCX d 0 => d dn
+     | length bs == 1 &&
+       all not bs && 
+       isDynamic (snd (head controls)) &&
+       isStaticB False (snd target) ->
+       writeSTRef t (fst target, negBit (snd (head controls)))
+
        -- CX dn 0 => dn dn
      | length bs == 1 && 
        and bs && 
@@ -138,6 +147,21 @@ interpM (GTOFFOLI bs' cs' t) = do
        isDynamic (snd target) &&
        snd (head controls) == snd target -> 
        writeSTRef t (fst target, Bool False)
+
+       -- NCX d d => d 1
+     | length bs == 1 && 
+       all not bs && 
+       isDynamic (snd (head controls)) &&
+       isDynamic (snd target) &&
+       snd (head controls) == snd target -> 
+       writeSTRef t (fst target, Bool True)
+
+       -- NCX d 1 => d d
+     | length bs == 1 && 
+       all not bs && 
+       isDynamic (snd (head controls)) &&
+       isStaticB True (snd target) ->
+       writeSTRef t (fst target, snd (head controls))
 
        -- CX dn dn => dn 0
      | length bs == 1 && 
@@ -177,6 +201,25 @@ interpM (GTOFFOLI bs' cs' t) = do
        isStaticB True (snd target) ->
        writeSTRef t (fst target, negBit (snd (head controls)))
 
+       -- CCX d d 0 => d d d
+     | length bs == 2 &&
+       and bs && 
+       isDynamic (snd (controls !! 0)) && 
+       isDynamic (snd (controls !! 1)) &&
+       isStaticB False (snd target) &&
+       snd (controls !! 0) == snd (controls !! 1) ->
+       writeSTRef t (fst target, snd (controls !! 0))
+
+       -- CCX d d d => d d 0
+     | length bs == 2 &&
+       and bs && 
+       isDynamic (snd (controls !! 0)) && 
+       isDynamic (snd (controls !! 1)) &&
+       isDynamic (snd target) &&
+       snd (controls !! 0) == snd (controls !! 1) &&
+       snd (controls !! 0) == snd target ->
+       writeSTRef t (fst target, Bool False)
+
        -- CCX dn dn d => dn dn 1
      | length bs == 2 &&
        and bs && 
@@ -195,6 +238,47 @@ interpM (GTOFFOLI bs' cs' t) = do
        isStaticB True (snd target) &&
        snd (controls !! 0) == snd (controls !! 1) -> 
        writeSTRef t (fst target, negBit (snd (controls !! 0)))
+
+       -- CCX dn dn 0 => dn dn dn
+     | length bs == 2 &&
+       and bs && 
+       isDynamicNot (snd (controls !! 0)) && 
+       isDynamicNot (snd (controls !! 1)) &&
+       isStaticB False (snd target) &&
+       snd (controls !! 0) == snd (controls !! 1) -> 
+       writeSTRef t (fst target, snd (controls !! 0))
+
+       -- CCX dn dn dn => dn dn 0
+     | length bs == 2 &&
+       and bs && 
+       isDynamicNot (snd (controls !! 0)) && 
+       isDynamicNot (snd (controls !! 1)) &&
+       isDynamicNot (snd target) && 
+       snd (controls !! 0) == snd (controls !! 1) &&
+       snd (controls !! 0) == snd target -> 
+       writeSTRef t (fst target, Bool False)
+
+     | length bs == 2 &&
+       (not (bs !! 0) && bs !! 1) &&
+       isDynamic (snd (controls !! 0)) && 
+       isDynamicNot (snd (controls !! 1)) &&
+       isStaticB True (snd target) && 
+       snd (controls !! 0) == negBit (snd (controls !! 1)) ->
+       writeSTRef t (fst target, snd (controls !! 0))
+
+     | length bs == 2 &&
+       (not (bs !! 0) && bs !! 1) &&
+       isDynamic (snd (controls !! 0)) && 
+       isDynamic (snd (controls !! 1)) &&
+       snd (controls !! 0) == snd (controls !! 1) ->
+       return () 
+
+     | length bs == 2 &&
+       and bs && 
+       isDynamic (snd (controls !! 0)) && 
+       isDynamicNot (snd (controls !! 1)) &&
+       snd (controls !! 0) == negBit (snd (controls !! 1)) ->
+       return () 
 
   ----------------------------------
        
