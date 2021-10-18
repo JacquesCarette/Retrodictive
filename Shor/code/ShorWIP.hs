@@ -34,6 +34,18 @@ isStatic :: Bit -> Bool
 isStatic (Bool _) = True
 isStatic _ = False
 
+isDynamic :: Bit -> Bool
+isDynamic (Dynamic _) = True
+isDynamic _ = False
+
+isDynamicNot :: Bit -> Bool
+isDynamicNot (DynamicNot _) = True
+isDynamicNot _ = False
+
+isStaticB :: Bool -> Bit -> Bool
+isStaticB b (Bool b') = b == b'
+isStaticB _ _ = False
+
 negBit :: Bit -> Bit 
 negBit (Bool b) = Bool (not b)
 negBit (Dynamic s) = DynamicNot s
@@ -75,15 +87,125 @@ invert (GTOFFOLI bs cs t) = GTOFFOLI bs cs t
 invert (PRINT sb xs sa) = PRINT sa xs sb
 invert (ASSERT xs i) = ASSERT xs i
 
+removeRedundant :: [Bool] -> [ Var s ] -> ST s ([Bool],[Var s])
+removeRedundant [] [] = return ([],[])
+removeRedundant (b:bs) (x:xs) =
+  do (_,v) <- readSTRef x
+     if isStaticB b v
+       then removeRedundant bs xs
+       else do (bs',xs') <- removeRedundant bs xs
+               return (b:bs', x:xs')
+
 interpM :: OP s -> ST s ()
 interpM ID                 = return () 
 interpM (op1 :.: op2)      = do interpM op1 ; interpM op2
-interpM (GTOFFOLI bs cs t) = do
-  controls <- mapM readSTRef cs
+interpM (GTOFFOLI bs' cs' t) = do
+  controls' <- mapM readSTRef cs'
   target <- readSTRef t
-  if and (zipWith (\ b (_, Bool c) -> b == c) bs controls)
-    then writeSTRef t (fst target, negBit (snd target))
-    else return ()
+  (bs,cs) <- removeRedundant bs' cs'
+  controls <- mapM readSTRef cs
+  if | controlsStatic (map snd controls) -> 
+       if and (zipWith (\ b (_, Bool c) -> b == c) bs controls)
+       then writeSTRef t (fst target, negBit (snd target))
+       else return ()
+  
+  ---------- SPECIAL CASES ---------
+
+     | length bs < length bs' ->
+       interpM (GTOFFOLI bs cs t)
+
+     | controlsInactive bs (map snd controls) ->
+       return ()
+
+       -- CX d 0 => d d
+     | length bs == 1 &&
+       and bs && 
+       isDynamic (snd (head controls)) &&
+       isStaticB False (snd target) ->
+       writeSTRef t (fst target, snd (head controls))
+
+       -- CX dn 0 => dn dn
+     | length bs == 1 && 
+       and bs && 
+       isDynamicNot (snd (head controls)) &&
+       isStaticB False (snd target) ->
+       writeSTRef t (fst target, snd (head controls))
+
+       -- CX d d => d 0
+     | length bs == 1 && 
+       and bs && 
+       isDynamic (snd (head controls)) &&
+       isDynamic (snd target) &&
+       snd (head controls) == snd target -> 
+       writeSTRef t (fst target, Bool False)
+
+       -- CX dn dn => dn 0
+     | length bs == 1 && 
+       and bs && 
+       isDynamicNot (snd (head controls)) &&
+       isDynamicNot (snd target) &&
+       snd (head controls) == snd target -> 
+       writeSTRef t (fst target, Bool False)
+
+       -- CX d dn => d 1
+     | length bs == 1 && 
+       and bs && 
+       isDynamic (snd (head controls)) &&
+       isDynamicNot (snd target) &&
+       snd (head controls) == negBit (snd target) -> 
+       writeSTRef t (fst target, Bool True)
+
+       -- CX d 1 => d dn
+     | length bs == 1 && 
+       and bs && 
+       isDynamic (snd (head controls)) &&
+       isStaticB True (snd target)  -> 
+       writeSTRef t (fst target, negBit (snd (head controls)))
+
+       -- CX dn d => dn 1
+     | length bs == 1 && 
+       and bs && 
+       isDynamicNot (snd (head controls)) &&
+       isDynamic (snd target) &&
+       snd (head controls) == negBit (snd target) -> 
+       writeSTRef t (fst target, Bool True)
+
+       -- CX dn 1 => dn d
+     | length bs == 1 && 
+       and bs && 
+       isDynamicNot (snd (head controls)) &&
+       isStaticB True (snd target) ->
+       writeSTRef t (fst target, negBit (snd (head controls)))
+
+       -- CCX dn dn d => dn dn 1
+     | length bs == 2 &&
+       and bs && 
+       isDynamicNot (snd (controls !! 0)) && 
+       isDynamicNot (snd (controls !! 1)) &&
+       isDynamic (snd target) &&
+       snd (controls !! 0) == snd (controls !! 1) &&
+       snd (controls !! 0) == negBit (snd target) ->
+       writeSTRef t (fst target, Bool True)
+
+       -- CCX dn dn 1 => dn dn d
+     | length bs == 2 &&
+       and bs && 
+       isDynamicNot (snd (controls !! 0)) && 
+       isDynamicNot (snd (controls !! 1)) &&
+       isStaticB True (snd target) &&
+       snd (controls !! 0) == snd (controls !! 1) -> 
+       writeSTRef t (fst target, negBit (snd (controls !! 0)))
+
+  ----------------------------------
+       
+     | otherwise ->
+         error (printf "%s\n\nGTOFFOLI %s %s %s\n\n%s"
+                (replicate 20 '*')
+                (show bs)
+                (show controls)
+                (show target)
+                (replicate 35 '*'))
+       
 interpM (PRINT sb xs sa) = do
   svs <- mapM readSTRef xs
   let names = concat (map fst svs)
