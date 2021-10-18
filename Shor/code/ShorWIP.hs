@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE MultiWayIf #-}
 
 -- Following:
 -- Quantum Networks for Elementary Arithmetic Operations
@@ -26,7 +27,22 @@ trace s a = if debug then Debug.trace s a else a
 ------------------------------------------------------------------------------
 -- Mini reversible language for expmod circuits
 
-type Var s = STRef s (String,Bool)
+data Bit = Bool Bool | Dynamic String | DynamicNot String
+  deriving (Eq,Show)
+
+negBit :: Bit -> Bit 
+negBit (Bool b) = Bool (not b)
+negBit (Dynamic s) = DynamicNot s
+negBit (DynamicNot s) = Dynamic s
+
+controlsInactive :: [Bool] -> [Bit] -> Bool
+controlsInactive bs controls = or (zipWith check bs controls)
+  where check b (Bool b') = b /= b'
+        check b _ = False
+
+--
+
+type Var s = STRef s (String,Bit)
 
 data OP s = 
     ID
@@ -35,6 +51,23 @@ data OP s =
   -- debugging
   | PRINT String [Var s] String
   | ASSERT [Var s] Integer
+
+showOP :: OP s -> ST s String
+--showOP ID = return "ID"
+showOP (ID :.: op) = showOP op
+showOP (op :.: ID) = showOP op
+showOP (op1 :.: op2) =
+  do s1 <- showOP op1
+     s2 <- showOP op2
+     return (printf "%s\n%s" s1 s2)
+showOP (GTOFFOLI bs cs t) = do
+  controls <- mapM readSTRef cs
+  target <- readSTRef t
+  return (printf "GTOFFOLI %s %s %s"
+          (show bs)
+          (show controls)
+          (show target))
+showOP _ = return ""
 
 size :: OP s -> Int
 size ID                 = 1
@@ -57,20 +90,19 @@ interpM ID                 = return ()
 interpM (op1 :.: op2)      = do interpM op1 ; interpM op2
 interpM (GTOFFOLI bs cs t) = do
   controls <- mapM readSTRef cs
-  (st,vt) <- readSTRef t
-  if and (zipWith (\ b (_,c) -> b == c) bs controls)
-    then writeSTRef t (st, not vt)
+  target <- readSTRef t
+  if and (zipWith (\ b (_, Bool c) -> b == c) bs controls)
+    then writeSTRef t (fst target, negBit (snd target))
     else return ()
---
 interpM (PRINT sb xs sa) = do
   svs <- mapM readSTRef xs
   let names = concat (map fst svs)
-  let value = toInt (map snd svs)
+  let value = toInt (map (\ (_, Bool b) -> b) svs)
   trace (printf "%s%s = %d%s" sb names value sa) (return ())
 interpM (ASSERT xs i) = do
   svs <- mapM readSTRef xs
   let names = concat (map fst svs)
-  let value = toInt (map snd svs)
+  let value = toInt (map (\ (_, Bool b) -> b) svs)
   assertMessage "" (printf "Expecting %s = %d but found %d" names i value)
     (assert (value == i)) (return ())
 
@@ -112,11 +144,15 @@ toInt :: [Bool] -> Integer
 toInt bs = foldr (\ b n -> toInteger (fromEnum b) + 2*n) 0 bs
 
 var :: String -> Bool -> ST s (Var s)
-var s v = newSTRef (s,v)
+var s v = newSTRef (s,Bool v)
 
 vars :: String -> [Bool] -> ST s [Var s]
-vars s vs = mapM (\ (v,i) -> newSTRef (s ++ show i, v))
+vars s vs = mapM (\ (v,i) -> newSTRef (s ++ show i, Bool v))
                  (zip vs [0..(length vs)])
+
+dvars :: String -> Int -> ST s [Var s]
+dvars s n = mapM (\ i -> newSTRef (s ++ show i, Dynamic (s ++ show i)))
+                 [0..(n-1)]
 
 ------------------------------------------------------------------------------
 -- Plain addder (Fig. 2 in paper)
@@ -162,7 +198,7 @@ prop_add = forAll adderGen $ \ (n, a, b) -> runST $
      adder <- makeAdder n as bs
      interpM adder
      bs <- mapM readSTRef bs
-     let actual = toInt (map snd bs)
+     let actual = toInt (map (\ (_, Bool b) -> b) bs)
      return (actual === (a+b) `mod` (2 ^ (n+1)))
 
 prop_sub :: Property
@@ -172,7 +208,7 @@ prop_sub = forAll adderGen $ \ (n, a, b) -> runST $
      adder <- makeAdder n as bs
      interpM (invert adder)
      bs <- mapM readSTRef bs
-     let actual = toInt (map snd bs)
+     let actual = toInt (map (\ (_, Bool b) -> b) bs)
      return (actual === (b-a) `mod` (2 ^ (n+1)))
 
 ------------------------------------------------------------------------------
@@ -224,7 +260,7 @@ prop_addmod = forAll adderModGen $ \ (n, m, a, b) -> runST $
      adderMod <- makeAdderMod n m as bs
      interpM adderMod
      bs <- mapM readSTRef bs
-     let actual = toInt (map snd bs)
+     let actual = toInt (map (\ (_, Bool b) -> b) bs)
      return (actual === (a+b) `mod` m)
 
 prop_submod :: Property
@@ -234,7 +270,7 @@ prop_submod = forAll adderModGen $ \ (n, m, a, b) -> runST $
      adderMod <- makeAdderMod n m as bs
      interpM (invert adderMod)
      bs <- mapM readSTRef bs
-     let actual = toInt (map snd bs)
+     let actual = toInt (map (\ (_, Bool b) -> b) bs)
      return (actual === (b-a) `mod` m)
 
 ------------------------------------------------------------------------------
@@ -291,7 +327,7 @@ prop_cmulmod = forAll cMulModGen $ \ (n, m, c, x, a) -> runST $
      cMulMod <- makeCMulMod n a m cvar xs ts
      interpM cMulMod
      ts <- mapM readSTRef ts
-     let actual = toInt (map snd ts)
+     let actual = toInt (map (\ (_, Bool b) -> b) ts)
      return (actual === if c then (a * x) `mod` m else x)
 
 prop_cdivmod :: Property
@@ -304,7 +340,7 @@ prop_cdivmod = forAll cMulModGen $ \ (n, m, c, x, a) -> runST $
      cMulMod <- makeCMulMod n a m cvar xs ts
      interpM (invert cMulMod)
      ts <- mapM readSTRef ts
-     let actual = toInt (map snd ts)
+     let actual = toInt (map (\ (_, Bool b) -> b) ts)
      return (actual === 0)
 
 -------------------------------------------------------------------------------
@@ -385,7 +421,7 @@ prop_expmod = forAll expModGen $ \ (n, m, x, a) -> runST $
      expMod <- makeExpMod n a m xs ts us
      interpM expMod
      res <- if odd n then mapM readSTRef ts else mapM readSTRef us
-     let actual = toInt (map snd res)
+     let actual = toInt (map (\ (_, Bool b) -> b) res)
      return (actual === powModInteger a x m)
 
 -------------------------------------------------------------------------------
@@ -406,25 +442,47 @@ test = $quickCheckAll
 
 shor15 :: Integer -> Integer
 shor15 x = runST $
-  do xs <- vars "x" (fromInt 8 x)
-     ts <- vars "t" (fromInt 8 1)
-     us <- vars "u" (fromInt 8 0)
-     circuit <- makeExpMod 7 7 15 xs ts us
+  do xs <- vars "x" (fromInt (n+1) x)
+     ts <- vars "t" (fromInt (n+1) 1)
+     us <- vars "u" (fromInt (n+1) 0)
+     circuit <- makeExpMod n 7 15 xs ts us
      interpM circuit
-     res <- mapM readSTRef ts
-     return (toInt (map snd res))
+     res <- mapM readSTRef us 
+     return (toInt (map (\ (_, Bool b) -> b) res))
+       where n = 4
      
-{--
+-- > map shor15 [0..10]
+-- [1,7,4,13,1,7,4,13,1,7,4]
+-- <
+-- Pick 13 and evaluate backwards symbolically
 
-> map shor15Core [0..10]
-[1,7,4,13,1,7,4,13,1,7,4]
+shor15Prog :: IO () 
+shor15Prog = writeFile "shor15Prog.txt" $ runST $
+  do xs <- dvars "x" (n+1)
+     ts <- vars "t" (fromInt (n+1) 0)
+     us <- vars "u" (fromInt (n+1) 13)
+     circuit <- makeExpMod n 7 15 xs ts us
+     showOP (invert circuit)
+       where n = 4
 
-Pick 13 and evaluate backwards symbolically
+shor15PE :: Int
+shor15PE = runST $
+  do xs <- dvars "x" (n+1)
+     ts <- vars "t" (fromInt (n+1) 0)
+     us <- vars "u" (fromInt (n+1) 13)
+     circuit <- makeExpMod n 7 15 xs ts us
+     trace (printf "Circuit has %d GTOFFOLI gates" (size circuit)) $ return ()
+     interpM (invert circuit)
+     res1 <- mapM readSTRef xs
+     res2 <- mapM readSTRef ts
+     res3 <- mapM readSTRef us
+     trace (printf "\n*** TERMINATED ***\n") $ 
+       trace (printf "xs = %s\n" (show res1)) $ 
+       trace (printf "ts = %s\n" (show res2)) $ 
+       trace (printf "us = %s\n" (show res3)) $
+       return 0
+       where n = 4
 
---}
-
--- shor15PE :: Integer -> ...
--- shor15PE fx = ...
+go = shor15PE
 
 ------------------------------------------------------------------------------
-
