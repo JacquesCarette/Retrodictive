@@ -185,7 +185,6 @@ makeCMulMod n a m c xs ts =
 -- and a, a^(-2), a^(-4), ... `mod` m
 
 sqmods :: Integer -> Integer -> [Integer]
--- sqmods a m = a : sqmods ((a * a) `mod` m) m
 sqmods a m = am : sqmods (am * am) m
   where am = a `mod` m
 

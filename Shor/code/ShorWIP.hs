@@ -30,6 +30,10 @@ trace s a = if debug then Debug.trace s a else a
 data Bit = Bool Bool | Dynamic String | DynamicNot String
   deriving (Eq,Show)
 
+isStatic :: Bit -> Bool
+isStatic (Bool _) = True
+isStatic _ = False
+
 negBit :: Bit -> Bit 
 negBit (Bool b) = Bool (not b)
 negBit (Dynamic s) = DynamicNot s
@@ -39,6 +43,9 @@ controlsInactive :: [Bool] -> [Bit] -> Bool
 controlsInactive bs controls = or (zipWith check bs controls)
   where check b (Bool b') = b /= b'
         check b _ = False
+
+controlsStatic :: [Bit] -> Bool
+controlsStatic controls = all isStatic controls
 
 --
 
@@ -51,23 +58,6 @@ data OP s =
   -- debugging
   | PRINT String [Var s] String
   | ASSERT [Var s] Integer
-
-showOP :: OP s -> ST s String
---showOP ID = return "ID"
-showOP (ID :.: op) = showOP op
-showOP (op :.: ID) = showOP op
-showOP (op1 :.: op2) =
-  do s1 <- showOP op1
-     s2 <- showOP op2
-     return (printf "%s\n%s" s1 s2)
-showOP (GTOFFOLI bs cs t) = do
-  controls <- mapM readSTRef cs
-  target <- readSTRef t
-  return (printf "GTOFFOLI %s %s %s"
-          (show bs)
-          (show controls)
-          (show target))
-showOP _ = return ""
 
 size :: OP s -> Int
 size ID                 = 1
@@ -106,7 +96,27 @@ interpM (ASSERT xs i) = do
   assertMessage "" (printf "Expecting %s = %d but found %d" names i value)
     (assert (value == i)) (return ())
 
-   
+
+showOP :: OP s -> ST s String
+--showOP ID = return "ID"
+showOP (ID :.: op) = showOP op
+showOP (op :.: ID) = showOP op
+showOP (op1 :.: op2) =
+  do s1 <- showOP op1
+     s2 <- showOP op2
+     if | s1 == "" && s2 == "" -> return ""
+        | s1 == "" -> return s2
+        | s2 == "" -> return s1
+        | otherwise -> return (printf "%s\n%s" s1 s2)
+showOP op@(GTOFFOLI bs cs t) = do
+  controls <- mapM readSTRef cs
+  target <- readSTRef t
+  return (printf "GTOFFOLI %s %s %s"
+           (show bs)
+           (show controls)
+           (show target))
+showOP _ = return ""
+
 -- Shorthands
 
 cx :: Var s -> Var s -> OP s
@@ -352,7 +362,6 @@ prop_cdivmod = forAll cMulModGen $ \ (n, m, c, x, a) -> runST $
 -- and a, a^(-2), a^(-4), ... `mod` m
 
 sqmods :: Integer -> Integer -> [Integer]
--- sqmods a m = a : sqmods ((a * a) `mod` m) m
 sqmods a m = am : sqmods (am * am) m
   where am = a `mod` m
 
@@ -483,6 +492,5 @@ shor15PE = runST $
        return 0
        where n = 4
 
-go = shor15PE
-
+------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
