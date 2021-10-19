@@ -2,6 +2,8 @@
 
 module ShorWIP where
 
+import Data.List (intersect) 
+
 import qualified Data.Sequence as S
 import Data.Sequence (Seq, singleton, (><))
 
@@ -173,7 +175,75 @@ interpM :: OP s -> ST s ()
 interpM = foldMap interpGT
 
 ------------------------------------------------------------------------------
+-- Example circuits
+
+data Params =
+  Params { numberOfBits :: Int
+         , base         :: Integer
+         , toFactor     :: Integer
+         }
+
+p15a = Params {
+  numberOfBits = 4, 
+  base         = 7, 
+  toFactor     = 15
+  }
+
+p15b = Params {
+  numberOfBits = 5, 
+  base         = 7, 
+  toFactor     = 15
+  }
+
+p21 = Params {
+  numberOfBits = 6, 
+  base         = 5, 
+  toFactor     = 21
+  }
+
+p323 = Params {
+  numberOfBits = 10, 
+  base         = 49, 
+  toFactor     = 323
+  }
+
+shorCircuit :: Params -> Integer -> ST s (OP s)
+shorCircuit (Params {numberOfBits = n, base = a, toFactor = m}) x = 
+  do xs <- mapM newSTRef (fromInt (n+1) x)
+     ts <- mapM newSTRef (fromInt (n+1) 1)
+     us <- mapM newSTRef (fromInt (n+1) 0)
+     makeExpMod n a m xs ts us
+
+------------------------------------------------------------------------------
 -- Partial evaluation
+
+-- Merge phase
+-- Attempt to merge gates with the same target
+
+merge :: GToffoli s -> GToffoli s -> Either (GToffoli s) (GToffoli s, GToffoli s)
+merge g1@(GToffoli bs1 cs1 t1) g2@(GToffoli bs2 cs2 t2)
+  | t1 /= t2 = Right (g1,g2)
+  | otherwise = error "todo"
+
+mergePhase :: OP s -> ST s (OP s)
+mergePhase op = do
+
+  trace
+    (printf "Merge Phase:\n************\nInput circuit has %d gates\n" (S.length op))
+    (return ())
+
+  opr <- return op
+
+  trace (printf "Resulting circuit has %d gates\n" (S.length opr)) $
+    return opr
+
+testMerge :: () 
+testMerge = runST $ 
+  do op <- shorCircuit p15a 0
+     mergePhase op
+     return () 
+
+------------------------------------------------------------------------------
 
 {--
 

@@ -222,38 +222,38 @@ makeExpMod n a m xs ts us =
 
 -- Shor parameters: base and toFactor must be coprime
 
-data ShorParams =
-  ShorParams { numberOfBits :: Int
-             , base         :: Integer
-             , toFactor     :: Integer
-             }
+data Params =
+  Params { numberOfBits :: Int
+         , base         :: Integer
+         , toFactor     :: Integer
+         }
 
-p15a = ShorParams {
+p15a = Params {
   numberOfBits = 4, 
   base         = 7, 
   toFactor     = 15
   }
 
-p15b = ShorParams {
+p15b = Params {
   numberOfBits = 5, 
   base         = 7, 
   toFactor     = 15
   }
 
-p21 = ShorParams {
+p21 = Params {
   numberOfBits = 6, 
   base         = 5, 
   toFactor     = 21
   }
 
-p323 = ShorParams {
+p323 = Params {
   numberOfBits = 10, 
   base         = 49, 
   toFactor     = 323
   }
 
-shor :: ShorParams -> Integer -> Integer
-shor (ShorParams { numberOfBits = n, base = a, toFactor = m}) x = runST $ 
+shor :: Params -> Integer -> Integer
+shor (Params { numberOfBits = n, base = a, toFactor = m}) x = runST $ 
   do xs <- mapM newSTRef (fromInt (n+1) x)
      ts <- mapM newSTRef (fromInt (n+1) 1)
      us <- mapM newSTRef (fromInt (n+1) 0)
@@ -301,8 +301,8 @@ Below pass parameters directly:
 -- then (invShor p) x r = (x,1,0) 
 
 
-invShor :: ShorParams -> Integer -> Integer -> (Integer,Integer,Integer)
-invShor (ShorParams { numberOfBits = n, base = a, toFactor = m}) x res = runST $ 
+invShor :: Params -> Integer -> Integer -> (Integer,Integer,Integer)
+invShor (Params { numberOfBits = n, base = a, toFactor = m}) x res = runST $ 
   do xs <- mapM newSTRef (fromInt (n+1) x)
      ts <- if odd n
            then mapM newSTRef (fromInt (n+1) res)
