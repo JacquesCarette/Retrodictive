@@ -219,10 +219,12 @@ makeExpMod n a m xs ts us =
      makeStages 0 n sqs invsqs m xs ts us
 
 ------------------------------------------------------------------------------
+-- Examples
+
 -- > map shor15 [0..10]
--- [1,7,4,13,1,7,4,13,1,7,4]
--- <
--- Pick 13 and evaluate backwards symbolically
+-- [1,7,4,13,
+--  1,7,4,13,
+--  1,7,4]
 
 shor15 :: Integer -> Integer
 shor15 x = runST $
@@ -235,6 +237,38 @@ shor15 x = runST $
      return (toInt res)
        where n = 4
 
+-- > map shor21 [0..20]
+-- > [1,5,4,20,16,17,
+--    1,5,4,20,16,17,
+--    1,5,4,20,16,17,
+--    1,5,4]
+
+shor21 :: Integer -> Integer
+shor21 x = runST $
+  do xs <- mapM newSTRef (fromInt (n+1) x)
+     ts <- mapM newSTRef (fromInt (n+1) 1)
+     us <- mapM newSTRef (fromInt (n+1) 0)
+     circuit <- makeExpMod n 5 21 xs ts us
+     interpM circuit
+     res <- mapM readSTRef us 
+     return (toInt res)
+       where n = 6
+
+-- > map shor323 [0..60]
+-- [1,49,140,77,220,121,115,144,273,134,106,26,305,87,64,229,239,83,191,315,254,172,30,178,
+--  1,49,140,77,220,121,115,144,273,134,106,26,305,87,64,229,239,83,191,315,254,172,30,178,
+--  1,49,140,77,220,121,115,144,273,134,106,26,305]
+
+shor323 :: Integer -> Integer
+shor323 x = runST $ 
+  do xs <- mapM newSTRef (fromInt (n+1) x)
+     ts <- mapM newSTRef (fromInt (n+1) 1)
+     us <- mapM newSTRef (fromInt (n+1) 0)
+     circuit <- makeExpMod n 49 323 xs ts us
+     interpM circuit
+     res <- mapM readSTRef us 
+     return (toInt res)
+       where n = 10
 
 ------------------------------------------------------------------------------
 
