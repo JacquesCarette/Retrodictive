@@ -4,14 +4,51 @@
 
 module ShorClean where
 
-import GHC.Integer.GMP.Internals
-
 import qualified Data.Sequence as S
 import Data.Sequence (Seq, singleton, (><))
 
 import Control.Monad.ST
 import Data.STRef
   
+------------------------------------------------------------------------------
+-- Integer helpers
+
+fromInt :: Int -> Integer -> [Bool]
+fromInt len n = bits ++ replicate (len - length bits) False 
+  where bin 0 = []
+        bin n = let (q,r) = quotRem n 2 in toEnum (fromInteger r) : bin q
+        bits = bin n
+
+toInt :: [Bool] -> Integer
+toInt bs = foldr (\ b n -> toInteger (fromEnum b) + 2*n) 0 bs
+
+-- precompute a, 2a, 4a, 8a, ... `mod` m
+
+doublemods :: Integer -> Integer -> [Integer]
+doublemods a m = a : doublemods ((2*a) `mod` m) m
+
+-- precompute a, a^2, a^4, ... `mod` m
+-- and a, a^(-2), a^(-4), ... `mod` m
+
+sqmods :: Integer -> Integer -> [Integer]
+sqmods a m = am : sqmods (am * am) m
+  where am = a `mod` m
+
+-- https://stackoverflow.com/questions/13096491/
+-- multiplicative-inverse-of-modulo-m-in-scheme
+
+invmod :: Integer -> Integer -> Integer
+invmod x m = loop x m 0 1
+  where
+    loop 0 1 a _ = a `mod` m
+    loop 0 _ _ _ = error "Inputs not coprime"
+    loop x b a u = loop (b `mod` x) x u (a - (u * (b `div` x)))
+
+invsqmods :: Integer -> Integer -> [Integer]
+invsqmods a m = invam : invsqmods (am * am) m
+  where am = a `mod` m
+        invam = a `invmod` m 
+
 ------------------------------------------------------------------------------
 -- Mini reversible language for expmod circuits
 
@@ -32,7 +69,8 @@ interpGT (GToffoli bs cs t) = do
 interpM :: OP s -> ST s ()
 interpM = foldMap interpGT
    
--- Shorthands
+------------------------------------------------------------------------------
+-- Building blocks
 
 cx :: Var s -> Var s -> GToffoli s
 cx a b = GToffoli [True] [a] b
@@ -52,28 +90,19 @@ ncop c = fmap (\ (GToffoli bs cs t) -> GToffoli (False:bs) (c:cs) t)
 ccop :: OP s -> [Var s] -> OP s
 ccop = foldr cop 
 
-------------------------------------------------------------------------------
--- Helpers for defining and testing circuits
-
-fromInt :: Int -> Integer -> [Bool]
-fromInt len n = bits ++ replicate (len - length bits) False 
-  where bin 0 = []
-        bin n = let (q,r) = quotRem n 2 in toEnum (fromInteger r) : bin q
-        bits = bin n
-
-toInt :: [Bool] -> Integer
-toInt bs = foldr (\ b n -> toInteger (fromEnum b) + 2*n) 0 bs
-
-------------------------------------------------------------------------------
--- Plain addder (Fig. 2 in paper)
--- adds two n-bit numbers (modulo 2^(n+1))
--- in reverse, subtracts (modulo 2^(n+1))
-
 carryOP :: Var s -> Var s -> Var s -> Var s -> OP s
 carryOP c a b c' = S.fromList [ccx a b c', cx a b, ccx c b c']
 
 sumOP :: Var s -> Var s -> Var s -> OP s
 sumOP c a b = S.fromList [cx a b, cx c b]
+
+copyOP :: [ Var s ] -> [ Var s ] -> OP s
+copyOP as bs = S.fromList (zipWith cx as bs)
+
+------------------------------------------------------------------------------
+-- Plain addder (Fig. 2 in paper)
+-- adds two n-bit numbers (modulo 2^(n+1))
+-- in reverse, subtracts (modulo 2^(n+1))
 
 -- as = [a0,a1,...an-1, 0]
 -- bs = [b0,b1,...bn-1, 0]]
@@ -97,9 +126,6 @@ makeAdder n as bs =
 
 -- adds two (n+1)-bit numbers (modulo m)
 -- in reverse, subtracts (modulo m)
-
-copyOP :: [ Var s ] -> [ Var s ] -> OP s
-copyOP as bs = S.fromList (zipWith cx as bs)
 
 -- as = [a0,a1,...an-1,an]
 -- bs = [b0,b1,...bn-1,bn]
@@ -132,11 +158,6 @@ makeAdderMod n m as bs =
 -- else
 --   return 'x'
 
--- precompute a, 2a, 4a, 8a, ... `mod` m
-
-doublemods :: Integer -> Integer -> [Integer]
-doublemods a m = a : doublemods ((2*a) `mod` m) m
-
 -- as = [a0,a1,...an-1, 0] (most significant bit = 0)
 -- ms = [m0,m1,...mn-1, 0] (most significant bit = 0)
 -- c  = the control bit
@@ -164,45 +185,6 @@ makeCMulMod n a m c xs ts =
 
 -- Compute (a ^ x) `mod` m
 
--- precompute a, a^2, a^4, ... `mod` m
--- and a, a^(-2), a^(-4), ... `mod` m
-
-sqmods :: Integer -> Integer -> [Integer]
-sqmods a m = am : sqmods (am * am) m
-  where am = a `mod` m
-
--- https://stackoverflow.com/questions/13096491/multiplicative-inverse-of-modulo-m-in-scheme
-invmod :: Integer -> Integer -> Integer
-invmod x m = loop x m 0 1
-  where
-    loop 0 1 a _ = a `mod` m
-    loop 0 _ _ _ = error "Inputs not coprime"
-    loop x b a u = loop (b `mod` x) x u (a - (u * (b `div` x)))
-
-invsqmods :: Integer -> Integer -> [Integer]
-invsqmods a m = invam : invsqmods (am * am) m
-  where am = a `mod` m
-        invam = a `invmod` m 
-
-makeStages :: Int -> Int -> [Integer] -> [Integer] -> Integer
-          -> [Var s] -> [ Var s ] -> [ Var s ] -> ST s (OP s)
-makeStages i n [] [] m [] ts us = return S.empty
-makeStages i n (sq:sqs) (invsq:invsqs) m (c:cs) ts us
-  | even i =
-      do mulsqMod <- makeCMulMod n sq m c ts us
-         mulinvsqMod <- makeCMulMod n invsq m c us ts
-         rest <- makeStages (i+1) n sqs invsqs m cs ts us
-         return (mulsqMod ><
-                 S.reverse mulinvsqMod ><
-                 rest)
-  | otherwise = 
-      do mulsqMod <- makeCMulMod n sq m c us ts
-         mulinvsqMod <- makeCMulMod n invsq m c ts us
-         rest <- makeStages (i+1) n sqs invsqs m cs ts us
-         return (mulsqMod ><
-                 S.reverse mulinvsqMod ><
-                 rest)
-
 -- as = [a0,a1,...an-1, 0] (most significant bit = 0)
 -- ms = [m0,m1,...mn-1, 0] (most significant bit = 0)
 -- xs = [x0,x1,...xn-1,xn] 
@@ -217,6 +199,23 @@ makeExpMod n a m xs ts us =
   do let sqs = take (n+1) (sqmods a m)
      let invsqs = take (n+1) (invsqmods a m)
      makeStages 0 n sqs invsqs m xs ts us
+       where
+         makeStages i n [] [] m [] ts us = return S.empty
+         makeStages i n (sq:sqs) (invsq:invsqs) m (c:cs) ts us
+           | even i =
+             do mulsqMod <- makeCMulMod n sq m c ts us
+                mulinvsqMod <- makeCMulMod n invsq m c us ts
+                rest <- makeStages (i+1) n sqs invsqs m cs ts us
+                return (mulsqMod ><
+                        S.reverse mulinvsqMod ><
+                        rest)
+           | otherwise = 
+               do mulsqMod <- makeCMulMod n sq m c us ts
+                  mulinvsqMod <- makeCMulMod n invsq m c ts us
+                  rest <- makeStages (i+1) n sqs invsqs m cs ts us
+                  return (mulsqMod ><
+                          S.reverse mulinvsqMod ><
+                          rest)
 
 ------------------------------------------------------------------------------
 -- Examples
