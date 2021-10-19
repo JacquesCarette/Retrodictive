@@ -175,6 +175,43 @@ interpM = foldMap interpGT
 ------------------------------------------------------------------------------
 -- Partial evaluation
 
+{--
+
+
+
+Current idea:
+
+groupBy targe:
+  swapping gates with different targets (even no write to control)
+
+merge gates with same target
+  either cancel each other, or
+  produce bigger list of controls
+
+
+repeat
+
+---
+
+g1
+g2
+
+==>
+
+g2
+g1
+
+canSwap g1 g2 :
+  target(g1) /= target(g2) &&
+  target(g1) not in controls(g2) 
+  target(g2) not in controls(g1) 
+
+
+
+
+--}
+
+
 
 {--
 
