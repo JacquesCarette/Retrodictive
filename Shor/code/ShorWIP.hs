@@ -8,6 +8,10 @@
 module ShorWIP where
 
 import GHC.Integer.GMP.Internals
+
+import qualified Data.Sequence as S
+import Data.Sequence (Seq, singleton, (><))
+
 import Control.Monad.ST
 import Data.STRef
   
@@ -665,7 +669,7 @@ shor15 x = runST $
      res <- mapM readSTRef us 
      return (toInt (map (\ (_, Bool b) -> b) res))
        where n = 4
-     
+
 -- > map shor15 [0..10]
 -- [1,7,4,13,1,7,4,13,1,7,4]
 -- <

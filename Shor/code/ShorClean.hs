@@ -298,6 +298,26 @@ Below pass parameters directly:
 
 --}
 
+-- if (shor p) x = r
+-- then (invShor p) x r = (x,1,0) 
+
+
+invShor :: ShorParams -> Integer -> Integer -> (Integer,Integer,Integer)
+invShor (ShorParams { numberOfBits = n, base = a, toFactor = m}) x res = runST $ 
+  do xs <- mapM newSTRef (fromInt (n+1) x)
+     ts <- if odd n
+           then mapM newSTRef (fromInt (n+1) res)
+           else mapM newSTRef (fromInt (n+1) 0)
+     us <- if even n
+           then mapM newSTRef (fromInt (n+1) res)
+           else mapM newSTRef (fromInt (n+1) 0)
+     circuit <- makeExpMod n a m xs ts us
+     interpM (S.reverse circuit)
+     ixs <- mapM readSTRef xs
+     its <- mapM readSTRef ts
+     ius <- mapM readSTRef us
+     return (toInt ixs, toInt its, toInt ius)
+
 -- How circuit size grows with number of bits
 
 shorSize :: Int -> Int
@@ -336,3 +356,4 @@ shorSize n = runST $
 --}
 
 ------------------------------------------------------------------------------
+
