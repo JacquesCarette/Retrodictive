@@ -221,54 +221,118 @@ makeExpMod n a m xs ts us =
 ------------------------------------------------------------------------------
 -- Examples
 
--- > map shor15 [0..10]
--- [1,7,4,13,
---  1,7,4,13,
---  1,7,4]
+-- Shor parameters: base and toFactor must be coprime
 
-shor15 :: Integer -> Integer
-shor15 x = runST $
+data ShorParams =
+  ShorParams { numberOfBits :: Int
+             , base         :: Integer
+             , toFactor     :: Integer
+             }
+
+p15a = ShorParams {
+  numberOfBits = 4, 
+  base         = 7, 
+  toFactor     = 15
+  }
+
+p15b = ShorParams {
+  numberOfBits = 5, 
+  base         = 7, 
+  toFactor     = 15
+  }
+
+p21 = ShorParams {
+  numberOfBits = 6, 
+  base         = 5, 
+  toFactor     = 21
+  }
+
+p323 = ShorParams {
+  numberOfBits = 10, 
+  base         = 49, 
+  toFactor     = 323
+  }
+
+shor :: ShorParams -> Integer -> Integer
+shor (ShorParams { numberOfBits = n, base = a, toFactor = m}) x = runST $ 
   do xs <- mapM newSTRef (fromInt (n+1) x)
      ts <- mapM newSTRef (fromInt (n+1) 1)
      us <- mapM newSTRef (fromInt (n+1) 0)
-     circuit <- makeExpMod n 7 15 xs ts us
+     circuit <- makeExpMod n a m xs ts us
      interpM circuit
-     res <- mapM readSTRef us 
+     res <- if even n then mapM readSTRef us else mapM readSTRef ts
      return (toInt res)
-       where n = 4
 
--- > map shor21 [0..20]
--- > [1,5,4,20,16,17,
---    1,5,4,20,16,17,
---    1,5,4,20,16,17,
---    1,5,4]
+{--
 
-shor21 :: Integer -> Integer
-shor21 x = runST $
-  do xs <- mapM newSTRef (fromInt (n+1) x)
-     ts <- mapM newSTRef (fromInt (n+1) 1)
+Below pass parameters directly:
+
+*ShorClean> map (shor 4 7 15) [0..10]
+[
+ 1,7,4,13,
+ 1,7,4,13,
+ 1,7,4
+]
+
+*ShorClean> map (shor 5 7 15) [0..10]
+[
+ 1,7,4,13,
+ 1,7,4,13,
+ 1,7,4
+]
+
+*ShorClean> map (shor 6 5 21) [0..20]
+[
+ 1,5,4,20,16,17,
+ 1,5,4,20,16,17,
+ 1,5,4,20,16,17,
+ 1,5,4
+]
+
+*ShorClean> map (shor 10 49 323) [0..60]
+[
+ 1,49,140,77,220,121,115,144,273,134,106,26,305,87,64,229,239,83,191,315,254,172,30,178,
+ 1,49,140,77,220,121,115,144,273,134,106,26,305,87,64,229,239,83,191,315,254,172,30,178,
+ 1,49,140,77,220,121,115,144,273,134,106,26,305
+]
+
+--}
+
+-- How circuit size grows with number of bits
+
+shorSize :: Int -> Int
+shorSize n = runST $
+  do xs <- mapM newSTRef (fromInt (n+1) 0)
+     ts <- mapM newSTRef (fromInt (n+1) 0)
      us <- mapM newSTRef (fromInt (n+1) 0)
-     circuit <- makeExpMod n 5 21 xs ts us
-     interpM circuit
-     res <- mapM readSTRef us 
-     return (toInt res)
-       where n = 6
+     circuit <- makeExpMod n 2 3 xs ts us
+     return (S.length circuit)
 
--- > map shor323 [0..60]
--- [1,49,140,77,220,121,115,144,273,134,106,26,305,87,64,229,239,83,191,315,254,172,30,178,
---  1,49,140,77,220,121,115,144,273,134,106,26,305,87,64,229,239,83,191,315,254,172,30,178,
---  1,49,140,77,220,121,115,144,273,134,106,26,305]
+{--
 
-shor323 :: Integer -> Integer
-shor323 x = runST $ 
-  do xs <- mapM newSTRef (fromInt (n+1) x)
-     ts <- mapM newSTRef (fromInt (n+1) 1)
-     us <- mapM newSTRef (fromInt (n+1) 0)
-     circuit <- makeExpMod n 49 323 xs ts us
-     interpM circuit
-     res <- mapM readSTRef us 
-     return (toInt res)
-       where n = 10
+[
+ (1,328),      (2,1530),     (3,4128),     (4,8650),      (5,15624),
+ (6,25578),    (7,39040),    (8,56538),    (9,78600),    (10,105754),
+(11,138528),  (12,177450),  (13,223048),  (14,275850),   (15,336384),
+(16,405178),  (17,482760),  (18,569658),  (19,666400),   (20,773514),
+(21,891528),  (22,1020970), (23,1162368), (24,1316250),  (25,1483144),
+(26,1663578), (27,1858080), (28,2067178), (29,2291400),  (30,2531274),
+(31,2787328), (32,3060090), (33,3350088), (34,3657850),  (35,3983904),
+(36,4328778), (37,4693000), (38,5077098), (39,5481600),  (40,5907034),
+(41,6353928), (42,6822810), (43,7314208), (44,7828650),  (45,8366664),
+(46,8928778), (47,9515520), (48,10127418),(49,10765000), (50,11428794),
+(51,12119328),(52,12837130),(53,13582728),(54,14356650), (55,15159424),
+(56,15991578),(57,16853640),(58,17746138),(59,18669600), (60,19624554),
+(61,20611528),(62,21631050),(63,22683648),(64,23769850), (65,24890184),
+(66,26045178),(67,27235360),(68,28461258),(69,29723400), (70,31022314),
+(71,32358528),(72,33732570),(73,35144968),(74,36596250), (75,38086944),
+(76,39617578),(77,41188680),(78,42800778),(79,44454400), (80,46150074),
+(81,47888328),(82,49669690),(83,51494688),(84,53363850), (85,55277704),
+(86,57236778),(87,59241600),(88,61292698),(89,63390600), (90,65535834),
+(91,67728928),(92,69970410),(93,72260808),(94,74600650), (95,76990464),
+(96,79430778),(97,81922120),(98,84465018),(99,87060000),(100,89707594)
+]
+
+--}
 
 ------------------------------------------------------------------------------
-
