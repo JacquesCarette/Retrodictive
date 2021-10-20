@@ -2,12 +2,13 @@
 
 module ShorWIP where
 
-import Data.List (intersect)
+import Data.Maybe
+import Data.List
 
 import qualified Data.Sequence as S
 import Data.Sequence (Seq, singleton, (><))
 
-import Control.Monad (replicateM)
+import Control.Monad (foldM, replicateM)
 import Control.Monad.ST
 import Data.STRef
   
@@ -77,6 +78,10 @@ newDynVar = newSTRef (Value { value = Nothing })
 newDynVars :: Int -> ST s [Var s]
 newDynVars n = replicateM n newDynVar
 
+isStatic :: Value -> Bool
+isStatic (Value {value = Nothing}) = False
+isStatic _ = True
+
 extractBool :: Value -> Bool
 extractBool (Value { value = Just b }) = b
 extractBool _ = error "Expecting a static variable"
@@ -84,10 +89,16 @@ extractBool _ = error "Expecting a static variable"
 negVar :: Value -> Value 
 negVar v = newValue (not (extractBool v))
                    
-controlsActive :: [Bool] -> [Value] -> Bool
-controlsActive bs cs = and (zipWith f bs cs)
-  where f b (Value { value = Just b' }) = b == b'
-        f b _ = False
+-- returns yes/no/unknown as Just True, Just False, Nothing
+controlsActive :: [Bool] -> [Value] -> Maybe Bool
+controlsActive bs cs =
+  if | not r' -> Just False
+     | Nothing `elem` r -> Nothing
+     | otherwise -> Just True
+  where r' = and (catMaybes r)
+        r = zipWith f bs cs
+        f b (Value { value = Just b' }) = Just (b == b')
+        f b _ = Nothing
 
 valueToInt :: [Value] -> Integer
 valueToInt v = toInt $ map extractBool v
@@ -205,7 +216,8 @@ interpGT :: GToffoli s -> ST s ()
 interpGT (GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   vt <- readSTRef t
-  if controlsActive bs controls
+  let ca = controlsActive bs controls
+  if ca == Just True 
     then writeSTRef t (negVar vt)
     else return ()
 
@@ -262,7 +274,7 @@ runShor p@(Params { numberOfBits = n, base = a, toFactor = m}) x = runST $
      res <- if even n then mapM readSTRef us else mapM readSTRef ts
      return (valueToInt res)
 
-invShor :: Params -> Integer -> (Integer,Integer,Integer)
+invShor :: Params -> Integer -> Int
 invShor (Params { numberOfBits = n, base = a, toFactor = m}) res = runST $ 
   do xs <- newDynVars (n+1)
      ts <- if odd n
@@ -274,6 +286,9 @@ invShor (Params { numberOfBits = n, base = a, toFactor = m}) res = runST $
      circuit <- makeExpMod n a m xs ts us
      simplified <- simplifyPhase circuit
 
+     return (S.length simplified)
+
+     {--
      let rcircuit = simplified
      interpM (S.reverse rcircuit)
      ixs <- mapM readSTRef xs
@@ -281,15 +296,27 @@ invShor (Params { numberOfBits = n, base = a, toFactor = m}) res = runST $
      ius <- mapM readSTRef us
      return (valueToInt ixs, valueToInt its, valueToInt ius)
 
+     --}
+
 ------------------------------------------------------------------------------
 -- Partial evaluation
 
 -- Remove redundant controls
+-- If all static controls, execute the instruction
 
-simplify :: GToffoli s -> OP s
-simplify g@(GToffoli bs cs t) 
-  | True = error "todo"
-  | otherwise = error "todo"
+simplify :: GToffoli s -> ST s (OP s)
+simplify g@(GToffoli bs cs t) = do
+  controls <- mapM readSTRef cs
+  vt <- readSTRef t
+  let ca = controlsActive bs controls
+  if | ca == Just True && isStatic vt -> 
+         do writeSTRef t (negVar vt)
+            return S.empty
+     | ca == Just False ->
+         return S.empty
+     | otherwise -> -- mark target as unknown
+         do writeSTRef t (Value { value = Nothing })
+            return (S.singleton g)
 
 simplifyPhase :: OP s -> ST s (OP s)
 simplifyPhase op = do
@@ -299,7 +326,7 @@ simplifyPhase op = do
     trace (printf "Input circuit has %d gates" (S.length op)) $
     return ()
 
-  opr <- return op
+  opr <- foldM (\ op' g -> do g' <- simplify g; return (op' >< g')) S.empty op
 
   trace (printf "Resulting circuit has %d gates\n" (S.length opr)) $
     return opr
