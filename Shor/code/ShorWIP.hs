@@ -8,7 +8,7 @@ import Data.List
 import qualified Data.Sequence as S
 import Data.Sequence (Seq, singleton, (><))
 
-import Control.Monad (foldM, replicateM)
+import Control.Monad 
 import Control.Monad.ST
 import Data.STRef
   
@@ -60,6 +60,11 @@ invsqmods a m = invam : invsqmods (am * am) m
 
 data Value = Value { value :: Maybe Bool
                    }
+
+instance Show Value where
+  show (Value {value = Nothing}) = "_"
+  show (Value {value = Just True}) = "1"
+  show (Value {value = Just False}) = "0"
 
 type Var s = STRef s Value
 
@@ -274,7 +279,7 @@ runShor p@(Params { numberOfBits = n, base = a, toFactor = m}) x = runST $
      res <- if even n then mapM readSTRef us else mapM readSTRef ts
      return (valueToInt res)
 
-invShor :: Params -> Integer -> Int
+invShor :: Params -> Integer -> ()
 invShor (Params { numberOfBits = n, base = a, toFactor = m}) res = runST $ 
   do xs <- newDynVars (n+1)
      ts <- if odd n
@@ -285,15 +290,19 @@ invShor (Params { numberOfBits = n, base = a, toFactor = m}) res = runST $
            else newVars (fromInt (n+1) 0)
      circuit <- makeExpMod n a m xs ts us
 
+     printState "Initially:" xs ts us
+
      -- Phase I of PE
 
      simplified <- simplifyPhase circuit
+     resetVars n res ts us
 
-     -- locations corrupted
-     -- reset them before next pe phase
+     -- Phase II of PE
 
-     return (S.length simplified')
+     -- ??!!
+     resetVars n res ts us
 
+     printState "Final state:" xs ts us
      {--
      let rcircuit = simplified
      interpM (S.reverse rcircuit)
@@ -303,6 +312,24 @@ invShor (Params { numberOfBits = n, base = a, toFactor = m}) res = runST $
      return (valueToInt ixs, valueToInt its, valueToInt ius)
 
      --}
+       where
+         resetVars n res ts us =
+           let resbits = map newValue $ fromInt (n+1) res
+           in if odd n
+              then do mapM_ (uncurry writeSTRef) (zip ts resbits)
+                      mapM_ (\t -> writeSTRef t (newValue False)) us
+              else do mapM_ (uncurry writeSTRef) (zip us resbits)
+                      mapM_ (\t -> writeSTRef t (newValue False)) ts
+
+         printState msg xs ts us =
+           do ixs <- mapM readSTRef xs
+              its <- mapM readSTRef ts
+              ius <- mapM readSTRef us
+              trace
+                (printf "%s\nxs = %s;\nts = %s;\nus = %s\n"
+                 msg (show ixs) (show its) (show ius))
+                (return ())
+
 
 ------------------------------------------------------------------------------
 -- Partial evaluation
@@ -328,7 +355,7 @@ simplifyPhase :: OP s -> ST s (OP s)
 simplifyPhase op = do
 
   trace
-    (printf "\n***************\nSimplify Phase:\n***************") $
+    (printf "***************\nSimplify Phase:\n***************") $
     trace (printf "Input circuit has %d gates" (S.length op)) $
     return ()
 
