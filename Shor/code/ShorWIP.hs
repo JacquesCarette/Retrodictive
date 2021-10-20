@@ -2,11 +2,12 @@
 
 module ShorWIP where
 
-import Data.List (intersect) 
+import Data.List (intersect)
 
 import qualified Data.Sequence as S
 import Data.Sequence (Seq, singleton, (><))
 
+import Control.Monad (replicateM)
 import Control.Monad.ST
 import Data.STRef
   
@@ -54,7 +55,44 @@ invsqmods a m = invam : invsqmods (am * am) m
 ----------------------------------------------------------------------------------------
 -- Circuits are sequences of generalized Toffoli gates
 
-type Var s = STRef s Bool
+-- type Var s = STRef s Bool
+
+data Value = Value { value :: Maybe Bool
+                   }
+
+type Var s = STRef s Value
+
+newValue :: Bool -> Value
+newValue b = Value { value = Just b }
+
+newVar :: Bool -> ST s (Var s)
+newVar b = newSTRef (newValue b)
+
+newVars :: [Bool] -> ST s [Var s]
+newVars = mapM newVar 
+
+newDynVar :: ST s (Var s)
+newDynVar = newSTRef (Value { value = Nothing })
+
+newDynVars :: Int -> ST s [Var s]
+newDynVars n = replicateM n newDynVar
+
+extractBool :: Value -> Bool
+extractBool (Value { value = Just b }) = b
+extractBool _ = error "Expecting a static variable"
+
+negVar :: Value -> Value 
+negVar v = newValue (not (extractBool v))
+                   
+controlsActive :: [Bool] -> [Value] -> Bool
+controlsActive bs cs = and (zipWith f bs cs)
+  where f b (Value { value = Just b' }) = b == b'
+        f b _ = False
+
+valueToInt :: [Value] -> Integer
+valueToInt v = toInt $ map extractBool v
+
+--
 
 data GToffoli s = GToffoli [Bool] [Var s] (Var s)
 
@@ -91,7 +129,7 @@ copyOP as bs = S.fromList (zipWith cx as bs)
 
 makeAdder :: Int -> [ Var s ] -> [ Var s ] -> ST s (OP s)
 makeAdder n as bs =
-  do cs <- mapM newSTRef (fromInt n 0)
+  do cs <- newVars (fromInt n 0)
      return (loop as bs cs)
        where loop [a,_] [b,b'] [c] =
                (carryOP c a b b') ><
@@ -105,9 +143,9 @@ makeAdder n as bs =
 
 makeAdderMod :: Int -> Integer -> [ Var s ] -> [ Var s ] -> ST s (OP s)
 makeAdderMod n m as bs = 
-  do ms <- mapM newSTRef (fromInt (n+1) m)
-     ms' <- mapM newSTRef (fromInt (n+1) m)
-     t <- newSTRef False
+  do ms <- newVars (fromInt (n+1) m)
+     ms' <- newVars (fromInt (n+1) m)
+     t <- newVar False
      adderab <- makeAdder n as bs
      addermb <- makeAdder n ms bs
      return $
@@ -124,8 +162,8 @@ makeAdderMod n m as bs =
 makeCMulMod :: Int -> Integer -> Integer -> Var s -> [ Var s ] -> [ Var s ]
             -> ST s (OP s)
 makeCMulMod n a m c xs ts =
-  do ps <- mapM newSTRef (fromInt (n+1) 0)
-     as <- mapM (\a -> mapM newSTRef (fromInt (n+1) a)) (take (n+1) (doublemods a m))
+  do ps <- newVars (fromInt (n+1) 0)
+     as <- mapM (\a -> newVars (fromInt (n+1) a)) (take (n+1) (doublemods a m))
      adderPT <- makeAdderMod n m ps ts
      return (loop adderPT as xs ps)
        where loop adderPT [] [] ps =
@@ -167,8 +205,8 @@ interpGT :: GToffoli s -> ST s ()
 interpGT (GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   vt <- readSTRef t
-  if and (zipWith (==) bs controls)
-    then writeSTRef t (not vt)
+  if controlsActive bs controls
+    then writeSTRef t (negVar vt)
     else return ()
 
 interpM :: OP s -> ST s ()
@@ -209,13 +247,69 @@ p323 = Params {
 
 shorCircuit :: Params -> Integer -> ST s (OP s)
 shorCircuit (Params {numberOfBits = n, base = a, toFactor = m}) x = 
-  do xs <- mapM newSTRef (fromInt (n+1) x)
-     ts <- mapM newSTRef (fromInt (n+1) 1)
-     us <- mapM newSTRef (fromInt (n+1) 0)
+  do xs <- newVars (fromInt (n+1) x)
+     ts <- newVars (fromInt (n+1) 1)
+     us <- newVars (fromInt (n+1) 0)
      makeExpMod n a m xs ts us
+
+runShor :: Params -> Integer -> Integer
+runShor p@(Params { numberOfBits = n, base = a, toFactor = m}) x = runST $ 
+  do xs <- newVars (fromInt (n+1) x)
+     ts <- newVars (fromInt (n+1) 1)
+     us <- newVars (fromInt (n+1) 0)
+     circuit <- makeExpMod n a m xs ts us
+     interpM circuit
+     res <- if even n then mapM readSTRef us else mapM readSTRef ts
+     return (valueToInt res)
+
+invShor :: Params -> Integer -> (Integer,Integer,Integer)
+invShor (Params { numberOfBits = n, base = a, toFactor = m}) res = runST $ 
+  do xs <- newDynVars (n+1)
+     ts <- if odd n
+           then newVars (fromInt (n+1) res)
+           else newVars (fromInt (n+1) 0)
+     us <- if even n
+           then newVars (fromInt (n+1) res)
+           else newVars (fromInt (n+1) 0)
+     circuit <- makeExpMod n a m xs ts us
+     simplified <- simplifyPhase circuit
+
+     let rcircuit = simplified
+     interpM (S.reverse rcircuit)
+     ixs <- mapM readSTRef xs
+     its <- mapM readSTRef ts
+     ius <- mapM readSTRef us
+     return (valueToInt ixs, valueToInt its, valueToInt ius)
 
 ------------------------------------------------------------------------------
 -- Partial evaluation
+
+-- Remove redundant controls
+
+simplify :: GToffoli s -> OP s
+simplify g@(GToffoli bs cs t) 
+  | True = error "todo"
+  | otherwise = error "todo"
+
+simplifyPhase :: OP s -> ST s (OP s)
+simplifyPhase op = do
+
+  trace
+    (printf "\n***************\nSimplify Phase:\n***************") $
+    trace (printf "Input circuit has %d gates" (S.length op)) $
+    return ()
+
+  opr <- return op
+
+  trace (printf "Resulting circuit has %d gates\n" (S.length opr)) $
+    return opr
+
+testSimplify :: () 
+testSimplify = runST $ 
+  do op <- shorCircuit p15a 0
+     simplifyPhase op
+     return () 
+
 
 -- Merge phase
 -- Attempt to merge gates with the same target
