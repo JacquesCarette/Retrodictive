@@ -284,9 +284,15 @@ invShor (Params { numberOfBits = n, base = a, toFactor = m}) res = runST $
            then newVars (fromInt (n+1) res)
            else newVars (fromInt (n+1) 0)
      circuit <- makeExpMod n a m xs ts us
+
+     -- Phase I of PE
+
      simplified <- simplifyPhase circuit
 
-     return (S.length simplified)
+     -- locations corrupted
+     -- reset them before next pe phase
+
+     return (S.length simplified')
 
      {--
      let rcircuit = simplified
