@@ -100,6 +100,14 @@ controlsActive bs cs =
         f b (Value { value = Just b' }) = Just (b == b')
         f b _ = Nothing
 
+shrinkControls :: [Bool] -> [Var s] -> [Value] -> ([Bool],[Var s],[Value])
+shrinkControls [] [] [] = ([],[],[])
+shrinkControls (b:bs) (c:cs) (v:vs)
+  | value v == Just b = shrinkControls bs cs vs
+  | otherwise =
+    let (bs',cs',vs') = shrinkControls bs cs vs
+    in (b:bs',c:cs',v:vs')
+
 --
 -- Locations where values are stored
 
@@ -319,11 +327,12 @@ invShor (Params { numberOfBits = n, base = a, toFactor = m}) res = runST $ do
         then newVars gensym "u" (fromInt (n+1) res)
         else newVars gensym "u" (fromInt (n+1) 0)
   circuit <- makeExpMod gensym n a m xs ts us
-
+  -- showOP circuit
   -- Phase I of PE
   simplified <- simplifyPhase circuit
-
   showOP simplified
+
+
 
 {--
 
@@ -378,9 +387,10 @@ go = writeFile "tmp.txt" (invShor p15a 1)
 -- If all static controls, execute the instruction
 
 simplify :: GToffoli s -> ST s (OP s)
-simplify g@(GToffoli bs cs t) = do
-  controls <- mapM readSTRef cs
+simplify (GToffoli bsOrig csOrig t) = do
+  controlsOrig <- mapM readSTRef csOrig
   vt <- readSTRef t
+  let (bs,cs,controls) = shrinkControls bsOrig csOrig controlsOrig
   let ca = controlsActive bs controls
   if | ca == Just True && isStatic vt -> do
          writeSTRef t (negValue vt)
@@ -389,7 +399,7 @@ simplify g@(GToffoli bs cs t) = do
          return S.empty
      | otherwise -> do -- mark target as unknown
          writeSTRef t (Value { name = name vt, value = Nothing })
-         return (S.singleton g)
+         return (S.singleton (GToffoli bs cs t))
 
 simplifyPhase :: OP s -> ST s (OP s)
 simplifyPhase op = do
