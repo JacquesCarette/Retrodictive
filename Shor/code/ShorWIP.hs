@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE MultiWayIf #-}
 
 module ShorWIP where
@@ -6,7 +7,7 @@ import Data.Maybe
 import Data.List
 
 import qualified Data.Sequence as S
-import Data.Sequence (Seq, singleton, (><))
+import Data.Sequence (Seq, singleton, viewl, ViewL(..), (><))
 
 import Control.Monad 
 import Control.Monad.ST
@@ -61,18 +62,27 @@ invsqmods a m = invam : invsqmods (am * am) m
 
 data Value = Value { name  :: String
                    , value :: Maybe Bool
+                   , saved :: Maybe Bool
                    }
 
+defaultValue :: Value
+defaultValue =
+  Value { name  = ""
+        , value = Nothing
+        , saved = Nothing
+        }
+
 instance Show Value where
-  show (Value {name = s, value = Nothing}) = s ++ " _"
-  show (Value {name = s, value = Just True}) = s ++ " 1"
-  show (Value {name = s, value = Just False}) = s ++ " 0"
+  show v = printf "%s %s" (name v) (showmb (value v))
+    where showmb Nothing = "_"
+          showmb (Just True) = "1"
+          showmb (Just False) = "0"
 
 newValue :: String -> Bool -> Value
-newValue s b = Value { name = s, value = Just b }
+newValue s b = defaultValue { name = s, value = Just b }
 
 newDynValue :: String -> Value
-newDynValue s = Value { name = s, value = Nothing }
+newDynValue s = defaultValue { name = s, value = Nothing }
 
 isStatic :: Value -> Bool
 isStatic (Value {value = Nothing}) = False
@@ -90,6 +100,14 @@ valueToInt v = toInt $ map extractBool v
 
 -- returns yes/no/unknown as Just True, Just False, Nothing
 
+shrinkControls :: [Bool] -> [Var s] -> [Value] -> ([Bool],[Var s],[Value])
+shrinkControls [] [] [] = ([],[],[])
+shrinkControls (b:bs) (c:cs) (v:vs)
+  | value v == Just b = shrinkControls bs cs vs
+  | otherwise =
+    let (bs',cs',vs') = shrinkControls bs cs vs
+    in (b:bs',c:cs',v:vs')
+
 controlsActive :: [Bool] -> [Value] -> Maybe Bool
 controlsActive bs cs =
   if | not r' -> Just False
@@ -99,14 +117,6 @@ controlsActive bs cs =
         r = zipWith f bs cs
         f b (Value { value = Just b' }) = Just (b == b')
         f b _ = Nothing
-
-shrinkControls :: [Bool] -> [Var s] -> [Value] -> ([Bool],[Var s],[Value])
-shrinkControls [] [] [] = ([],[],[])
-shrinkControls (b:bs) (c:cs) (v:vs)
-  | value v == Just b = shrinkControls bs cs vs
-  | otherwise =
-    let (bs',cs',vs') = shrinkControls bs cs vs
-    in (b:bs',c:cs',v:vs')
 
 --
 -- Locations where values are stored
@@ -130,6 +140,22 @@ newDynVar gensym s = do
 
 newDynVars :: STRef s Int -> String -> Int -> ST s [Var s]
 newDynVars gensym s n = replicateM n (newDynVar gensym s)
+
+updateVar :: Var s -> Bool -> ST s ()
+updateVar var b = do
+  v <- readSTRef var
+  writeSTRef var (v {value = Just b})
+  
+updateVars :: [Var s] -> [Bool] -> ST s ()
+updateVars vars bs = mapM_ (uncurry updateVar) (zip vars bs)
+  
+updateDyn :: Var s -> ST s ()
+updateDyn var = do
+  v <- readSTRef var
+  writeSTRef var (v {value = Nothing})
+
+updateDyns :: [Var s] -> ST s ()
+updateDyns = mapM_ updateDyn
 
 --
 -- Gates and circuits
@@ -261,11 +287,12 @@ interpGT (GToffoli bs cs t) = do
     then writeSTRef t (negValue vt)
     else return ()
 
-interpM :: OP s -> ST s ()
-interpM = foldMap interpGT
+interpOP :: OP s -> ST s ()
+interpOP = foldMap interpGT
 
-------------------------------------------------------------------------------
--- Example circuits
+----------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------
+-- Some example Shor instances
 
 data Params =
   Params { numberOfBits :: Int
@@ -297,97 +324,103 @@ p323 = Params {
   toFactor     = 323
   }
 
-shorCircuit :: Params -> Integer -> ST s (OP s)
+shorCircuit :: Params -> Integer -> ST s (OP s,[Var s])
 shorCircuit (Params {numberOfBits = n, base = a, toFactor = m}) x = do
   gensym <- newSTRef 0
   xs <- newVars gensym "x" (fromInt (n+1) x)
   ts <- newVars gensym "t" (fromInt (n+1) 1)
   us <- newVars gensym "u" (fromInt (n+1) 0)
-  makeExpMod gensym n a m xs ts us
+  circuit <- makeExpMod gensym n a m xs ts us
+  return (circuit, if even n then us else ts)
 
 runShor :: Params -> Integer -> Integer
 runShor p@(Params { numberOfBits = n, base = a, toFactor = m}) x = runST $ do
-  gensym <- newSTRef 0
-  xs <- newVars gensym "x" (fromInt (n+1) x)
-  ts <- newVars gensym "t" (fromInt (n+1) 1)
-  us <- newVars gensym "u" (fromInt (n+1) 0)
-  circuit <- makeExpMod gensym n a m xs ts us
-  interpM circuit
-  res <- if even n then mapM readSTRef us else mapM readSTRef ts
+  (circuit,rs) <- shorCircuit p x
+  interpOP circuit
+  res <- mapM readSTRef rs
   return (valueToInt res)
 
-invShor :: Params -> Integer -> String
-invShor (Params { numberOfBits = n, base = a, toFactor = m}) res = runST $ do
+-- 
+-- *ShorWIP> map (runShor p15a) [0..10]
+-- [1,7,4,13,1,7,4,13,1,7,4]
+
+----------------------------------------------------------------------------------------
+-- Inverse Shor circuits abstraction for testing
+
+data InvShorCircuit s =
+  InvShorCircuit { ps  :: Params
+                 , xs  :: [Var s] 
+                 , rs  :: [Var s] 
+                 , rzs :: [Var s]
+                 , os  :: [Var s] 
+                 , lzs :: [Var s]
+                 , op  :: OP s
+                 }
+
+runStatic :: InvShorCircuit s -> Integer -> Integer ->
+             ST s (Integer,Integer,Integer)
+runStatic isc x res = do
+  let n = numberOfBits (ps isc)
+  updateVars (xs isc) (fromInt (n+1) x)
+  updateVars (rs isc) (fromInt (n+1) res)
+  updateVars (rzs isc) (fromInt (n+1) 0)
+  interpOP (op isc)
+  xvs <- mapM readSTRef (xs isc)
+  ovs <- mapM readSTRef (os isc)
+  lzvs <- mapM readSTRef (lzs isc)
+  return (valueToInt xvs, valueToInt ovs, valueToInt lzvs)
+
+updateDynamic :: InvShorCircuit s -> Integer -> ST s (InvShorCircuit s)
+updateDynamic isc res = do
+  let n = numberOfBits (ps isc)
+  updateDyns (xs isc) 
+  updateVars (rs isc) (fromInt (n+1) res)
+  updateVars (rzs isc) (fromInt (n+1) 0)
+  return isc
+
+----------------------------------------------------------------------------------------
+-- Inverse Shor example for testing
+
+invShor15 :: ST s (InvShorCircuit s)
+invShor15 = do
+  let p = p15a
+  let n = numberOfBits p -- 4
+  let a = base p
+  let m = toFactor p
   gensym <- newSTRef 0
   xs <- newDynVars gensym "x" (n+1)
-  ts <- if odd n
-        then newVars gensym "t" (fromInt (n+1) res)
-        else newVars gensym "t" (fromInt (n+1) 0)
-  us <- if even n
-        then newVars gensym "u" (fromInt (n+1) res)
-        else newVars gensym "u" (fromInt (n+1) 0)
+  ts <- newVars gensym "t" (fromInt (n+1) 0)
+  us <- newDynVars gensym "u" (n+1)
   circuit <- makeExpMod gensym n a m xs ts us
-  -- showOP circuit
-  -- Phase I of PE
-  simplified <- simplifyPhase circuit
-  showOP simplified
+  return (InvShorCircuit
+          { ps = p15a
+          , xs = xs
+          , rs = us
+          , rzs = ts
+          , os = ts
+          , lzs = us
+          , op = S.reverse circuit
+          })
 
-
-
-{--
-
-  printState "Initially:" xs ts us
-
---  resetVars n res ts us
-
-  -- Phase II of PE
-
-  -- add gensym'ed names
-  -- GROUP BY SAME TARGET; MERGE; AND SIMPLIFY
-  -- ADD SPECIAL CASES CX(X,0) = (X,X) ETC (needs aliasing)
-
---  resetVars n res ts us
-
-  printState "Final state:" xs ts us
-  {--
-  let rcircuit = simplified
-  interpM (S.reverse rcircuit)
-  ixs <- mapM readSTRef xs
-  its <- mapM readSTRef ts
-  ius <- mapM readSTRef us
-  return (valueToInt ixs, valueToInt its, valueToInt ius)
-  --}
-    where
-{--
-      resetVars n res ts us =
-        let resbits = map newValue $ fromInt (n+1) res
-        in if odd n
-           then do mapM_ (uncurry writeSTRef) (zip ts resbits)
-                   mapM_ (\t -> writeSTRef t (newValue False)) us
-           else do mapM_ (uncurry writeSTRef) (zip us resbits)
-                   mapM_ (\t -> writeSTRef t (newValue False)) ts
---}
-      printState msg xs ts us = do
-        ixs <- mapM readSTRef xs
-        its <- mapM readSTRef ts
-        ius <- mapM readSTRef us
-        trace
-          (printf "%s\nxs = %s;\nts = %s;\nus = %s\n"
-            msg (show ixs) (show its) (show ius))
-          (return ())
---}
-
-go :: IO ()
-go = writeFile "tmp.txt" (invShor p15a 1)
-
-------------------------------------------------------------------------------
--- Partial evaluation
+testRunStaticShor15 :: Bool  
+testRunStaticShor15 = runST $ do
+  isc <- invShor15
+  (x0,o0,z0) <- runStatic isc 0 1
+  (x1,o1,z1) <- runStatic isc 1 7
+  (x2,o2,z2) <- runStatic isc 2 4
+  (x3,o3,z3) <- runStatic isc 3 13
+  return (x0 == 0 && x1 == 1 && x2 == 2 && x3 == 3 &&
+          o0 == 1 && o1 == 1 && o2 == 1 && o3 == 1 &&
+          z0 == 0 && z1 == 0 && z2 == 0 && z3 == 0)
+  
+----------------------------------------------------------------------------------------
+-- Partial evaluation phases
 
 -- Remove redundant controls
 -- If all static controls, execute the instruction
 
-simplify :: GToffoli s -> ST s (OP s)
-simplify (GToffoli bsOrig csOrig t) = do
+simplifyG :: GToffoli s -> ST s (OP s)
+simplifyG (GToffoli bsOrig csOrig t) = do
   controlsOrig <- mapM readSTRef csOrig
   vt <- readSTRef t
   let (bs,cs,controls) = shrinkControls bsOrig csOrig controlsOrig
@@ -398,55 +431,69 @@ simplify (GToffoli bsOrig csOrig t) = do
      | ca == Just False ->
          return S.empty
      | otherwise -> do -- mark target as unknown
-         writeSTRef t (Value { name = name vt, value = Nothing })
+         if saved vt == Nothing
+           then writeSTRef t (vt { saved = value vt })
+           else return () 
+         updateDyn t
          return (S.singleton (GToffoli bs cs t))
 
-simplifyPhase :: OP s -> ST s (OP s)
-simplifyPhase op = do
+restoreSaved :: GToffoli s -> ST s (GToffoli s)
+restoreSaved g@(GToffoli bsOrig csOrig t) = do
+  vt <- readSTRef t
+  if saved vt /= Nothing && value vt == Nothing
+    then do writeSTRef t (vt { value = saved vt, saved = Nothing })
+            return g
+    else return g
 
-  trace
-    (printf "***************\nSimplify Phase:\n***************") $
-    trace (printf "Input circuit has %d gates" (S.length op)) $
-    return ()
+-- clunky to force strictness
 
-  opr <- foldM (\ op' g -> do g' <- simplify g; return (op' >< g')) S.empty op
+simplifyOP :: OP s -> ST s (OP s)
+simplifyOP op = case viewl op of
+  EmptyL -> return S.empty
+  (g :< gs) -> do
+    g' <- simplifyG g
+    gs' <- simplifyOP gs
+    case viewl (g' >< gs') of
+      EmptyL -> return S.empty
+      (g :< gs) -> do g' <- restoreSaved g
+                      return (S.singleton g' >< gs)
 
-  trace (printf "Resulting circuit has %d gates\n" (S.length opr)) $
-    return opr
+simplifyShor :: InvShorCircuit s -> ST s (InvShorCircuit s)
+simplifyShor c = do
+  simplified <- simplifyOP (op c)
+  return (c {op = simplified})
 
-testSimplify :: () 
-testSimplify = runST $ do
-  op <- shorCircuit p15a 0
-  simplifyPhase op
-  return () 
+-- 
+-- Test with x = 3, res = 13
 
--- Merge phase
--- Attempt to merge gates with the same target
+pe :: IO ()
+pe = 
+  let f = runST $ do
 
-merge :: GToffoli s -> GToffoli s -> Either (GToffoli s) (GToffoli s, GToffoli s)
-merge g1@(GToffoli bs1 cs1 t1) g2@(GToffoli bs2 cs2 t2)
-  | t1 /= t2 = Right (g1,g2)
-  | otherwise = error "todo"
+        plain <- invShor15
 
-mergePhase :: OP s -> ST s (OP s)
-mergePhase op = do
+        original <- updateDynamic plain 13
+        originalText <- showOP (op original)
+        (x,o,z) <- runStatic original 3 13
+        assertMessage "Original"
+          (printf "x=%d, o=%d, z=%d" x o z)
+          (assert (x==3 && o==1 && z==0))
+          (return ())
 
-  trace
-    (printf "Merge Phase:\n************\nInput circuit has %d gates\n" (S.length op))
-    (return ())
+        original <- updateDynamic plain 13
+        simplified <- simplifyShor original
+        simplifiedText <- showOP (op simplified)
 
-  opr <- return op
+        (x,o,z) <- runStatic simplified 3 13
+        assertMessage "Simplified"
+          (printf "x=%d, o=%d, z=%d" x o z)
+          (assert (x==3 && o==1 && z==0))
+          (return ())
 
-  trace (printf "Resulting circuit has %d gates\n" (S.length opr)) $
-    return opr
+        return simplifiedText
 
-testMerge :: () 
-testMerge = runST $ do
-  op <- shorCircuit p15a 0
-  mergePhase op
-  return () 
+  in writeFile "pe-shor15-simplify.txt" f
 
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
-
 
