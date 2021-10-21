@@ -14,3 +14,10 @@
 -- apparently also be done classically
 
 -- So what gives? 
+
+{--
+
+Sec. 7.4.2 of book shows that Grover has the same pattern; might be able to do
+something with it
+
+--}
