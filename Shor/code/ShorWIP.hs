@@ -169,7 +169,7 @@ showGToffoli :: GToffoli s -> ST s String
 showGToffoli (GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   vt <- readSTRef t
-  return $ printf "GToffoli %s %s (%s)\n" (show bs) (show controls) (show vt)
+  return $ printf "GToffoli %-15s%-25s(%s)\n" (show bs) (show controls) (show vt)
 
 showOP :: OP s -> ST s String
 showOP = foldMap showGToffoli
@@ -522,7 +522,7 @@ pe =
 
         return collapsedText
 
-  in writeFile "pe-shor15-collapse.txt" text
+  in writeFile "tmp.txt" text
 
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
