@@ -161,6 +161,7 @@ updateDyns = mapM_ updateDyn
 -- Gates and circuits
 
 data GToffoli s = GToffoli [Bool] [Var s] (Var s)
+  deriving Eq
 
 type OP s = Seq (GToffoli s)
 
@@ -450,25 +451,46 @@ restoreSaved g@(GToffoli bsOrig csOrig t) = do
 simplifyOP :: OP s -> ST s (OP s)
 simplifyOP op = case viewl op of
   EmptyL -> return S.empty
-  (g :< gs) -> do
+  g :< gs -> do
     g' <- simplifyG g
     gs' <- simplifyOP gs
     case viewl (g' >< gs') of
       EmptyL -> return S.empty
-      (g :< gs) -> do g' <- restoreSaved g
-                      return (S.singleton g' >< gs)
+      g :< gs -> do
+        g' <- restoreSaved g
+        return (S.singleton g' >< gs)
 
 simplifyShor :: InvShorCircuit s -> ST s (InvShorCircuit s)
 simplifyShor c = do
   simplified <- simplifyOP (op c)
   return (c {op = simplified})
 
--- 
+-- Collapse g;g to id and simplify afterwards
+
+collapseOP :: OP s -> OP s
+collapseOP op = case viewl op of
+  EmptyL -> S.empty
+  g :< gs -> case viewl gs of 
+               EmptyL -> S.singleton g
+               g' :< gs' ->
+                 if g == g'
+                 then collapseOP gs'
+                 else S.singleton g >< collapseOP gs
+
+collapseShor :: InvShorCircuit s -> ST s (InvShorCircuit s)
+collapseShor c = do
+  let collapsed = collapseOP (op c)
+  simplified <- simplifyOP collapsed
+  return (c {op = simplified})
+
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+-- Run all phases, testing after each phase
 -- Test with x = 3, res = 13
 
 pe :: IO ()
 pe = 
-  let f = runST $ do
+  let text = runST $ do
 
         plain <- invShor15
 
@@ -483,16 +505,24 @@ pe =
         original <- updateDynamic plain 13
         simplified <- simplifyShor original
         simplifiedText <- showOP (op simplified)
-
         (x,o,z) <- runStatic simplified 3 13
         assertMessage "Simplified"
           (printf "x=%d, o=%d, z=%d" x o z)
           (assert (x==3 && o==1 && z==0))
           (return ())
 
-        return simplifiedText
+        simplified <- updateDynamic simplified 13
+        collapsed <- collapseShor simplified
+        collapsedText <- showOP (op collapsed)
+        (x,o,z) <- runStatic collapsed 3 13
+        assertMessage "Collapsed"
+          (printf "x=%d, o=%d, z=%d" x o z)
+          (assert (x==3 && o==1 && z==0))
+          (return ())
 
-  in writeFile "pe-shor15-simplify.txt" f
+        return collapsedText
+
+  in writeFile "pe-shor15-collapse.txt" text
 
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
