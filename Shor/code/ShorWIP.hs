@@ -373,13 +373,12 @@ runStatic isc x res = do
   lzvs <- mapM readSTRef (lzs isc)
   return (valueToInt xvs, valueToInt ovs, valueToInt lzvs)
 
-updateDynamic :: InvShorCircuit s -> Integer -> ST s (InvShorCircuit s)
+updateDynamic :: InvShorCircuit s -> Integer -> ST s ()
 updateDynamic isc res = do
   let n = numberOfBits (ps isc)
   updateDyns (xs isc) 
   updateVars (rs isc) (fromInt (n+1) res)
   updateVars (rzs isc) (fromInt (n+1) 0)
-  return isc
 
 ----------------------------------------------------------------------------------------
 -- Inverse Shor 15 example for testing
@@ -419,6 +418,8 @@ testRunStaticShor15 = runST $ do
 ----------------------------------------------------------------------------------------
 -- Partial evaluation phases
 
+-- Simplify phase:
+-- 
 -- shrinkControls: removes redundant controls
 -- then test whether controlsActive:
 --   if definitely active => execute the instruction; emit nothing
@@ -471,17 +472,35 @@ simplifyShor c = do
   simplified <- simplifyOP (op c)
   return (c {op = simplified})
 
--- Collapse g;g to id and simplify afterwards
+-- Collapse phase:
+-- 
+-- Collapse g;g to id
+-- Collapse x;cx;x to ncx
+-- Simplify afterwards
 
 collapseOP :: OP s -> OP s
 collapseOP op = case viewl op of
-  EmptyL -> S.empty
-  g :< gs -> case viewl gs of 
-               EmptyL -> S.singleton g
-               g' :< gs' ->
-                 if g == g'
-                 then collapseOP gs'
-                 else S.singleton g >< collapseOP gs
+  EmptyL  -> op
+  g :< gs ->
+    case viewl gs of 
+      EmptyL -> op
+      g' :< gs'
+        | g == g' -> collapseOP gs'
+        | otherwise ->
+          case viewl gs' of
+            EmptyL -> op
+            g'' :< gs''
+              | xcxx g g' g'' -> S.singleton (flipControl g') >< collapseOP gs''
+              | otherwise -> S.singleton g >< collapseOP gs
+
+flipControl :: GToffoli s -> GToffoli s
+flipControl (GToffoli [b] [v] t) = GToffoli [not b] [v] t
+
+xcxx :: GToffoli s -> GToffoli s -> GToffoli s -> Bool
+xcxx (GToffoli [] [] t0) (GToffoli [b] [t1] t2) (GToffoli [] [] t3)
+  | t0 == t1 && t0 == t1 && t0 == t3 && t0 /= t2 = True
+  | otherwise = False
+xcxx _ _ _ = False
 
 collapseShor :: InvShorCircuit s -> ST s (InvShorCircuit s)
 collapseShor c = do
@@ -491,38 +510,30 @@ collapseShor c = do
 
 -- Next ideas:
 -- (i) look for neg; cx; neg and replace by ncx
--- (ii) swap gates, groupBy same target
 
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
 -- Run all phases, testing after each phase
 -- Test with x = 3, res = 13
 
-check :: String -> InvShorCircuit s -> ST s ()
-check msg op = do
-  (x,o,z) <- runStatic op 3 13
-  assertMessage msg
-    (printf "x=%d, o=%d, z=%d" x o z)
-    (assert (x==3 && o==1 && z==0))
-    (return ())
-
 pe :: IO ()
 pe = writeFile "tmp.txt" $ runST $ do 
-  plain <- invShor15
-  original <- updateDynamic plain 13
-  --originalText <- showOP (op original)
-  --check "Original" original
-  --original <- updateDynamic plain 13
-  simplified <- simplifyShor original
-  --simplifiedText <- showOP (op simplified)
-  --check "Simplified" simplified
-  --simplified <- updateDynamic simplified 13
-  collapsed <- collapseShor simplified
-
-  collapsedText <- showOP (op collapsed)
-  check "Collpased" collapsed
-  return collapsedText
+  circuit <- invShor15
+  updateDynamic circuit 13        -- ; check "Original"   circuit
+  circuit <- simplifyShor circuit -- ; check "Simplified" circuit
+  circuit <- collapseShor circuit -- ; check "Collpased"  circuit
+  showOP (op circuit)
+  where
+    check :: String -> InvShorCircuit s -> ST s ()
+    check msg op = do
+      (x,o,z) <- runStatic op 3 13
+      assertMessage msg
+        (printf "x=%d, o=%d, z=%d" x o z)
+        (assert (x==3 && o==1 && z==0))
+        (return ())
+      updateDynamic op 13
 
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
+
 
