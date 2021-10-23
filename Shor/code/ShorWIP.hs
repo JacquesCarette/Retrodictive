@@ -346,7 +346,9 @@ runShor p@(Params { numberOfBits = n, base = a, toFactor = m}) x = runST $ do
 -- [1,7,4,13,1,7,4,13,1,7,4]
 
 ----------------------------------------------------------------------------------------
--- Inverse Shor circuits abstraction for testing
+-- Inverse Shor circuits abstraction for testing PE; can be run with
+-- all static parameters or with mixed static and dynamic parameters
+-- 
 
 data InvShorCircuit s =
   InvShorCircuit { ps  :: Params
@@ -380,7 +382,7 @@ updateDynamic isc res = do
   return isc
 
 ----------------------------------------------------------------------------------------
--- Inverse Shor example for testing
+-- Inverse Shor 15 example for testing
 
 invShor15 :: ST s (InvShorCircuit s)
 invShor15 = do
@@ -417,8 +419,11 @@ testRunStaticShor15 = runST $ do
 ----------------------------------------------------------------------------------------
 -- Partial evaluation phases
 
--- Remove redundant controls
--- If all static controls, execute the instruction
+-- shrinkControls: removes redundant controls
+-- then test whether controlsActive:
+--   if definitely active => execute the instruction; emit nothing
+--   if definitely not active => eliminate the instruction; emit nothing
+--   if unknown => emit instruction as residual
 
 simplifyG :: GToffoli s -> ST s (OP s)
 simplifyG (GToffoli bsOrig csOrig t) = do
@@ -431,7 +436,8 @@ simplifyG (GToffoli bsOrig csOrig t) = do
          return S.empty
      | ca == Just False ->
          return S.empty
-     | otherwise -> do -- mark target as unknown
+     | otherwise -> do
+         -- save value of target; mark it as unknown for remainder of phase
          if saved vt == Nothing
            then writeSTRef t (vt { saved = value vt })
            else return () 
@@ -483,46 +489,39 @@ collapseShor c = do
   simplified <- simplifyOP collapsed
   return (c {op = simplified})
 
+-- Next ideas:
+-- (i) look for neg; cx; neg and replace by ncx
+-- (ii) swap gates, groupBy same target
+
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
 -- Run all phases, testing after each phase
 -- Test with x = 3, res = 13
 
+check :: String -> InvShorCircuit s -> ST s ()
+check msg op = do
+  (x,o,z) <- runStatic op 3 13
+  assertMessage msg
+    (printf "x=%d, o=%d, z=%d" x o z)
+    (assert (x==3 && o==1 && z==0))
+    (return ())
+
 pe :: IO ()
-pe = 
-  let text = runST $ do
+pe = writeFile "tmp.txt" $ runST $ do 
+  plain <- invShor15
+  original <- updateDynamic plain 13
+  --originalText <- showOP (op original)
+  --check "Original" original
+  --original <- updateDynamic plain 13
+  simplified <- simplifyShor original
+  --simplifiedText <- showOP (op simplified)
+  --check "Simplified" simplified
+  --simplified <- updateDynamic simplified 13
+  collapsed <- collapseShor simplified
 
-        plain <- invShor15
-
-        original <- updateDynamic plain 13
-        originalText <- showOP (op original)
-        (x,o,z) <- runStatic original 3 13
-        assertMessage "Original"
-          (printf "x=%d, o=%d, z=%d" x o z)
-          (assert (x==3 && o==1 && z==0))
-          (return ())
-
-        original <- updateDynamic plain 13
-        simplified <- simplifyShor original
-        simplifiedText <- showOP (op simplified)
-        (x,o,z) <- runStatic simplified 3 13
-        assertMessage "Simplified"
-          (printf "x=%d, o=%d, z=%d" x o z)
-          (assert (x==3 && o==1 && z==0))
-          (return ())
-
-        simplified <- updateDynamic simplified 13
-        collapsed <- collapseShor simplified
-        collapsedText <- showOP (op collapsed)
-        (x,o,z) <- runStatic collapsed 3 13
-        assertMessage "Collapsed"
-          (printf "x=%d, o=%d, z=%d" x o z)
-          (assert (x==3 && o==1 && z==0))
-          (return ())
-
-        return collapsedText
-
-  in writeFile "tmp.txt" text
+  collapsedText <- showOP (op collapsed)
+  check "Collpased" collapsed
+  return collapsedText
 
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------

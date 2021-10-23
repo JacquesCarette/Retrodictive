@@ -15,9 +15,8 @@
 
 -- So what gives? 
 
-{--
+-- Sec. 7.4.2 of book shows that Grover has the same pattern; might be able to do
+-- something with it
 
-Sec. 7.4.2 of book shows that Grover has the same pattern; might be able to do
-something with it
-
---}
+-- if we get rid of ccx, becomes 2SAT or some decidable graph
+-- algorithm or some variant of Ising model that is decidable
