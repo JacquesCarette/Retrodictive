@@ -205,7 +205,7 @@ copyOP as bs = S.fromList (zipWith cx as bs)
 
 makeAdder :: STRef s Int -> Int -> [ Var s ] -> [ Var s ] -> ST s (OP s)
 makeAdder gensym n as bs = do
-  cs <- newVars gensym "carryAdder" (fromInt n 0)
+  cs <- newVars gensym "y" (fromInt n 0)
   return (loop as bs cs)
     where loop [a,_] [b,b'] [c] =
             (carryOP c a b b') ><
@@ -219,9 +219,9 @@ makeAdder gensym n as bs = do
 
 makeAdderMod :: STRef s Int -> Int -> Integer -> [ Var s ] -> [ Var s ] -> ST s (OP s)
 makeAdderMod gensym n m as bs = do
-  ms <- newVars gensym "modAdder" (fromInt (n+1) m)
-  ms' <- newVars gensym "modAdder'" (fromInt (n+1) m)
-  t <- newVar gensym "tempAdder" False
+  ms <- newVars gensym "y" (fromInt (n+1) m)
+  ms' <- newVars gensym "y" (fromInt (n+1) m)
+  t <- newVar gensym "y" False
   adderab <- makeAdder gensym n as bs
   addermb <- makeAdder gensym n ms bs
   return $
@@ -238,9 +238,9 @@ makeAdderMod gensym n m as bs = do
 makeCMulMod :: STRef s Int -> Int -> Integer -> Integer ->
                Var s -> [ Var s ] -> [ Var s ] -> ST s (OP s)
 makeCMulMod gensym n a m c xs ts = do
-  ps <- newVars gensym "pMul" (fromInt (n+1) 0)
+  ps <- newVars gensym "y" (fromInt (n+1) 0)
   as <- mapM
-          (\a -> newVars gensym "aMul" (fromInt (n+1) a))
+          (\a -> newVars gensym "y" (fromInt (n+1) a))
           (take (n+1) (doublemods a m))
   adderPT <- makeAdderMod gensym n m ps ts
   return (loop adderPT as xs ps)
@@ -329,8 +329,8 @@ shorCircuit :: Params -> Integer -> ST s (OP s,[Var s])
 shorCircuit (Params {numberOfBits = n, base = a, toFactor = m}) x = do
   gensym <- newSTRef 0
   xs <- newVars gensym "x" (fromInt (n+1) x)
-  ts <- newVars gensym "t" (fromInt (n+1) 1)
-  us <- newVars gensym "u" (fromInt (n+1) 0)
+  ts <- newVars gensym "y" (fromInt (n+1) 1)
+  us <- newVars gensym "y" (fromInt (n+1) 0)
   circuit <- makeExpMod gensym n a m xs ts us
   return (circuit, if even n then us else ts)
 
@@ -390,8 +390,8 @@ invShor15 = do
   let m = toFactor p
   gensym <- newSTRef 0
   xs <- newDynVars gensym "x" (n+1)
-  ts <- newVars gensym "t" (fromInt (n+1) 0)
-  us <- newDynVars gensym "u" (n+1)
+  ts <- newVars gensym "y" (fromInt (n+1) 0)
+  us <- newDynVars gensym "y" (n+1)
   circuit <- makeExpMod gensym n a m xs ts us
   return (InvShorCircuit
           { ps = p15a
