@@ -508,8 +508,63 @@ collapseShor c = do
   simplified <- simplifyOP collapsed
   return (c {op = simplified})
 
--- Next ideas:
--- (i) look for neg; cx; neg and replace by ncx
+-- Use SAT simplications from https://cgi.luddy.indiana.edu/~sabry/sat.web
+-- TODO
+
+-- Swap instructions; group by target
+-- TODO
+
+-- Just do partial evaluation
+-- TODO
+
+peG :: GToffoli s -> ST s (OP s)
+peG g@(GToffoli bs cs t) = do 
+  controls <- mapM readSTRef cs
+  vt <- readSTRef t
+  case controls of
+    [ Value { value = Nothing } ] ->
+      case (head bs, vt) of
+        (True, Value { value = Nothing }) -> return (S.singleton g) 
+        _ -> return (S.singleton g)
+    _ -> return (S.singleton g)
+        
+{--
+
+cx(x=DYN,y=0) ==> (x=DYN,y=x)
+
+Aliasing???
+
+pass around a hashmap : String -> String
+where these are the gensym'ed names
+we would add y -> x in the hashmap
+etc
+
+--}
+
+{--
+        if saved vt == Nothing
+           then writeSTRef t (vt { saved = value vt })
+           else return () 
+         updateDyn t
+         return (S.singleton (GToffoli bs cs t))
+--}
+
+peOP :: OP s -> ST s (OP s)
+peOP op = case viewl op of
+  EmptyL -> return S.empty
+  g :< gs -> do
+    g' <- peG g
+    gs' <- peOP gs
+    case viewl (g' >< gs') of
+      EmptyL -> return S.empty
+      g :< gs -> do
+        g' <- restoreSaved g
+        return (S.singleton g' >< gs)
+
+peShor :: InvShorCircuit s -> ST s (InvShorCircuit s)
+peShor c = do
+  op' <- peOP (op c)
+  return (c {op = op'})
 
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
@@ -522,6 +577,7 @@ pe = writeFile "tmp.txt" $ runST $ do
   updateDynamic circuit 13        -- ; check "Original"   circuit
   circuit <- simplifyShor circuit -- ; check "Simplified" circuit
   circuit <- collapseShor circuit -- ; check "Collpased"  circuit
+  circuit <- peShor       circuit -- ; check "PE"         circuit
   showOP (op circuit)
   where
     check :: String -> InvShorCircuit s -> ST s ()
