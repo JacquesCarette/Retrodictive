@@ -3,8 +3,7 @@
 
 module ShorWIP where
 
-import Data.Maybe
-import Data.List
+import Data.Maybe (catMaybes)
 
 import qualified Data.Sequence as S
 import Data.Sequence (Seq, singleton, viewl, ViewL(..), (><))
@@ -13,14 +12,15 @@ import Control.Monad
 import Control.Monad.ST
 import Data.STRef
   
-import Text.Printf
+import Text.Printf (printf)
 import Test.QuickCheck hiding ((><))
-import Control.Exception.Assert
+import Control.Exception.Assert (assert, assertMessage)
 import qualified Debug.Trace as Debug
 
 ----------------------------------------------------------------------------------------
 -- Simple helpers
 
+-- Debug Helpers
 debug = True
 
 trace :: String -> a -> a
@@ -32,6 +32,7 @@ fromInt len n = bits ++ replicate (len - length bits) False
         bin n = let (q,r) = quotRem n 2 in toEnum (fromInteger r) : bin q
         bits = bin n
 
+-- Numeric computations
 toInt :: [Bool] -> Integer
 toInt bs = foldr (\ b n -> toInteger (fromEnum b) + 2*n) 0 bs
 
@@ -92,37 +93,19 @@ extractBool :: Value -> Bool
 extractBool (Value { value = Just b }) = b
 extractBool _ = error "Expecting a static variable"
 
+-- would it be ok for negValue to 'work' of value is Nothing?
 negValue :: Value -> Value 
 negValue v = v { value = Just (not (extractBool v)) }
                    
 valueToInt :: [Value] -> Integer
 valueToInt v = toInt $ map extractBool v
 
--- returns yes/no/unknown as Just True, Just False, Nothing
-
-shrinkControls :: [Bool] -> [Var s] -> [Value] -> ([Bool],[Var s],[Value])
-shrinkControls [] [] [] = ([],[],[])
-shrinkControls (b:bs) (c:cs) (v:vs)
-  | value v == Just b = shrinkControls bs cs vs
-  | otherwise =
-    let (bs',cs',vs') = shrinkControls bs cs vs
-    in (b:bs',c:cs',v:vs')
-
-controlsActive :: [Bool] -> [Value] -> Maybe Bool
-controlsActive bs cs =
-  if | not r' -> Just False
-     | Nothing `elem` r -> Nothing
-     | otherwise -> Just True
-  where r' = and (catMaybes r)
-        r = zipWith f bs cs
-        f b (Value { value = Just b' }) = Just (b == b')
-        f b _ = Nothing
-
 --
 -- Locations where values are stored
 
 type Var s = STRef s Value
 
+-- Stateful functions to deal with variables
 newVar :: STRef s Int -> String -> Bool -> ST s (Var s)
 newVar gensym s b = do
   k <- readSTRef gensym
@@ -142,17 +125,13 @@ newDynVars :: STRef s Int -> String -> Int -> ST s [Var s]
 newDynVars gensym s n = replicateM n (newDynVar gensym s)
 
 updateVar :: Var s -> Bool -> ST s ()
-updateVar var b = do
-  v <- readSTRef var
-  writeSTRef var (v {value = Just b})
+updateVar var b = modifySTRef var (\vr -> vr {value = Just b})
   
 updateVars :: [Var s] -> [Bool] -> ST s ()
 updateVars vars bs = mapM_ (uncurry updateVar) (zip vars bs)
   
 updateDyn :: Var s -> ST s ()
-updateDyn var = do
-  v <- readSTRef var
-  writeSTRef var (v {value = Nothing})
+updateDyn var = modifySTRef var (\vr -> vr {value = Nothing})
 
 updateDyns :: [Var s] -> ST s ()
 updateDyns = mapM_ updateDyn
@@ -415,6 +394,35 @@ testRunStaticShor15 = runST $ do
           o0 == 1 && o1 == 1 && o2 == 1 && o3 == 1 &&
           z0 == 0 && z1 == 0 && z2 == 0 && z3 == 0)
   
+----------------------------------------------------------------------------------------
+-- Helpers for simplification of circuits
+
+-- Type for a controlled variable with a value
+data CVV s = CVV { control :: Bool
+                 , var     :: Var s
+                 , val     :: Value
+                 }
+
+-- returns yes/no/unknown as Just True, Just False, Nothing
+
+shrinkControls :: [Bool] -> [Var s] -> [Value] -> ([Bool],[Var s],[Value])
+shrinkControls [] [] [] = ([],[],[])
+shrinkControls (b:bs) (c:cs) (v:vs)
+  | value v == Just b = shrinkControls bs cs vs
+  | otherwise =
+    let (bs',cs',vs') = shrinkControls bs cs vs
+    in (b:bs',c:cs',v:vs')
+
+controlsActive :: [Bool] -> [Value] -> Maybe Bool
+controlsActive bs cs =
+  if | not r' -> Just False
+     | Nothing `elem` r -> Nothing
+     | otherwise -> Just True
+  where r' = and (catMaybes r)
+        r = zipWith f bs cs
+        f b (Value { value = Just b' }) = Just (b == b')
+        f b _ = Nothing
+
 ----------------------------------------------------------------------------------------
 -- Partial evaluation phases
 
