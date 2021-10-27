@@ -260,6 +260,15 @@ makeExpMod gensym n a m xs ts us = do
 ----------------------------------------------------------------------------------------
 -- Standard evaluation
 
+controlsActive :: [Bool] -> [Value] -> Maybe Bool
+controlsActive bs cs =
+  if | not r' -> Just False
+     | Nothing `elem` r -> Nothing
+     | otherwise -> Just True
+  where r' = and (catMaybes r)
+        r = zipWith f bs cs
+        f b v = fmap (\b' -> b == b') $ v^.value
+
 interpGT :: GToffoli s -> ST s ()
 interpGT (GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
@@ -332,34 +341,36 @@ runShor p@(Params { numberOfBits = n, base = a, toFactor = m}) x = runST $ do
 -- 
 
 data InvShorCircuit s =
-  InvShorCircuit { ps  :: Params
-                 , xs  :: [Var s] 
-                 , rs  :: [Var s] 
-                 , rzs :: [Var s]
-                 , os  :: [Var s] 
-                 , lzs :: [Var s]
-                 , op  :: OP s
+  InvShorCircuit { _ps  :: Params
+                 , _xs  :: [Var s] 
+                 , _rs  :: [Var s] 
+                 , _rzs :: [Var s]
+                 , _os  :: [Var s] 
+                 , _lzs :: [Var s]
+                 , _op  :: OP s
                  }
+
+makeLenses ''InvShorCircuit
 
 runStatic :: InvShorCircuit s -> Integer -> Integer ->
              ST s (Integer,Integer,Integer)
 runStatic isc x res = do
-  let n = numberOfBits (ps isc)
-  updateVars (xs isc) (fromInt (n+1) x)
-  updateVars (rs isc) (fromInt (n+1) res)
-  updateVars (rzs isc) (fromInt (n+1) 0)
-  interpOP (op isc)
-  xvs <- mapM readSTRef (xs isc)
-  ovs <- mapM readSTRef (os isc)
-  lzvs <- mapM readSTRef (lzs isc)
+  let n = numberOfBits $ isc^.ps
+  updateVars (isc^.xs) (fromInt (n+1) x)
+  updateVars (isc^.rs) (fromInt (n+1) res)
+  updateVars (isc^.rzs) (fromInt (n+1) 0)
+  interpOP $ isc^.op
+  xvs <- mapM readSTRef $ isc^.xs
+  ovs <- mapM readSTRef $ isc^.os
+  lzvs <- mapM readSTRef $ isc^.lzs
   return (valueToInt xvs, valueToInt ovs, valueToInt lzvs)
 
 updateDynamic :: InvShorCircuit s -> Integer -> ST s ()
 updateDynamic isc res = do
-  let n = numberOfBits (ps isc)
-  updateDyns (xs isc) 
-  updateVars (rs isc) (fromInt (n+1) res)
-  updateVars (rzs isc) (fromInt (n+1) 0)
+  let n = numberOfBits $ isc^.ps
+  updateDyns $ isc^.xs
+  updateVars (isc^.rs) (fromInt (n+1) res)
+  updateVars (isc^.rzs) (fromInt (n+1) 0)
 
 ----------------------------------------------------------------------------------------
 -- Inverse Shor 15 example for testing
@@ -376,13 +387,13 @@ invShor15 = do
   us <- newDynVars gensym "y" (n+1)
   circuit <- makeExpMod gensym n a m xs ts us
   return (InvShorCircuit
-          { ps = p15a
-          , xs = xs
-          , rs = us
-          , rzs = ts
-          , os = ts
-          , lzs = us
-          , op = S.reverse circuit
+          { _ps = p15a
+          , _xs = xs
+          , _rs = us
+          , _rzs = ts
+          , _os = ts
+          , _lzs = us
+          , _op = S.reverse circuit
           })
 
 testRunStaticShor15 :: Bool  
@@ -414,15 +425,6 @@ shrinkControls (b:bs) (c:cs) (v:vs)
   | otherwise =
     let (bs',cs',vs') = shrinkControls bs cs vs
     in (b:bs',c:cs',v:vs')
-
-controlsActive :: [Bool] -> [Value] -> Maybe Bool
-controlsActive bs cs =
-  if | not r' -> Just False
-     | Nothing `elem` r -> Nothing
-     | otherwise -> Just True
-  where r' = and (catMaybes r)
-        r = zipWith f bs cs
-        f b v = fmap (\b' -> b == b') $ v^.value
 
 ----------------------------------------------------------------------------------------
 -- Partial evaluation phases
@@ -479,8 +481,8 @@ simplifyOP op = case viewl op of
 
 simplifyShor :: InvShorCircuit s -> ST s (InvShorCircuit s)
 simplifyShor c = do
-  simplified <- simplifyOP (op c)
-  return (c {op = simplified})
+  simplified <- simplifyOP $ c^.op
+  return (set op simplified c)
 
 -- Collapse phase:
 -- 
@@ -514,9 +516,9 @@ xcxx _ _ _ = False
 
 collapseShor :: InvShorCircuit s -> ST s (InvShorCircuit s)
 collapseShor c = do
-  let collapsed = collapseOP (op c)
+  let collapsed = collapseOP $ c^.op
   simplified <- simplifyOP collapsed
-  return (c {op = simplified})
+  return $ set op simplified c
 
 -- Use SAT simplications from https://cgi.luddy.indiana.edu/~sabry/sat.web
 -- TODO
@@ -567,8 +569,8 @@ peOP op = case viewl op of
 
 peShor :: InvShorCircuit s -> ST s (InvShorCircuit s)
 peShor c = do
-  op' <- peOP (op c)
-  return (c {op = op'})
+  op' <- peOP $ c^.op
+  return $ set op op' c
 
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
@@ -582,7 +584,7 @@ pe = writeFile "tmp.txt" $ runST $ do
   circuit <- simplifyShor circuit -- ; check "Simplified" circuit
   circuit <- collapseShor circuit -- ; check "Collpased"  circuit
   circuit <- peShor       circuit -- ; check "PE"         circuit
-  showOP (op circuit)
+  showOP $ circuit^.op
   where
     check :: String -> InvShorCircuit s -> ST s ()
     check msg op = do
