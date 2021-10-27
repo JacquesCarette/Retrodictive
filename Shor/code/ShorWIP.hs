@@ -1,13 +1,15 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module ShorWIP where
 
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, maybe)
 
 import qualified Data.Sequence as S
 import Data.Sequence (Seq, singleton, viewl, ViewL(..), (><))
 
+import Control.Lens hiding (op,(:<))
 import Control.Monad 
 import Control.Monad.ST
 import Data.STRef
@@ -61,44 +63,44 @@ invsqmods a m = invam : invsqmods (am * am) m
 --
 -- Values with either static or dynamic information
 
-data Value = Value { name  :: String
-                   , value :: Maybe Bool
-                   , saved :: Maybe Bool
+data Value = Value { _name  :: String
+                   , _value :: Maybe Bool
+                   , _saved :: Maybe Bool
                    }
+
+makeLenses ''Value
 
 defaultValue :: Value
 defaultValue =
-  Value { name  = ""
-        , value = Nothing
-        , saved = Nothing
+  Value { _name  = ""
+        , _value = Nothing
+        , _saved = Nothing
         }
 
 instance Show Value where
-  show v = printf "%s %s" (name v) (showmb (value v))
+  show v = printf "%s %s" (v^.name) (showmb (v^.value))
     where showmb Nothing = "_"
           showmb (Just True) = "1"
           showmb (Just False) = "0"
 
 newValue :: String -> Bool -> Value
-newValue s b = defaultValue { name = s, value = Just b }
+newValue s b = set name s $ set value (Just b) defaultValue
 
 newDynValue :: String -> Value
-newDynValue s = defaultValue { name = s, value = Nothing }
+newDynValue s = set name s $ set value Nothing defaultValue
 
 isStatic :: Value -> Bool
-isStatic (Value {value = Nothing}) = False
-isStatic _ = True
+isStatic v = v^.value /= Nothing
 
 extractBool :: Value -> Bool
-extractBool (Value { value = Just b }) = b
-extractBool _ = error "Expecting a static variable"
+extractBool v = maybe (error "expecting a static value") id $ v^.value
 
 -- would it be ok for negValue to 'work' of value is Nothing?
 negValue :: Value -> Value 
-negValue v = v { value = Just (not (extractBool v)) }
+negValue v = set value (Just (not (extractBool v))) v
                    
 valueToInt :: [Value] -> Integer
-valueToInt v = toInt $ map extractBool v
+valueToInt = toInt . map extractBool
 
 --
 -- Locations where values are stored
@@ -125,13 +127,13 @@ newDynVars :: STRef s Int -> String -> Int -> ST s [Var s]
 newDynVars gensym s n = replicateM n (newDynVar gensym s)
 
 updateVar :: Var s -> Bool -> ST s ()
-updateVar var b = modifySTRef var (\vr -> vr {value = Just b})
+updateVar var b = modifySTRef var (set value (Just b))
   
 updateVars :: [Var s] -> [Bool] -> ST s ()
 updateVars vars bs = mapM_ (uncurry updateVar) (zip vars bs)
   
 updateDyn :: Var s -> ST s ()
-updateDyn var = modifySTRef var (\vr -> vr {value = Nothing})
+updateDyn var = modifySTRef var (set value Nothing)
 
 updateDyns :: [Var s] -> ST s ()
 updateDyns = mapM_ updateDyn
@@ -408,7 +410,7 @@ data CVV s = CVV { control :: Bool
 shrinkControls :: [Bool] -> [Var s] -> [Value] -> ([Bool],[Var s],[Value])
 shrinkControls [] [] [] = ([],[],[])
 shrinkControls (b:bs) (c:cs) (v:vs)
-  | value v == Just b = shrinkControls bs cs vs
+  | v^.value == Just b = shrinkControls bs cs vs
   | otherwise =
     let (bs',cs',vs') = shrinkControls bs cs vs
     in (b:bs',c:cs',v:vs')
@@ -420,8 +422,7 @@ controlsActive bs cs =
      | otherwise -> Just True
   where r' = and (catMaybes r)
         r = zipWith f bs cs
-        f b (Value { value = Just b' }) = Just (b == b')
-        f b _ = Nothing
+        f b v = fmap (\b' -> b == b') $ v^.value
 
 ----------------------------------------------------------------------------------------
 -- Partial evaluation phases
@@ -447,8 +448,8 @@ simplifyG (GToffoli bsOrig csOrig t) = do
          return S.empty
      | otherwise -> do
          -- save value of target; mark it as unknown for remainder of phase
-         if saved vt == Nothing
-           then writeSTRef t (vt { saved = value vt })
+         if vt^.saved == Nothing
+           then writeSTRef t (set saved (vt^.value) vt)
            else return () 
          updateDyn t
          return (S.singleton (GToffoli bs cs t))
@@ -456,8 +457,9 @@ simplifyG (GToffoli bsOrig csOrig t) = do
 restoreSaved :: GToffoli s -> ST s (GToffoli s)
 restoreSaved g@(GToffoli bsOrig csOrig t) = do
   vt <- readSTRef t
-  if saved vt /= Nothing && value vt == Nothing
-    then do writeSTRef t (vt { value = saved vt, saved = Nothing })
+  let vs = vt^.saved
+  if vs /= Nothing && vt^.value == Nothing
+    then do writeSTRef t (set saved Nothing $ set value vs vt)
             return g
     else return g
 
@@ -530,9 +532,10 @@ peG g@(GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   vt <- readSTRef t
   case controls of
-    [ Value { value = Nothing } ] ->
-      case (head bs, vt) of
-        (True, Value { value = Nothing }) -> return (S.singleton g) 
+    -- [ Value { value = Nothing } ] ->
+    [ v ] | v^.value == Nothing ->
+      case (head bs, vt^.value) of
+        (True, Nothing) -> return (S.singleton g) 
         _ -> return (S.singleton g)
     _ -> return (S.singleton g)
         
@@ -549,13 +552,6 @@ etc
 
 --}
 
-{--
-        if saved vt == Nothing
-           then writeSTRef t (vt { saved = value vt })
-           else return () 
-         updateDyn t
-         return (S.singleton (GToffoli bs cs t))
---}
 
 peOP :: OP s -> ST s (OP s)
 peOP op = case viewl op of
