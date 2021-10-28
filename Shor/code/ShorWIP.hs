@@ -348,8 +348,6 @@ makeCircuitDynamic isc res = do
   updateVars (isc^.rzs) (fromInt (n+1) 0)
 
 ----------------------------------------------------------------------------------------
--- Helpers for simplification of circuits
-
 -- Type for a controlled variable with a value
 -- ??
 
@@ -357,20 +355,6 @@ data CVV s = CVV { control :: Bool
                  , var     :: Var s
                  , val     :: Value
                  }
-
-shrinkControls :: [Bool] -> [Var s] -> [Value] -> ([Bool],[Var s],[Value])
-shrinkControls [] [] [] = ([],[],[])
-shrinkControls (b:bs) (c:cs) (v:vs)
-  | v^.value == Just b = shrinkControls bs cs vs
-  | otherwise =
-    let (bs',cs',vs') = shrinkControls bs cs vs
-    in (b:bs',c:cs',v:vs')
-
-frontN :: Int -> Seq a -> ([a],Seq a)
-frontN 0 seq = ([],seq)
-frontN n seq = case viewl seq of
-  EmptyL -> ([],S.empty)
-  a :< as -> let (f,as') = frontN (n-1) as in (a:f, as')
 
 ----------------------------------------------------------------------------------------
 -- Partial evaluation phases
@@ -383,6 +367,14 @@ frontN n seq = case viewl seq of
 --   if definitely active => execute the instruction; emit nothing
 --   if definitely not active => eliminate the instruction; emit nothing
 --   if unknown => emit instruction as residual
+
+shrinkControls :: [Bool] -> [Var s] -> [Value] -> ([Bool],[Var s],[Value])
+shrinkControls [] [] [] = ([],[],[])
+shrinkControls (b:bs) (c:cs) (v:vs)
+  | v^.value == Just b = shrinkControls bs cs vs
+  | otherwise =
+    let (bs',cs',vs') = shrinkControls bs cs vs
+    in (b:bs',c:cs',v:vs')
 
 restoreSaved :: GToffoli s -> ST s (GToffoli s)
 restoreSaved g@(GToffoli bsOrig csOrig t) = do
@@ -428,6 +420,12 @@ simplifyCircuit c = do
 -- Collapse g;g to id
 -- Collapse x;cx;x to ncx
 -- Simplify afterwards
+
+frontN :: Int -> Seq a -> ([a],Seq a)
+frontN 0 seq = ([],seq)
+frontN n seq = case viewl seq of
+  EmptyL -> ([],S.empty)
+  a :< as -> let (f,as') = frontN (n-1) as in (a:f, as')
 
 collapseOP :: OP s -> OP s
 collapseOP op = case frontN 3 op of
