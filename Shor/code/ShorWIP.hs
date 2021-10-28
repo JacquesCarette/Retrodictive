@@ -504,9 +504,7 @@ pe circuit res = do
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
--- Examples and testing
-
--- Forward fully static circuits 
+-- Helpers for testing
 
 -- Construct an expmod circuit
 
@@ -528,9 +526,7 @@ runExpMod ps x = runST $ do
   res <- mapM readSTRef rs
   return (valueToInt res)
 
--- Inverse partially static circuits
-
--- Run invExpMod with all static values
+-- Run a given invExpMod circuit with all static values
 
 runInvExpMod :: InvExpModCircuit s -> Integer -> Integer ->
              ST s (Integer,Integer,Integer)
@@ -545,7 +541,9 @@ runInvExpMod isc x res = do
   lzvs <- mapM readSTRef $ isc^.lzs
   return (valueToInt xvs, valueToInt ovs, valueToInt lzvs)
 
--- Example runs
+----------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------
+-- Examples
 
 p15a = Params {
   numberOfBits = 4, 
@@ -578,8 +576,8 @@ p323 = Params {
 
 -- Example invExpMod circuit
 
-invShor15 :: ST s (InvExpModCircuit s)
-invShor15 = do
+invExpMod15 :: ST s (InvExpModCircuit s)
+invExpMod15 = do
   let ps = p15a
   let n = numberOfBits ps -- 4
   let a = base ps
@@ -602,9 +600,9 @@ invShor15 = do
 -- Run PE phases with dynamic information
 -- and test after each phase
 
-pePrintTest :: IO ()
-pePrintTest = writeFile "tmp.txt" $ runST $ do
-  circuit <- invShor15
+pe15PrintTest :: IO ()
+pe15PrintTest = writeFile "tmp.txt" $ runST $ do
+  circuit <- invExpMod15
   makeCircuitDynamic circuit 13      ; check "Original (x=3,res=13)"   circuit 3 13
   circuit <- simplifyCircuit circuit ; check "Simplified (x=3,res=13)" circuit 3 13
   circuit <- collapseCircuit circuit ; check "Collapsed (x=3,res=13)"  circuit 3 13
