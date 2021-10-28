@@ -23,6 +23,7 @@ import qualified Debug.Trace as Debug
 -- Simple helpers
 
 -- Debug Helpers
+
 debug = True
 
 trace :: String -> a -> a
@@ -35,6 +36,7 @@ fromInt len n = bits ++ replicate (len - length bits) False
         bits = bin n
 
 -- Numeric computations
+
 toInt :: [Bool] -> Integer
 toInt bs = foldr (\ b n -> toInteger (fromEnum b) + 2*n) 0 bs
 
@@ -58,10 +60,12 @@ invsqmods a m = invam : invsqmods (am * am) m
         invam = a `invmod` m 
 
 ----------------------------------------------------------------------------------------
--- Circuits are sequences of generalized Toffoli gates
+-- Circuits are sequences of generalized Toffoli gates manipulating
+-- locations holding static boolean values or dynamic values
 
 --
 -- Values with either static or dynamic information
+-- ------------------------------------------------
 
 data Value = Value { _name  :: String
                    , _value :: Maybe Bool
@@ -78,11 +82,13 @@ defaultValue =
         }
 
 instance Show Value where
+{--
   show v = printf "%s %s" (v^.name) (showmb (v^.value))
     where showmb Nothing = "_"
           showmb (Just True) = "1"
           showmb (Just False) = "0"
---  show v = printf "%s" (name v)
+--}
+  show v = printf "%s" (v^.name)
 
 newValue :: String -> Bool -> Value
 newValue s b = set name s $ set value (Just b) defaultValue
@@ -97,6 +103,8 @@ extractBool :: Value -> Bool
 extractBool v = maybe (error "expecting a static value") id $ v^.value
 
 -- would it be ok for negValue to 'work' of value is Nothing?
+-- yes but raising an error for now to catch unintended uses
+
 negValue :: Value -> Value 
 negValue v = set value (Just (not (extractBool v))) v
                    
@@ -105,10 +113,12 @@ valueToInt = toInt . map extractBool
 
 --
 -- Locations where values are stored
+-- ---------------------------------
 
 type Var s = STRef s Value
 
 -- Stateful functions to deal with variables
+
 newVar :: STRef s Int -> String -> Bool -> ST s (Var s)
 newVar gensym s b = do
   k <- readSTRef gensym
@@ -140,10 +150,20 @@ updateDyns :: [Var s] -> ST s ()
 updateDyns = mapM_ updateDyn
 
 --
--- Gates and circuits
+-- Generalized Toffoli gates
+-- -------------------------
 
 data GToffoli s = GToffoli [Bool] [Var s] (Var s)
   deriving Eq
+
+showGToffoli :: GToffoli s -> ST s String
+showGToffoli (GToffoli bs cs t) = do
+  controls <- mapM readSTRef cs
+  vt <- readSTRef t
+  return $ printf "GToffoli %-15s%-25s(%s)\n"
+    (show (map fromEnum bs))
+    (show controls)
+    (show vt)
 
 target :: GToffoli s -> Var s
 target (GToffoli _ _ t) = t
@@ -158,19 +178,17 @@ xcxx (GToffoli [] [] t0) (GToffoli [b] [t1] t2) (GToffoli [] [] t3)
 xcxx _ _ _ = False
 
 --
+-- A circuit is a sequence of generalized Toffoli gates
+-- ----------------------------------------------------
 
 type OP s = Seq (GToffoli s)
-
-showGToffoli :: GToffoli s -> ST s String
-showGToffoli (GToffoli bs cs t) = do
-  controls <- mapM readSTRef cs
-  vt <- readSTRef t
-  return $ printf "GToffoli %-15s%-25s(%s)\n" (show bs) (show controls) (show vt)
 
 showOP :: OP s -> ST s String
 showOP = foldMap showGToffoli
 
 --
+-- Addition, multiplication, and modular exponentiation circuits
+-- -------------------------------------------------------------
 
 cx :: Var s -> Var s -> GToffoli s
 cx a b = GToffoli [True] [a] b
@@ -275,6 +293,8 @@ makeExpMod gensym n a m xs ts us = do
 ----------------------------------------------------------------------------------------
 -- Standard evaluation
 
+-- returns yes/no/unknown as Just True, Just False, Nothing
+
 controlsActive :: [Bool] -> [Value] -> Maybe Bool
 controlsActive bs cs =
   if | not r' -> Just False
@@ -288,8 +308,7 @@ interpGT :: GToffoli s -> ST s ()
 interpGT (GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   vt <- readSTRef t
-  let ca = controlsActive bs controls
-  if ca == Just True 
+  if controlsActive bs controls == Just True 
     then writeSTRef t (negValue vt)
     else return ()
 
@@ -298,7 +317,10 @@ interpOP = foldMap interpGT
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
--- Some example Shor instances
+-- Setting up for PE
+
+-- Inverse expmod circuits abstraction for PE; can be run with
+-- all static parameters or with mixed static and dynamic parameters
 
 data Params =
   Params { numberOfBits :: Int
@@ -306,132 +328,35 @@ data Params =
          , toFactor     :: Integer
          }
 
-p15a = Params {
-  numberOfBits = 4, 
-  base         = 7, 
-  toFactor     = 15
-  }
+data InvExpModCircuit s =
+  InvExpModCircuit { _ps    :: Params
+                   , _xs    :: [Var s] 
+                   , _rs    :: [Var s] 
+                   , _rzs   :: [Var s]
+                   , _os    :: [Var s] 
+                   , _lzs   :: [Var s]
+                   , _circ  :: OP s
+                   }
 
-p15b = Params {
-  numberOfBits = 5, 
-  base         = 7, 
-  toFactor     = 15
-  }
+makeLenses ''InvExpModCircuit
 
-p21 = Params {
-  numberOfBits = 6, 
-  base         = 5, 
-  toFactor     = 21
-  }
-
-p323 = Params {
-  numberOfBits = 10, 
-  base         = 49, 
-  toFactor     = 323
-  }
-
-shorCircuit :: Params -> Integer -> ST s (OP s,[Var s])
-shorCircuit (Params {numberOfBits = n, base = a, toFactor = m}) x = do
-  gensym <- newSTRef 0
-  xs <- newVars gensym "x" (fromInt (n+1) x)
-  ts <- newVars gensym "y" (fromInt (n+1) 1)
-  us <- newVars gensym "y" (fromInt (n+1) 0)
-  circuit <- makeExpMod gensym n a m xs ts us
-  return (circuit, if even n then us else ts)
-
-runShor :: Params -> Integer -> Integer
-runShor p@(Params { numberOfBits = n, base = a, toFactor = m}) x = runST $ do
-  (circuit,rs) <- shorCircuit p x
-  interpOP circuit
-  res <- mapM readSTRef rs
-  return (valueToInt res)
-
--- 
--- *ShorWIP> map (runShor p15a) [0..10]
--- [1,7,4,13,1,7,4,13,1,7,4]
-
-----------------------------------------------------------------------------------------
--- Inverse Shor circuits abstraction for testing PE; can be run with
--- all static parameters or with mixed static and dynamic parameters
--- 
-
-data InvShorCircuit s =
-  InvShorCircuit { _ps  :: Params
-                 , _xs  :: [Var s] 
-                 , _rs  :: [Var s] 
-                 , _rzs :: [Var s]
-                 , _os  :: [Var s] 
-                 , _lzs :: [Var s]
-                 , _op  :: OP s
-                 }
-
-makeLenses ''InvShorCircuit
-
-runStatic :: InvShorCircuit s -> Integer -> Integer ->
-             ST s (Integer,Integer,Integer)
-runStatic isc x res = do
-  let n = numberOfBits $ isc^.ps
-  updateVars (isc^.xs) (fromInt (n+1) x)
-  updateVars (isc^.rs) (fromInt (n+1) res)
-  updateVars (isc^.rzs) (fromInt (n+1) 0)
-  interpOP $ isc^.op
-  xvs <- mapM readSTRef $ isc^.xs
-  ovs <- mapM readSTRef $ isc^.os
-  lzvs <- mapM readSTRef $ isc^.lzs
-  return (valueToInt xvs, valueToInt ovs, valueToInt lzvs)
-
-updateDynamic :: InvShorCircuit s -> Integer -> ST s ()
-updateDynamic isc res = do
+makeCircuitDynamic :: InvExpModCircuit s -> Integer -> ST s ()
+makeCircuitDynamic isc res = do
   let n = numberOfBits $ isc^.ps
   updateDyns $ isc^.xs
   updateVars (isc^.rs) (fromInt (n+1) res)
   updateVars (isc^.rzs) (fromInt (n+1) 0)
 
 ----------------------------------------------------------------------------------------
--- Inverse Shor 15 example for testing
-
-invShor15 :: ST s (InvShorCircuit s)
-invShor15 = do
-  let p = p15a
-  let n = numberOfBits p -- 4
-  let a = base p
-  let m = toFactor p
-  gensym <- newSTRef 0
-  xs <- newDynVars gensym "x" (n+1)
-  ts <- newVars gensym "y" (fromInt (n+1) 0)
-  us <- newDynVars gensym "y" (n+1)
-  circuit <- makeExpMod gensym n a m xs ts us
-  return (InvShorCircuit
-          { _ps = p15a
-          , _xs = xs
-          , _rs = us
-          , _rzs = ts
-          , _os = ts
-          , _lzs = us
-          , _op = S.reverse circuit
-          })
-
-testRunStaticShor15 :: Bool  
-testRunStaticShor15 = runST $ do
-  isc <- invShor15
-  (x0,o0,z0) <- runStatic isc 0 1
-  (x1,o1,z1) <- runStatic isc 1 7
-  (x2,o2,z2) <- runStatic isc 2 4
-  (x3,o3,z3) <- runStatic isc 3 13
-  return (x0 == 0 && x1 == 1 && x2 == 2 && x3 == 3 &&
-          o0 == 1 && o1 == 1 && o2 == 1 && o3 == 1 &&
-          z0 == 0 && z1 == 0 && z2 == 0 && z3 == 0)
-  
-----------------------------------------------------------------------------------------
 -- Helpers for simplification of circuits
 
 -- Type for a controlled variable with a value
+-- ??
+
 data CVV s = CVV { control :: Bool
                  , var     :: Var s
                  , val     :: Value
                  }
-
--- returns yes/no/unknown as Just True, Just False, Nothing
 
 shrinkControls :: [Bool] -> [Var s] -> [Value] -> ([Bool],[Var s],[Value])
 shrinkControls [] [] [] = ([],[],[])
@@ -441,22 +366,32 @@ shrinkControls (b:bs) (c:cs) (v:vs)
     let (bs',cs',vs') = shrinkControls bs cs vs
     in (b:bs',c:cs',v:vs')
 
-----------------------------------------------------------------------------------------
--- Partial evaluation phases
-
 frontN :: Int -> Seq a -> ([a],Seq a)
 frontN 0 seq = ([],seq)
 frontN n seq = case viewl seq of
   EmptyL -> ([],S.empty)
   a :< as -> let (f,as') = frontN (n-1) as in (a:f, as')
 
--- Simplify phase:
+----------------------------------------------------------------------------------------
+-- Partial evaluation phases
+
+-- Simplify phase
+-- --------------
 -- 
 -- shrinkControls: removes redundant controls
 -- then test whether controlsActive:
 --   if definitely active => execute the instruction; emit nothing
 --   if definitely not active => eliminate the instruction; emit nothing
 --   if unknown => emit instruction as residual
+
+restoreSaved :: GToffoli s -> ST s (GToffoli s)
+restoreSaved g@(GToffoli bsOrig csOrig t) = do
+  vt <- readSTRef t
+  let vs = vt^.saved
+  if vs /= Nothing && vt^.value == Nothing
+    then do writeSTRef t (set saved Nothing $ set value vs vt)
+            return g
+    else return g
 
 simplifyG :: GToffoli s -> ST s (OP s)
 simplifyG (GToffoli bsOrig csOrig t) = do
@@ -475,36 +410,21 @@ simplifyG (GToffoli bsOrig csOrig t) = do
            then writeSTRef t (set saved (vt^.value) vt)
            else return () 
          updateDyn t
-         return (S.singleton (GToffoli bs cs t))
-
-restoreSaved :: GToffoli s -> ST s (GToffoli s)
-restoreSaved g@(GToffoli bsOrig csOrig t) = do
-  vt <- readSTRef t
-  let vs = vt^.saved
-  if vs /= Nothing && vt^.value == Nothing
-    then do writeSTRef t (set saved Nothing $ set value vs vt)
-            return g
-    else return g
+         return $ S.singleton (GToffoli bs cs t)
 
 simplifyOP :: OP s -> ST s (OP s)
-simplifyOP op = case viewl op of
-  EmptyL -> return S.empty
-  g :< gs -> do
-    g' <- simplifyG g
-    gs' <- simplifyOP gs
-    case viewl (g' >< gs') of
-      EmptyL -> return S.empty
-      g :< gs -> do
-        g' <- restoreSaved g
-        return (S.singleton g' >< gs)
+simplifyOP op = do
+  op <- foldMap simplifyG op
+  mapM restoreSaved op
 
-simplifyShor :: InvShorCircuit s -> ST s (InvShorCircuit s)
-simplifyShor c = do
-  simplified <- simplifyOP $ c^.op
-  return (set op simplified c)
+simplifyCircuit :: InvExpModCircuit s -> ST s (InvExpModCircuit s)
+simplifyCircuit c = do
+  simplified <- simplifyOP $ c^.circ
+  return (set circ simplified c)
 
--- Collapse phase:
--- 
+-- Collapse phase
+-- --------------
+
 -- Collapse g;g to id
 -- Collapse x;cx;x to ncx
 -- Simplify afterwards
@@ -521,14 +441,14 @@ collapseOP op = case frontN 3 op of
     | xcxx g1 g2 g3 -> S.singleton (flipControl g2) >< collapseOP gs
     | otherwise     -> S.singleton g1 >< collapseOP (S.fromList [g2,g3] >< gs)
 
-collapseShor :: InvShorCircuit s -> ST s (InvShorCircuit s)
-collapseShor c = do
-  let collapsed = collapseOP $ c^.op
+collapseCircuit :: InvExpModCircuit s -> ST s (InvExpModCircuit s)
+collapseCircuit c = do
+  let collapsed = collapseOP $ c^.circ
   simplified <- simplifyOP collapsed
-  return $ set op simplified c
-
+  return $ set circ simplified c
 
 -- Do full partial evaluation
+-- --------------------------
 
 peG :: GToffoli s -> ST s (OP s)
 peG g@(GToffoli bs cs t) = do 
@@ -568,35 +488,140 @@ peOP op = case viewl op of
         g' <- restoreSaved g
         return (S.singleton g' >< gs)
 
-peShor :: InvShorCircuit s -> ST s (InvShorCircuit s)
-peShor c = do
-  op' <- peOP $ c^.op
-  return $ set op op' c
+peCircuit :: InvExpModCircuit s -> ST s (InvExpModCircuit s)
+peCircuit c = do
+  op' <- peOP $ c^.circ
+  return $ set circ op' c
 
-------------------------------------------------------------------------------
-------------------------------------------------------------------------------
--- Run all phases, testing after each phase
--- Test with x = 3, res = 13
+--
+-- Run all phases
+-- --------------
 
-pe :: IO ()
-pe = writeFile "tmp.txt" $ runST $ do 
+pe :: InvExpModCircuit s -> Integer -> ST s (InvExpModCircuit s)
+pe circuit res = do
+  makeCircuitDynamic circuit res       
+  circuit1 <- simplifyCircuit circuit 
+  circuit2 <- collapseCircuit circuit1
+  circuit3 <- peCircuit       circuit2
+  return circuit3
+
+----------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------
+-- Examples and testing
+
+-- Forward fully static circuits 
+
+-- Construct an expmod circuit
+
+expModCircuit :: Params -> Integer -> ST s (OP s,[Var s])
+expModCircuit (Params {numberOfBits = n, base = a, toFactor = m}) x = do
+  gensym <- newSTRef 0
+  xs <- newVars gensym "x" (fromInt (n+1) x)
+  ts <- newVars gensym "y" (fromInt (n+1) 1)
+  us <- newVars gensym "y" (fromInt (n+1) 0)
+  circuit <- makeExpMod gensym n a m xs ts us
+  return (circuit, if even n then us else ts)
+
+-- Run an expMod circuit
+
+runExpMod :: Params -> Integer -> Integer
+runExpMod p@(Params { numberOfBits = n, base = a, toFactor = m}) x = runST $ do
+  (circuit,rs) <- expModCircuit p x
+  interpOP circuit
+  res <- mapM readSTRef rs
+  return (valueToInt res)
+
+-- Inverse partially static circuits
+
+-- Run invExpMod with all static values
+
+runInvExpMod :: InvExpModCircuit s -> Integer -> Integer ->
+             ST s (Integer,Integer,Integer)
+runInvExpMod isc x res = do
+  let n = numberOfBits $ isc^.ps
+  updateVars (isc^.xs) (fromInt (n+1) x)
+  updateVars (isc^.rs) (fromInt (n+1) res)
+  updateVars (isc^.rzs) (fromInt (n+1) 0)
+  interpOP $ isc^.circ
+  xvs <- mapM readSTRef $ isc^.xs
+  ovs <- mapM readSTRef $ isc^.os
+  lzvs <- mapM readSTRef $ isc^.lzs
+  return (valueToInt xvs, valueToInt ovs, valueToInt lzvs)
+
+-- Example runs
+
+p15a = Params {
+  numberOfBits = 4, 
+  base         = 7, 
+  toFactor     = 15
+  }
+
+p15b = Params {
+  numberOfBits = 5, 
+  base         = 7, 
+  toFactor     = 15
+  }
+
+p21 = Params {
+  numberOfBits = 6, 
+  base         = 5, 
+  toFactor     = 21
+  }
+
+p323 = Params {
+  numberOfBits = 10, 
+  base         = 49, 
+  toFactor     = 323
+  }
+
+-- 
+-- ShorWIP> map (runExpMod p15a) [0..10]
+-- [1,7,4,13,1,7,4,13,1,7,4]
+-- 
+
+-- Example invExpMod circuit
+
+invShor15 :: ST s (InvExpModCircuit s)
+invShor15 = do
+  let p = p15a
+  let n = numberOfBits p -- 4
+  let a = base p
+  let m = toFactor p
+  gensym <- newSTRef 0
+  xs <- newDynVars gensym "x" (n+1)
+  ts <- newVars gensym "y" (fromInt (n+1) 0)
+  us <- newDynVars gensym "y" (n+1)
+  circuit <- makeExpMod gensym n a m xs ts us
+  return (InvExpModCircuit
+          { _ps   = p15a
+          , _xs   = xs
+          , _rs   = us
+          , _rzs  = ts
+          , _os   = ts
+          , _lzs  = us
+          , _circ = S.reverse circuit
+          })
+
+-- Run PE phases with dynamic information
+-- and test after each phase
+
+pePrintTest :: IO ()
+pePrintTest = writeFile "tmp.txt" $ runST $ do
   circuit <- invShor15
-  updateDynamic circuit 13        ; check "Original"   circuit
-  circuit <- simplifyShor circuit ; check "Simplified" circuit
-  circuit <- collapseShor circuit ; check "Collpased"  circuit
-  circuit <- peShor       circuit ; check "PE"         circuit
-  showOP $ circuit^.op
+  makeCircuitDynamic circuit 13      ; check "Original (x=3,res=13)"   circuit 3 13
+  circuit <- simplifyCircuit circuit ; check "Simplified (x=3,res=13)" circuit 3 13
+  circuit <- collapseCircuit circuit ; check "Collapsed (x=3,res=13)"  circuit 3 13
+  circuit <- peCircuit       circuit ; check "PE (x=3,res=13)"         circuit 3 13
+  showOP $ circuit^.circ
   where
-    check :: String -> InvShorCircuit s -> ST s ()
-    check msg op = do
-      (x,o,z) <- runStatic op 3 13
+    check :: String -> InvExpModCircuit s -> Integer -> Integer -> ST s ()
+    check msg op x res = do
+      (rx,ro,rz) <- runInvExpMod op x res
       assertMessage msg
-        (printf "x=%d, o=%d, z=%d" x o z)
-        (assert (x==3 && o==1 && z==0))
+        (printf "x=%d, o=%d, z=%d" rx ro rz)
+        (assert (rx==x && ro==1 && rz==0))
         (return ())
-      updateDynamic op 13
+      makeCircuitDynamic op res
 
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
-
-
