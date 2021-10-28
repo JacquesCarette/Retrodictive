@@ -29,13 +29,13 @@ debug = True
 trace :: String -> a -> a
 trace s a = if debug then Debug.trace s a else a
 
+-- Numeric computations
+
 fromInt :: Int -> Integer -> [Bool]
 fromInt len n = bits ++ replicate (len - length bits) False 
   where bin 0 = []
         bin n = let (q,r) = quotRem n 2 in toEnum (fromInteger r) : bin q
         bits = bin n
-
--- Numeric computations
 
 toInt :: [Bool] -> Integer
 toInt bs = foldr (\ b n -> toInteger (fromEnum b) + 2*n) 0 bs
@@ -499,11 +499,8 @@ peCircuit c = do
 
 pe :: InvExpModCircuit s -> Integer -> ST s (InvExpModCircuit s)
 pe circuit res = do
-  makeCircuitDynamic circuit res       
-  circuit1 <- simplifyCircuit circuit 
-  circuit2 <- collapseCircuit circuit1
-  circuit3 <- peCircuit       circuit2
-  return circuit3
+  makeCircuitDynamic circuit res
+  return circuit >>= simplifyCircuit >>= collapseCircuit >>= peCircuit
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
@@ -525,8 +522,8 @@ expModCircuit (Params {numberOfBits = n, base = a, toFactor = m}) x = do
 -- Run an expMod circuit
 
 runExpMod :: Params -> Integer -> Integer
-runExpMod p@(Params { numberOfBits = n, base = a, toFactor = m}) x = runST $ do
-  (circuit,rs) <- expModCircuit p x
+runExpMod ps x = runST $ do
+  (circuit,rs) <- expModCircuit ps x
   interpOP circuit
   res <- mapM readSTRef rs
   return (valueToInt res)
@@ -583,10 +580,10 @@ p323 = Params {
 
 invShor15 :: ST s (InvExpModCircuit s)
 invShor15 = do
-  let p = p15a
-  let n = numberOfBits p -- 4
-  let a = base p
-  let m = toFactor p
+  let ps = p15a
+  let n = numberOfBits ps -- 4
+  let a = base ps
+  let m = toFactor ps
   gensym <- newSTRef 0
   xs <- newDynVars gensym "x" (n+1)
   ts <- newVars gensym "y" (fromInt (n+1) 0)
