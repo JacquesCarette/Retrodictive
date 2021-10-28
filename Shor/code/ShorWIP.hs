@@ -74,10 +74,13 @@ defaultValue =
         }
 
 instance Show Value where
+{--
   show v = printf "%s %s" (name v) (showmb (value v))
     where showmb Nothing = "_"
           showmb (Just True) = "1"
           showmb (Just False) = "0"
+--}
+  show v = printf "%s" (name v)
 
 newValue :: String -> Bool -> Value
 newValue s b = defaultValue { name = s, value = Just b }
@@ -141,6 +144,20 @@ updateDyns = mapM_ updateDyn
 
 data GToffoli s = GToffoli [Bool] [Var s] (Var s)
   deriving Eq
+
+target :: GToffoli s -> Var s
+target (GToffoli _ _ t) = t
+
+flipControl :: GToffoli s -> GToffoli s
+flipControl (GToffoli [b] [v] t) = GToffoli [not b] [v] t
+
+xcxx :: GToffoli s -> GToffoli s -> GToffoli s -> Bool
+xcxx (GToffoli [] [] t0) (GToffoli [b] [t1] t2) (GToffoli [] [] t3)
+  | t0 == t1 && t0 == t1 && t0 == t3 && t0 /= t2 = True
+  | otherwise = False
+xcxx _ _ _ = False
+
+--
 
 type OP s = Seq (GToffoli s)
 
@@ -426,6 +443,12 @@ controlsActive bs cs =
 ----------------------------------------------------------------------------------------
 -- Partial evaluation phases
 
+frontN :: Int -> Seq a -> ([a],Seq a)
+frontN 0 seq = ([],seq)
+frontN n seq = case viewl seq of
+  EmptyL -> ([],S.empty)
+  a :< as -> let (f,as') = frontN (n-1) as in (a:f, as')
+
 -- Simplify phase:
 -- 
 -- shrinkControls: removes redundant controls
@@ -461,8 +484,6 @@ restoreSaved g@(GToffoli bsOrig csOrig t) = do
             return g
     else return g
 
--- clunky to force strictness
-
 simplifyOP :: OP s -> ST s (OP s)
 simplifyOP op = case viewl op of
   EmptyL -> return S.empty
@@ -487,28 +508,16 @@ simplifyShor c = do
 -- Simplify afterwards
 
 collapseOP :: OP s -> OP s
-collapseOP op = case viewl op of
-  EmptyL  -> op
-  g :< gs ->
-    case viewl gs of 
-      EmptyL -> op
-      g' :< gs'
-        | g == g' -> collapseOP gs'
-        | otherwise ->
-          case viewl gs' of
-            EmptyL -> op
-            g'' :< gs''
-              | xcxx g g' g'' -> S.singleton (flipControl g') >< collapseOP gs''
-              | otherwise -> S.singleton g >< collapseOP gs
-
-flipControl :: GToffoli s -> GToffoli s
-flipControl (GToffoli [b] [v] t) = GToffoli [not b] [v] t
-
-xcxx :: GToffoli s -> GToffoli s -> GToffoli s -> Bool
-xcxx (GToffoli [] [] t0) (GToffoli [b] [t1] t2) (GToffoli [] [] t3)
-  | t0 == t1 && t0 == t1 && t0 == t3 && t0 /= t2 = True
-  | otherwise = False
-xcxx _ _ _ = False
+collapseOP op = case frontN 3 op of
+  ([],_)            -> op
+  ([g],_)           -> op
+  ([g1,g2],_) 
+    | g1 == g2      -> S.empty
+    | otherwise     -> op
+  ([g1,g2,g3],gs) 
+    | g1 == g2      -> collapseOP (S.singleton g3 >< gs)
+    | xcxx g1 g2 g3 -> S.singleton (flipControl g2) >< collapseOP gs
+    | otherwise     -> S.singleton g1 >< collapseOP (S.fromList [g2,g3] >< gs)
 
 collapseShor :: InvShorCircuit s -> ST s (InvShorCircuit s)
 collapseShor c = do
@@ -516,14 +525,8 @@ collapseShor c = do
   simplified <- simplifyOP collapsed
   return (c {op = simplified})
 
--- Use SAT simplications from https://cgi.luddy.indiana.edu/~sabry/sat.web
--- TODO
 
--- Swap instructions; group by target
--- TODO
-
--- Just do partial evaluation
--- TODO
+-- Do full partial evaluation
 
 peG :: GToffoli s -> ST s (OP s)
 peG g@(GToffoli bs cs t) = do 
@@ -582,10 +585,10 @@ peShor c = do
 pe :: IO ()
 pe = writeFile "tmp.txt" $ runST $ do 
   circuit <- invShor15
-  updateDynamic circuit 13        -- ; check "Original"   circuit
-  circuit <- simplifyShor circuit -- ; check "Simplified" circuit
-  circuit <- collapseShor circuit -- ; check "Collpased"  circuit
-  circuit <- peShor       circuit -- ; check "PE"         circuit
+  updateDynamic circuit 13         ; check "Original"   circuit
+  circuit <- simplifyShor circuit  ; check "Simplified" circuit
+  circuit <- collapseShor circuit  ; check "Collpased"  circuit
+--  circuit <- peShor       circuit  ; check "PE"         circuit
   showOP (op circuit)
   where
     check :: String -> InvShorCircuit s -> ST s ()
