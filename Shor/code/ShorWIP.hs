@@ -1,13 +1,15 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module ShorWIP where
 
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, maybe)
 
 import qualified Data.Sequence as S
 import Data.Sequence (Seq, singleton, viewl, ViewL(..), (><))
 
+import Control.Lens hiding (op,(:<))
 import Control.Monad 
 import Control.Monad.ST
 import Data.STRef
@@ -61,47 +63,45 @@ invsqmods a m = invam : invsqmods (am * am) m
 --
 -- Values with either static or dynamic information
 
-data Value = Value { name  :: String
-                   , value :: Maybe Bool
-                   , saved :: Maybe Bool
+data Value = Value { _name  :: String
+                   , _value :: Maybe Bool
+                   , _saved :: Maybe Bool
                    }
+
+makeLenses ''Value
 
 defaultValue :: Value
 defaultValue =
-  Value { name  = ""
-        , value = Nothing
-        , saved = Nothing
+  Value { _name  = ""
+        , _value = Nothing
+        , _saved = Nothing
         }
 
 instance Show Value where
-{--
-  show v = printf "%s %s" (name v) (showmb (value v))
+  show v = printf "%s %s" (v^.name) (showmb (v^.value))
     where showmb Nothing = "_"
           showmb (Just True) = "1"
           showmb (Just False) = "0"
---}
-  show v = printf "%s" (name v)
+--  show v = printf "%s" (name v)
 
 newValue :: String -> Bool -> Value
-newValue s b = defaultValue { name = s, value = Just b }
+newValue s b = set name s $ set value (Just b) defaultValue
 
 newDynValue :: String -> Value
-newDynValue s = defaultValue { name = s, value = Nothing }
+newDynValue s = set name s $ set value Nothing defaultValue
 
 isStatic :: Value -> Bool
-isStatic (Value {value = Nothing}) = False
-isStatic _ = True
+isStatic v = v^.value /= Nothing
 
 extractBool :: Value -> Bool
-extractBool (Value { value = Just b }) = b
-extractBool _ = error "Expecting a static variable"
+extractBool v = maybe (error "expecting a static value") id $ v^.value
 
 -- would it be ok for negValue to 'work' of value is Nothing?
 negValue :: Value -> Value 
-negValue v = v { value = Just (not (extractBool v)) }
+negValue v = set value (Just (not (extractBool v))) v
                    
 valueToInt :: [Value] -> Integer
-valueToInt v = toInt $ map extractBool v
+valueToInt = toInt . map extractBool
 
 --
 -- Locations where values are stored
@@ -128,13 +128,13 @@ newDynVars :: STRef s Int -> String -> Int -> ST s [Var s]
 newDynVars gensym s n = replicateM n (newDynVar gensym s)
 
 updateVar :: Var s -> Bool -> ST s ()
-updateVar var b = modifySTRef var (\vr -> vr {value = Just b})
+updateVar var b = modifySTRef var (set value (Just b))
   
 updateVars :: [Var s] -> [Bool] -> ST s ()
 updateVars vars bs = mapM_ (uncurry updateVar) (zip vars bs)
   
 updateDyn :: Var s -> ST s ()
-updateDyn var = modifySTRef var (\vr -> vr {value = Nothing})
+updateDyn var = modifySTRef var (set value Nothing)
 
 updateDyns :: [Var s] -> ST s ()
 updateDyns = mapM_ updateDyn
@@ -275,6 +275,15 @@ makeExpMod gensym n a m xs ts us = do
 ----------------------------------------------------------------------------------------
 -- Standard evaluation
 
+controlsActive :: [Bool] -> [Value] -> Maybe Bool
+controlsActive bs cs =
+  if | not r' -> Just False
+     | Nothing `elem` r -> Nothing
+     | otherwise -> Just True
+  where r' = and (catMaybes r)
+        r = zipWith f bs cs
+        f b v = fmap (\b' -> b == b') $ v^.value
+
 interpGT :: GToffoli s -> ST s ()
 interpGT (GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
@@ -347,34 +356,36 @@ runShor p@(Params { numberOfBits = n, base = a, toFactor = m}) x = runST $ do
 -- 
 
 data InvShorCircuit s =
-  InvShorCircuit { ps  :: Params
-                 , xs  :: [Var s] 
-                 , rs  :: [Var s] 
-                 , rzs :: [Var s]
-                 , os  :: [Var s] 
-                 , lzs :: [Var s]
-                 , op  :: OP s
+  InvShorCircuit { _ps  :: Params
+                 , _xs  :: [Var s] 
+                 , _rs  :: [Var s] 
+                 , _rzs :: [Var s]
+                 , _os  :: [Var s] 
+                 , _lzs :: [Var s]
+                 , _op  :: OP s
                  }
+
+makeLenses ''InvShorCircuit
 
 runStatic :: InvShorCircuit s -> Integer -> Integer ->
              ST s (Integer,Integer,Integer)
 runStatic isc x res = do
-  let n = numberOfBits (ps isc)
-  updateVars (xs isc) (fromInt (n+1) x)
-  updateVars (rs isc) (fromInt (n+1) res)
-  updateVars (rzs isc) (fromInt (n+1) 0)
-  interpOP (op isc)
-  xvs <- mapM readSTRef (xs isc)
-  ovs <- mapM readSTRef (os isc)
-  lzvs <- mapM readSTRef (lzs isc)
+  let n = numberOfBits $ isc^.ps
+  updateVars (isc^.xs) (fromInt (n+1) x)
+  updateVars (isc^.rs) (fromInt (n+1) res)
+  updateVars (isc^.rzs) (fromInt (n+1) 0)
+  interpOP $ isc^.op
+  xvs <- mapM readSTRef $ isc^.xs
+  ovs <- mapM readSTRef $ isc^.os
+  lzvs <- mapM readSTRef $ isc^.lzs
   return (valueToInt xvs, valueToInt ovs, valueToInt lzvs)
 
 updateDynamic :: InvShorCircuit s -> Integer -> ST s ()
 updateDynamic isc res = do
-  let n = numberOfBits (ps isc)
-  updateDyns (xs isc) 
-  updateVars (rs isc) (fromInt (n+1) res)
-  updateVars (rzs isc) (fromInt (n+1) 0)
+  let n = numberOfBits $ isc^.ps
+  updateDyns $ isc^.xs
+  updateVars (isc^.rs) (fromInt (n+1) res)
+  updateVars (isc^.rzs) (fromInt (n+1) 0)
 
 ----------------------------------------------------------------------------------------
 -- Inverse Shor 15 example for testing
@@ -391,13 +402,13 @@ invShor15 = do
   us <- newDynVars gensym "y" (n+1)
   circuit <- makeExpMod gensym n a m xs ts us
   return (InvShorCircuit
-          { ps = p15a
-          , xs = xs
-          , rs = us
-          , rzs = ts
-          , os = ts
-          , lzs = us
-          , op = S.reverse circuit
+          { _ps = p15a
+          , _xs = xs
+          , _rs = us
+          , _rzs = ts
+          , _os = ts
+          , _lzs = us
+          , _op = S.reverse circuit
           })
 
 testRunStaticShor15 :: Bool  
@@ -425,20 +436,10 @@ data CVV s = CVV { control :: Bool
 shrinkControls :: [Bool] -> [Var s] -> [Value] -> ([Bool],[Var s],[Value])
 shrinkControls [] [] [] = ([],[],[])
 shrinkControls (b:bs) (c:cs) (v:vs)
-  | value v == Just b = shrinkControls bs cs vs
+  | v^.value == Just b = shrinkControls bs cs vs
   | otherwise =
     let (bs',cs',vs') = shrinkControls bs cs vs
     in (b:bs',c:cs',v:vs')
-
-controlsActive :: [Bool] -> [Value] -> Maybe Bool
-controlsActive bs cs =
-  if | not r' -> Just False
-     | Nothing `elem` r -> Nothing
-     | otherwise -> Just True
-  where r' = and (catMaybes r)
-        r = zipWith f bs cs
-        f b (Value { value = Just b' }) = Just (b == b')
-        f b _ = Nothing
 
 ----------------------------------------------------------------------------------------
 -- Partial evaluation phases
@@ -470,8 +471,8 @@ simplifyG (GToffoli bsOrig csOrig t) = do
          return S.empty
      | otherwise -> do
          -- save value of target; mark it as unknown for remainder of phase
-         if saved vt == Nothing
-           then writeSTRef t (vt { saved = value vt })
+         if vt^.saved == Nothing
+           then writeSTRef t (set saved (vt^.value) vt)
            else return () 
          updateDyn t
          return (S.singleton (GToffoli bs cs t))
@@ -479,8 +480,9 @@ simplifyG (GToffoli bsOrig csOrig t) = do
 restoreSaved :: GToffoli s -> ST s (GToffoli s)
 restoreSaved g@(GToffoli bsOrig csOrig t) = do
   vt <- readSTRef t
-  if saved vt /= Nothing && value vt == Nothing
-    then do writeSTRef t (vt { value = saved vt, saved = Nothing })
+  let vs = vt^.saved
+  if vs /= Nothing && vt^.value == Nothing
+    then do writeSTRef t (set saved Nothing $ set value vs vt)
             return g
     else return g
 
@@ -498,8 +500,8 @@ simplifyOP op = case viewl op of
 
 simplifyShor :: InvShorCircuit s -> ST s (InvShorCircuit s)
 simplifyShor c = do
-  simplified <- simplifyOP (op c)
-  return (c {op = simplified})
+  simplified <- simplifyOP $ c^.op
+  return (set op simplified c)
 
 -- Collapse phase:
 -- 
@@ -521,9 +523,9 @@ collapseOP op = case frontN 3 op of
 
 collapseShor :: InvShorCircuit s -> ST s (InvShorCircuit s)
 collapseShor c = do
-  let collapsed = collapseOP (op c)
+  let collapsed = collapseOP $ c^.op
   simplified <- simplifyOP collapsed
-  return (c {op = simplified})
+  return $ set op simplified c
 
 
 -- Do full partial evaluation
@@ -533,9 +535,10 @@ peG g@(GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   vt <- readSTRef t
   case controls of
-    [ Value { value = Nothing } ] ->
-      case (head bs, vt) of
-        (True, Value { value = Nothing }) -> return (S.singleton g) 
+    -- [ Value { value = Nothing } ] ->
+    [ v ] | v^.value == Nothing ->
+      case (head bs, vt^.value) of
+        (True, Nothing) -> return (S.singleton g) 
         _ -> return (S.singleton g)
     _ -> return (S.singleton g)
         
@@ -552,13 +555,6 @@ etc
 
 --}
 
-{--
-        if saved vt == Nothing
-           then writeSTRef t (vt { saved = value vt })
-           else return () 
-         updateDyn t
-         return (S.singleton (GToffoli bs cs t))
---}
 
 peOP :: OP s -> ST s (OP s)
 peOP op = case viewl op of
@@ -574,8 +570,8 @@ peOP op = case viewl op of
 
 peShor :: InvShorCircuit s -> ST s (InvShorCircuit s)
 peShor c = do
-  op' <- peOP (op c)
-  return (c {op = op'})
+  op' <- peOP $ c^.op
+  return $ set op op' c
 
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
@@ -585,11 +581,11 @@ peShor c = do
 pe :: IO ()
 pe = writeFile "tmp.txt" $ runST $ do 
   circuit <- invShor15
-  updateDynamic circuit 13         ; check "Original"   circuit
-  circuit <- simplifyShor circuit  ; check "Simplified" circuit
-  circuit <- collapseShor circuit  ; check "Collpased"  circuit
---  circuit <- peShor       circuit  ; check "PE"         circuit
-  showOP (op circuit)
+  updateDynamic circuit 13        -- ; check "Original"   circuit
+  circuit <- simplifyShor circuit -- ; check "Simplified" circuit
+  circuit <- collapseShor circuit -- ; check "Collpased"  circuit
+  circuit <- peShor       circuit -- ; check "PE"         circuit
+  showOP $ circuit^.op
   where
     check :: String -> InvShorCircuit s -> ST s ()
     check msg op = do
