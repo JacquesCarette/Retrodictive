@@ -581,10 +581,10 @@ peShor c = do
 pe :: IO ()
 pe = writeFile "tmp.txt" $ runST $ do 
   circuit <- invShor15
-  updateDynamic circuit 13        -- ; check "Original"   circuit
-  circuit <- simplifyShor circuit -- ; check "Simplified" circuit
-  circuit <- collapseShor circuit -- ; check "Collpased"  circuit
-  circuit <- peShor       circuit -- ; check "PE"         circuit
+  updateDynamic circuit 13        ; check "Original"   circuit
+  circuit <- simplifyShor circuit ; check "Simplified" circuit
+  circuit <- collapseShor circuit ; check "Collpased"  circuit
+  circuit <- peShor       circuit ; check "PE"         circuit
   showOP $ circuit^.op
   where
     check :: String -> InvShorCircuit s -> ST s ()
