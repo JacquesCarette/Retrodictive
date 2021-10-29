@@ -472,6 +472,24 @@ collapseCircuit c = do
 --   (i) it can aliased to another variable
 --   
 
+specialCases :: [Bool] -> [Var s] -> [Value] -> Var s -> Value -> ST s (OP s)
+-- Special case I:
+-- cx x 0 ==> cs x x
+specialCases [True] [x] [vx@Value {_value = Nothing }] t vt@(Value { _value = Just False }) = 
+  do writeSTRef t (set alias (Just (vx^.name)) $
+                    set value Nothing $
+                    set saved (vt^.value) vt)
+     return (S.singleton (GToffoli [True] [x] t))
+-- No special cases apply: lose all information about t
+specialCases bs cs controls t vt = do
+  d <- showGToffoli (GToffoli bs cs t)
+  trace (printf "No special cases apply to:\n\t%s" d) $ error "todo" {--do
+    if vt^.saved == Nothing
+      then writeSTRef t (set value Nothing $ set saved (vt^.value) vt)
+      else return () 
+    return $ S.singleton (GToffoli bs cs t)
+--}
+
 peG :: GToffoli s -> ST s (OP s)
 peG g@(GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
@@ -482,18 +500,7 @@ peG g@(GToffoli bs cs t) = do
          return S.empty
      | ca == Just False ->
          return S.empty
-     | otherwise -> case (bs,cs,controls) of
-         ([b],[c],[control]) -> do
-           d <- showGToffoli g
-           trace d (error "todo1")
-         ([b1,b2],[c1,c2],[control1,control2]) -> do
-           d <- showGToffoli g
-           trace d (error "todo2")
-         _ -> do 
-           if vt^.saved == Nothing
-             then writeSTRef t (set value Nothing $ set saved (vt^.value) vt)
-             else return () 
-           return $ S.singleton (GToffoli bs cs t)
+     | otherwise -> specialCases bs cs controls t vt
 
 peOP :: OP s -> ST s (OP s)
 peOP op = do
