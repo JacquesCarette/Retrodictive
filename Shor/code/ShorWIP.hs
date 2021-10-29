@@ -399,7 +399,7 @@ restoreSaved :: GToffoli s -> ST s (GToffoli s)
 restoreSaved g@(GToffoli bsOrig csOrig t) = do
   vt <- readSTRef t
   let vs = vt^.saved
-  if vs /= Nothing && vt^.value == Nothing
+  if vs /= Nothing 
     then do writeSTRef t (set saved Nothing $ set value vs vt)
             return g
     else return g
@@ -498,23 +498,35 @@ specialCases gensym [False] [cx] tx
                     set value Nothing $
                     set saved (tv^.value) tv)
      return (S.singleton (GToffoli [False] [cx] tx))
+-- Special case III: ccx(not x, not x, x)
+specialCases gensym [True,True] [cx1,cx2] tx 
+  [cv1@Value {_value = Nothing, _symbolic = Just (b,x)},
+   cv2@Value {_value = Nothing, _symbolic = Just (b',x')}]
+  tv@(Value { _value = Nothing, _symbolic = Just (b'',x'')})
+  | x == x' && x' == x'' && b == b' && b' == not b'' =
+  do writeSTRef tx (set value (Just True) $
+                    set symbolic Nothing tv)
+     return (S.singleton (GToffoli [True,True] [cx1,cx2] tx))
+
+-- GToffoli [1,1]          
+-- [Value {_name = "y502", _value = Nothing, _saved = Just False, _symbolic = Just (False,"S0")},
+--  Value {_name = "y6", _value = Nothing, _saved = Just False, _symbolic = Just (False,"S0")}]
+-- (Value {_name = "y503", _value = Just True, _saved = Just False, _symbolic = Nothing})
 
 
-
--- ccx(x,x,not x) ==> ccx(x,x,1)
 
 
 -- No special cases apply: lose all information about t
 specialCases gensym bs cs t controls vt = do
   d <- showGToffoli (GToffoli bs cs t)
---  trace (printf "No special cases apply to:\n\t%s" d) $ error "todo"
-
+  trace (printf "No special cases apply to:\n\t%s" d) $ error "todo"
+ {--
   trace (printf "No special cases apply to:\n\t%s" d) $ do
     if vt^.saved == Nothing
       then writeSTRef t (set value Nothing $ set saved (vt^.value) vt)
       else return () 
     return $ S.singleton (GToffoli bs cs t)
-
+ --}
 
 peG :: GToffoli s -> ST s (OP s)
 peG g@(GToffoli bs cs t) = do
