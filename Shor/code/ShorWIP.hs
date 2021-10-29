@@ -473,7 +473,7 @@ collapseCircuit c = do
 --   
 
 peG :: GToffoli s -> ST s (OP s)
-peG g@(GToffoli bs cs t) = do 
+peG g@(GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   vt <- readSTRef t
   let ca = controlsActive bs controls
@@ -482,25 +482,19 @@ peG g@(GToffoli bs cs t) = do
          return S.empty
      | ca == Just False ->
          return S.empty
-     | otherwise -> do
-         d <- showGToffoli g
-         trace d (error "todo")
+     | otherwise -> case (bs,cs,controls) of
+         ([b],[c],[control]) -> do
+           d <- showGToffoli g
+           trace d (error "todo1")
+         ([b1,b2],[c1,c2],[control1,control2]) -> do
+           d <- showGToffoli g
+           trace d (error "todo2")
+         _ -> do 
+           if vt^.saved == Nothing
+             then writeSTRef t (set value Nothing $ set saved (vt^.value) vt)
+             else return () 
+           return $ S.singleton (GToffoli bs cs t)
 
--- GToffoli
---   [1]
---   Value {_name = "x4", _value = Nothing, _saved = Nothing, _alias = Nothing}]
---   (Value {_name = "y456", _value = Just False, _saved = Nothing, _alias = Nothing})
---
--- ==> 
--- 
--- GToffoli
---   [1]
---   Value {_name = "x4", _value = Nothing, _saved = Nothing, _alias = Nothing}]
---   (Value {_name = "y456", _value = Nothing, _saved = Just False, _alias = Nothing})
---
-
-
-        
 peOP :: OP s -> ST s (OP s)
 peOP op = do
   op <- foldMap peG op
