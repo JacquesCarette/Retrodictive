@@ -5,6 +5,7 @@
 module ShorWIP where
 
 import Data.Maybe (catMaybes, maybe)
+import Data.List (intersperse)
 
 import qualified Data.Sequence as S
 import Data.Sequence (Seq, singleton, viewl, ViewL(..), (><))
@@ -67,10 +68,11 @@ invsqmods a m = invam : invsqmods (am * am) m
 -- Values with either static or dynamic information
 -- ------------------------------------------------
 
-data Value = Value { _name  :: String
-                   , _value :: Maybe Bool
-                   , _saved :: Maybe Bool
-                   , _alias :: Maybe String
+data Value = Value { _name     :: String
+                   , _value    :: Maybe Bool
+                   , _saved    :: Maybe Bool
+                   , _alias    :: Maybe String
+                   , _negalias :: Maybe String
                    }
            deriving Show
 
@@ -92,9 +94,10 @@ makeLenses ''Value
 defaultValue :: Value
 defaultValue =
   Value { _name  = ""
-        , _value = Nothing
-        , _saved = Nothing
-        , _alias = Nothing
+        , _value    = Nothing
+        , _saved    = Nothing
+        , _alias    = Nothing
+        , _negalias = Nothing
         }
 
 {--
@@ -480,15 +483,24 @@ specialCases [True] [x] [vx@Value {_value = Nothing }] t vt@(Value { _value = Ju
                     set value Nothing $
                     set saved (vt^.value) vt)
      return (S.singleton (GToffoli [True] [x] t))
+-- Special case II:
+-- ncx x 0 ==> cx x (not x)
+specialCases [False] [x] [vx@Value {_value = Nothing }] t vt@(Value { _value = Just False }) = 
+  do writeSTRef t (set negalias (Just (vx^.name)) $
+                    set value Nothing $
+                    set saved (vt^.value) vt)
+     return (S.singleton (GToffoli [False] [x] t))
+
+
 -- No special cases apply: lose all information about t
 specialCases bs cs controls t vt = do
   d <- showGToffoli (GToffoli bs cs t)
-  trace (printf "No special cases apply to:\n\t%s" d) $ error "todo" {--do
+  trace (printf "No special cases apply to:\n\t%s" d) $ do
     if vt^.saved == Nothing
       then writeSTRef t (set value Nothing $ set saved (vt^.value) vt)
       else return () 
     return $ S.singleton (GToffoli bs cs t)
---}
+
 
 peG :: GToffoli s -> ST s (OP s)
 peG g@(GToffoli bs cs t) = do
@@ -619,15 +631,19 @@ invExpMod15 = do
 -- Run PE phases with dynamic information
 -- and test after each phase
 
-pe15PrintTest :: IO ()
-pe15PrintTest = writeFile "tmp.txt" $ runST $ do
+run15PE :: () -> (String,[Value])
+run15PE () = runST $ do
   circuit <- invExpMod15
   makeCircuitDynamic circuit 13      ; check "Original (x=3,res=13)"   circuit 3 13
   circuit <- simplifyCircuit circuit ; check "Simplified (x=3,res=13)" circuit 3 13
   circuit <- collapseCircuit circuit ; check "Collapsed (x=3,res=13)"  circuit 3 13
   circuit <- peCircuit       circuit ; check "PE (x=3,res=13)"         circuit 3 13
-  showOP $ circuit^.circ
+  tmp <- showOP $ circuit^.circ
+  xs <- mapM readSTRef (circuit^.xs)
+  return (tmp,xs)
+
   where
+    
     check :: String -> InvExpModCircuit s -> Integer -> Integer -> ST s ()
     check msg op x res = do
       (rx,ro,rz) <- runInvExpMod op x res
@@ -637,5 +653,11 @@ pe15PrintTest = writeFile "tmp.txt" $ runST $ do
         (return ())
       makeCircuitDynamic op res
 
+go :: () -> IO () 
+go () = do
+  let (tmp,xs) = run15PE ()
+  writeFile "tmp.txt" tmp
+  mapM_ print xs
+  
 ------------------------------------------------------------------------------
 ------------------------------------------------------------------------------
