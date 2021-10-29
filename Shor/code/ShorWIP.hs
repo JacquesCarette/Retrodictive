@@ -71,8 +71,7 @@ invsqmods a m = invam : invsqmods (am * am) m
 data Value = Value { _name     :: String
                    , _value    :: Maybe Bool
                    , _saved    :: Maybe Bool
-                   , _alias    :: Maybe String
-                   , _negalias :: Maybe String
+                   , _symbolic :: Maybe (Bool,String)
                    }
            deriving Show
 
@@ -80,13 +79,13 @@ data Value = Value { _name     :: String
 -- 
 --   a static value
 --       { value = Just b, ... }
---   a dynamic value
+--   a completely unknown dynamic value
 --       { value = Nothing, ... }
 --   a static value that is temporarily marked as dynamic during a phase:
 --       { value = Nothing; saved = Just b, ... }
 --   a static value that is temporarily marked as dynamic during a phase
---   and that we learned that it is an alias to another variable:
---       { value = Nothing; saved = Just b, alias = Just s, ... } 
+--   and that was determined to have a symbolic value s
+--       { value = Nothing; saved = Just b, symbolic = Just (True,s),  ... } 
 --     
 
 makeLenses ''Value
@@ -96,13 +95,12 @@ defaultValue =
   Value { _name  = ""
         , _value    = Nothing
         , _saved    = Nothing
-        , _alias    = Nothing
-        , _negalias = Nothing
+        , _symbolic = Nothing
         }
 
 {--
 instance Show Value where
-  show v = printf "%s %s = %s" (v^.name) (showmb (v^.value)) (showa (v^.alias))
+  show v = printf "%s %s = %s" (v^.name) (showmb (v^.value)) (showa (v^.symbolic))
     where showmb Nothing = "_"
           showmb (Just True) = "1"
           showmb (Just False) = "0"
@@ -469,46 +467,54 @@ collapseCircuit c = do
 -- Do full partial evaluation
 -- --------------------------
 
--- a location whose value is marked dynamic can still have some
--- associated information:
--- 
---   (i) it can aliased to another variable
---   
+specialCases :: STRef s Int -> [Bool] -> [Var s] -> Var s -> [Value] -> Value -> ST s (OP s)
+-- Special case I: cx x 0 ==> cs x x
+-- (i) symbolic value exists
+specialCases gensym [True] [cx] tx 
+  [cv@Value {_value = Nothing, _symbolic = Just (b,x)}]
+  tv@(Value { _value = Just False }) = 
+  do writeSTRef tx (set symbolic (Just(b,x)) $
+                    set value Nothing $
+                    set saved (tv^.value) tv)
+     return (S.singleton (GToffoli [True] [cx] tx))
+-- (ii) symbolic value needs to be created
+specialCases gensym [True] [cx] tx 
+  [cv@Value {_value = Nothing, _symbolic = Nothing}]
+  tv@(Value { _value = Just False }) = 
+  do d <- readSTRef gensym
+     let x = "S" ++ show d
+     writeSTRef gensym (d+1)
+     writeSTRef cx (set symbolic (Just(True,x)) cv)
+     writeSTRef tx (set symbolic (Just(True,x)) $
+                    set value Nothing $
+                    set saved (tv^.value) tv)
+     return (S.singleton (GToffoli [True] [cx] tx))
+-- Special case II: ncx x 0 ==> cx x (not x)
+-- (i) symbolic value exists
+specialCases gensym [False] [cx] tx 
+  [cv@Value {_value = Nothing, _symbolic = Just (b,x)}]
+  tv@(Value { _value = Just False }) = 
+  do writeSTRef tx (set symbolic (Just(not b,x)) $
+                    set value Nothing $
+                    set saved (tv^.value) tv)
+     return (S.singleton (GToffoli [False] [cx] tx))
 
-specialCases :: [Bool] -> [Var s] -> [Value] -> Var s -> Value -> ST s (OP s)
--- Special case I:
--- cx x 0 ==> cs x x
-specialCases [True] [x] [vx@Value {_value = Nothing }] t vt@(Value { _value = Just False }) = 
-  do writeSTRef t (set alias (Just (vx^.name)) $
-                    set value Nothing $
-                    set saved (vt^.value) vt)
-     return (S.singleton (GToffoli [True] [x] t))
--- Special case II:
--- ncx x 0 ==> cx x (not x)
-specialCases [False] [x] [vx@Value {_value = Nothing }] t vt@(Value { _value = Just False }) = 
-  do writeSTRef t (set negalias (Just (vx^.name)) $
-                    set value Nothing $
-                    set saved (vt^.value) vt)
-     return (S.singleton (GToffoli [False] [x] t))
+
 
 -- ccx(x,x,not x) ==> ccx(x,x,1)
--- 
--- GToffoli [1,1]
--- [Value {_name = "y502", _value = Nothing, _saved = Just False, _alias = Nothing, _negalias = Just "y5"},
---  Value {_name = "y6", _value = Nothing, _saved = Just False, _alias = Just "y502", _negalias = Nothing}]
--- (Value {_name = "y503", _value = Nothing, _saved = Just False, _alias = Nothing, _negalias = Just "y6"})
+
 
 -- No special cases apply: lose all information about t
-specialCases bs cs controls t vt = do
+specialCases gensym bs cs t controls vt = do
   d <- showGToffoli (GToffoli bs cs t)
-  trace (printf "No special cases apply to:\n\t%s" d) $ error "todo"
-{--
+--  trace (printf "No special cases apply to:\n\t%s" d) $ error "todo"
+
   trace (printf "No special cases apply to:\n\t%s" d) $ do
     if vt^.saved == Nothing
       then writeSTRef t (set value Nothing $ set saved (vt^.value) vt)
       else return () 
     return $ S.singleton (GToffoli bs cs t)
---}
+
 
 peG :: GToffoli s -> ST s (OP s)
 peG g@(GToffoli bs cs t) = do
@@ -520,7 +526,9 @@ peG g@(GToffoli bs cs t) = do
          return S.empty
      | ca == Just False ->
          return S.empty
-     | otherwise -> specialCases bs cs controls t vt
+     | otherwise -> do
+         gensym <- newSTRef 0
+         specialCases gensym bs cs t controls vt
 
 peOP :: OP s -> ST s (OP s)
 peOP op = do
