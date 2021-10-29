@@ -321,7 +321,7 @@ controlsActive bs cs =
      | otherwise -> Just True
   where r' = and (catMaybes r)
         r = zipWith f bs cs
-        f b v = fmap (\b' -> b == b') $ v^.value
+        f b v = fmap (b ==) $ v^.value
 
 interpGT :: GToffoli s -> ST s ()
 interpGT (GToffoli bs cs t) = do
@@ -468,19 +468,26 @@ collapseCircuit c = do
 -- --------------------------
 
 specialCases :: STRef s Int -> [Bool] -> [Var s] -> Var s -> [Value] -> Value -> ST s (OP s)
--- Special case I: cx x 0 ==> cs x x
+-- Special case: not x = (not x)
+specialCases gensym [] [] tx 
+  []
+  tv@(Value {_value = Nothing, _symbolic = Just(b,x)}) = 
+  do writeSTRef tx (set symbolic (Just(not b,x)) tv)     -- not b makes test fail but it can't be b ???
+     return (S.singleton (GToffoli [] [] tx))
+-- Special case: cx x 0 ==> x x
 -- (i) symbolic value exists
 specialCases gensym [True] [cx] tx 
   [cv@Value {_value = Nothing, _symbolic = Just (b,x)}]
-  tv@(Value { _value = Just False }) = 
+  tv@(Value {_value = Just False}) = 
   do writeSTRef tx (set symbolic (Just(b,x)) $
                     set value Nothing $
                     set saved (tv^.value) tv)
      return (S.singleton (GToffoli [True] [cx] tx))
+-- Special case: cx x 0 ==> x x
 -- (ii) symbolic value needs to be created
 specialCases gensym [True] [cx] tx 
   [cv@Value {_value = Nothing, _symbolic = Nothing}]
-  tv@(Value { _value = Just False }) = 
+  tv@(Value {_value = Just False}) = 
   do d <- readSTRef gensym
      let x = "S" ++ show d
      writeSTRef gensym (d+1)
@@ -489,32 +496,41 @@ specialCases gensym [True] [cx] tx
                     set value Nothing $
                     set saved (tv^.value) tv)
      return (S.singleton (GToffoli [True] [cx] tx))
--- Special case II: ncx x 0 ==> cx x (not x)
+-- Special case: cx x x ==> x 0
+specialCases gensym [True] [cx] tx 
+  [cv@Value {_value = Nothing, _symbolic = Just (b,x)}]
+  tv@(Value {_value = Nothing, _symbolic = Just (b',x')})
+  | b == b' && x == x' = 
+  do writeSTRef tx (set symbolic Nothing $ 
+                    set value (Just False) tv)
+     return (S.singleton (GToffoli [True] [cx] tx))
+-- Special case: ncx x 0 ==> x (not x)
 -- (i) symbolic value exists
 specialCases gensym [False] [cx] tx 
   [cv@Value {_value = Nothing, _symbolic = Just (b,x)}]
-  tv@(Value { _value = Just False }) = 
+  tv@(Value {_value = Just False}) = 
   do writeSTRef tx (set symbolic (Just(not b,x)) $
                     set value Nothing $
                     set saved (tv^.value) tv)
      return (S.singleton (GToffoli [False] [cx] tx))
--- Special case III: ccx(not x, not x, x)
+-- Special case: ccx(not x, not x, x) ==>  (not x) (not x) 1
 specialCases gensym [True,True] [cx1,cx2] tx 
   [cv1@Value {_value = Nothing, _symbolic = Just (b,x)},
    cv2@Value {_value = Nothing, _symbolic = Just (b',x')}]
-  tv@(Value { _value = Nothing, _symbolic = Just (b'',x'')})
+  tv@(Value {_value = Nothing, _symbolic = Just (b'',x'')})
   | x == x' && x' == x'' && b == b' && b' == not b'' =
   do writeSTRef tx (set value (Just True) $
                     set symbolic Nothing tv)
      return (S.singleton (GToffoli [True,True] [cx1,cx2] tx))
-
--- GToffoli [1,1]          
--- [Value {_name = "y502", _value = Nothing, _saved = Just False, _symbolic = Just (False,"S0")},
---  Value {_name = "y6", _value = Nothing, _saved = Just False, _symbolic = Just (False,"S0")}]
--- (Value {_name = "y503", _value = Just True, _saved = Just False, _symbolic = Nothing})
-
-
-
+-- Special case: ccx(not x, not x, 1) ==> (not x) (not x) x
+specialCases gensym [True,True] [cx1,cx2] tx 
+  [cv1@Value {_value = Nothing, _symbolic = Just (b,x)},
+   cv2@Value {_value = Nothing, _symbolic = Just (b',x')}]
+  tv@(Value {_value = Just True})
+  | x == x' && b == b' = 
+  do writeSTRef tx (set value Nothing $ 
+                    set symbolic (Just (not b,x)) tv)
+     return (S.singleton (GToffoli [True,True] [cx1,cx2] tx))
 
 -- No special cases apply: lose all information about t
 specialCases gensym bs cs t controls vt = do
