@@ -70,7 +70,22 @@ invsqmods a m = invam : invsqmods (am * am) m
 data Value = Value { _name  :: String
                    , _value :: Maybe Bool
                    , _saved :: Maybe Bool
+                   , _alias :: Maybe String
                    }
+           deriving Show
+
+-- Common cases:
+-- 
+--   a static value
+--       { value = Just b, ... }
+--   a dynamic value
+--       { value = Nothing, ... }
+--   a static value that is temporarily marked as dynamic during a phase:
+--       { value = Nothing; saved = Just b, ... }
+--   a static value that is temporarily marked as dynamic during a phase
+--   and that we learned that it is an alias to another variable:
+--       { value = Nothing; saved = Just b, alias = Just s, ... } 
+--     
 
 makeLenses ''Value
 
@@ -79,16 +94,19 @@ defaultValue =
   Value { _name  = ""
         , _value = Nothing
         , _saved = Nothing
+        , _alias = Nothing
         }
 
-instance Show Value where
 {--
-  show v = printf "%s %s" (v^.name) (showmb (v^.value))
+instance Show Value where
+  show v = printf "%s %s = %s" (v^.name) (showmb (v^.value)) (showa (v^.alias))
     where showmb Nothing = "_"
           showmb (Just True) = "1"
           showmb (Just False) = "0"
---}
+          showa Nothing = "_"
+          showa (Just s) = s
   show v = printf "%s" (v^.name)
+--}
 
 newValue :: String -> Bool -> Value
 newValue s b = set name s $ set value (Just b) defaultValue
@@ -448,43 +466,45 @@ collapseCircuit c = do
 -- Do full partial evaluation
 -- --------------------------
 
+-- a location whose value is marked dynamic can still have some
+-- associated information:
+-- 
+--   (i) it can aliased to another variable
+--   
+
 peG :: GToffoli s -> ST s (OP s)
 peG g@(GToffoli bs cs t) = do 
   controls <- mapM readSTRef cs
   vt <- readSTRef t
-  case controls of
-    -- [ Value { value = Nothing } ] ->
-    [ v ] | v^.value == Nothing ->
-      case (head bs, vt^.value) of
-        (True, Nothing) -> return (S.singleton g) 
-        _ -> return (S.singleton g)
-    _ -> return (S.singleton g)
+  let ca = controlsActive bs controls
+  if | ca == Just True && isStatic vt -> do
+         writeSTRef t (negValue vt)
+         return S.empty
+     | ca == Just False ->
+         return S.empty
+     | otherwise -> do
+         d <- showGToffoli g
+         trace d (error "todo")
+
+-- GToffoli
+--   [1]
+--   Value {_name = "x4", _value = Nothing, _saved = Nothing, _alias = Nothing}]
+--   (Value {_name = "y456", _value = Just False, _saved = Nothing, _alias = Nothing})
+--
+-- ==> 
+-- 
+-- GToffoli
+--   [1]
+--   Value {_name = "x4", _value = Nothing, _saved = Nothing, _alias = Nothing}]
+--   (Value {_name = "y456", _value = Nothing, _saved = Just False, _alias = Nothing})
+--
+
+
         
-{--
-
-cx(x=DYN,y=0) ==> (x=DYN,y=x)
-
-Aliasing???
-
-pass around a hashmap : String -> String
-where these are the gensym'ed names
-we would add y -> x in the hashmap
-etc
-
---}
-
-
 peOP :: OP s -> ST s (OP s)
-peOP op = case viewl op of
-  EmptyL -> return S.empty
-  g :< gs -> do
-    g' <- peG g
-    gs' <- peOP gs
-    case viewl (g' >< gs') of
-      EmptyL -> return S.empty
-      g :< gs -> do
-        g' <- restoreSaved g
-        return (S.singleton g' >< gs)
+peOP op = do
+  op <- foldMap peG op
+  mapM restoreSaved op
 
 peCircuit :: InvExpModCircuit s -> ST s (InvExpModCircuit s)
 peCircuit c = do
