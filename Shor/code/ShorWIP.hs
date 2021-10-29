@@ -491,16 +491,24 @@ specialCases [False] [x] [vx@Value {_value = Nothing }] t vt@(Value { _value = J
                     set saved (vt^.value) vt)
      return (S.singleton (GToffoli [False] [x] t))
 
+-- ccx(x,x,not x) ==> ccx(x,x,1)
+-- 
+-- GToffoli [1,1]
+-- [Value {_name = "y502", _value = Nothing, _saved = Just False, _alias = Nothing, _negalias = Just "y5"},
+--  Value {_name = "y6", _value = Nothing, _saved = Just False, _alias = Just "y502", _negalias = Nothing}]
+-- (Value {_name = "y503", _value = Nothing, _saved = Just False, _alias = Nothing, _negalias = Just "y6"})
 
 -- No special cases apply: lose all information about t
 specialCases bs cs controls t vt = do
   d <- showGToffoli (GToffoli bs cs t)
+  trace (printf "No special cases apply to:\n\t%s" d) $ error "todo"
+{--
   trace (printf "No special cases apply to:\n\t%s" d) $ do
     if vt^.saved == Nothing
       then writeSTRef t (set value Nothing $ set saved (vt^.value) vt)
       else return () 
     return $ S.singleton (GToffoli bs cs t)
-
+--}
 
 peG :: GToffoli s -> ST s (OP s)
 peG g@(GToffoli bs cs t) = do
