@@ -113,9 +113,23 @@ andS (Symbolic (b3,s3)) (And (b1,s1) (b2,s2)) =
   case andS (Symbolic (b1,s1)) (Symbolic (b3,s3)) of
     Left r -> andS r (Symbolic (b2,s2))
     Right s -> Right s
+andS (And (b1,s1) (b2,s2)) (And (b3,s3) (b4,s4)) |
+  b2 == not b4 && s2 == s4 = Left (Static False)
+andS (Or (b1,s1) (b2,s2)) (Symbolic (b3,s3)) |
+  b1 == b3 && s1 == s3 =
+  Left (Symbolic (b3,s3))
+andS (Or (b1,s1) (b2,s2)) (Symbolic (b3,s3)) |
+  b1 == not b3 && s1 == s3 =
+  Left (And (b3,s3) (b2,s2))
 andS (Or (b1,s1) (b2,s2)) (Xor (b3,s3) (b4,s4)) |
   b1 == not b3 && s1 == s3 && b2 == b4 && s2 == s4 =
   Left (And (b1,s1) (b2,s2))
+andS (Or (b1,s1) (b2,s2)) (And (b3,s3) (b4,s4)) |
+  b1 == not b3 && s1 == s3 && b2 == b4 && s2 == s4 =
+  Left (And (b3,s3) (b4,s4))
+andS (Or (b1,s1) (b2,s2)) (Or (b3,s3) (b4,s4)) |
+  b1 == b3 && s1 == s3 && b2 == not b4 && s2 == s4 =
+  Left (Symbolic (b1,s1))
 andS v v' = Right (printf "Don't know how to simplify (%s . %s)" (show v) (show v'))
 
 xorS :: Value -> Value -> Either Value String
@@ -126,11 +140,21 @@ xorS v (Static True) = Left (negS v)
 xorS v v' | v == v' = Left (Static False)
 xorS v v' | v == negS v' = Left (Static True)
 xorS (And (b1,s1) (b2,s2)) (Symbolic (b3,s3)) | b1 == b3 && s1 == s3 =
-  Left (And (b1,s1) (b2,s2))                                               
+  Left (And (b1,s1) (not b2,s2))                                               
 xorS (Symbolic (b3,s3)) (And (b1,s1) (b2,s2)) | b1 == b3 && s1 == s3 =
-  Left (And (b1,s1) (b2,s2))                                               
-xorS (Or (b1,s1) (b2,s2)) (Symbolic (b3,s3)) | b1 == not b3 && s1 == s3 =
-  Left (Xor (b3, s3) (b2,s2))
+  Left (And (b1,s1) (not b2,s2))
+xorS (Symbolic (b3,s3)) (And (b1,s1) (b2,s2)) | b1 == not b3 && s1 == s3 =
+  Left (Or (b3,s3) (b2,s2))
+xorS (Symbolic (b3,s3)) (Or (b1,s1) (b2,s2)) | b1 == not b3 && s1 == s3 =
+  Left (Or (b1,s1) (not b2,s2))
+xorS (And (b1,s1) (b2,s2)) (And (b3,s3) (b4,s4)) |
+  b1 == b3 && s1 == s3 && b2 == not b4 && s2 == s4 = Left (Symbolic (b1,s1))
+xorS (Or (b1,s1) (b2,s2)) (And (b3,s3) (b4,s4)) |
+  b1 == not b3 && s1 == s3 && b2 == b4 && s2 == s4 =
+  Left (Symbolic (b1,s1))
+xorS (Or (b1,s1) (b2,s2)) (Or (b3,s3) (b4,s4)) |
+  b1 == b3 && s1 == s3 && b2 == not b4 && s2 == s4 =
+  Left (Symbolic (not b1,s1))
 xorS v v' = Right (printf "Don't know how to simplify (%s # %s)" (show v) (show v'))
 
 --
