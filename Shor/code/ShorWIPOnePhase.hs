@@ -68,7 +68,9 @@ invsqmods a m = invam : invsqmods (am * am) m
 -- Values with either static or dynamic information
 -- ------------------------------------------------
 
-data Value = Static Bool | Symbolic (Bool,String)
+data Value = Static Bool
+           | Symbolic (Bool,String)
+           | And (Bool,String) (Bool,String)
   deriving Show
 
 newDynValue :: String -> Value
@@ -295,58 +297,140 @@ makeLenses ''InvExpModCircuit
 ----------------------------------------------------------------------------------------
 -- Partial evaluation
 
-specialCases :: STRef s Int -> [Bool] -> [Var s] -> Var s -> [Value] -> Value -> ST s (OP s)
+specialCases :: STRef s Int -> [Bool] -> [Var s] -> Var s -> [Value] -> Value -> ST s ()
 -- Special case: not x = (not x)
 specialCases gensym [] [] tx 
   []
   (Symbolic (b,x)) = 
-  do writeSTRef tx (Symbolic (not b, x))
-     return (S.singleton (GToffoli [] [] tx))
+  writeSTRef tx (Symbolic (not b, x))
+
 -- Special case: cx x 0 ==> x x
 specialCases gensym [True] [cx] tx 
   [Symbolic (b,x)]
   (Static False) =
-  do writeSTRef tx (Symbolic (b,x))
-     return (S.singleton (GToffoli [True] [cx] tx))
+  writeSTRef tx (Symbolic (b,x))
+
 -- Special case: cx x x ==> x 0
 specialCases gensym [True] [cx] tx 
   [Symbolic (b,x)]
   (Symbolic (b',x'))
   | b == b' && x == x' = 
-  do writeSTRef tx (Static False)
-     return (S.singleton (GToffoli [True] [cx] tx))
+  writeSTRef tx (Static False)
+
+-- Special case: cx x 1 ==> x (not x)
+specialCases gensym [True] [cx] tx 
+  [Symbolic (b,x)]
+  (Static True) =
+  writeSTRef tx (Symbolic (not b, x))
+
 -- Special case: cx x (not x) ==> x 1
 specialCases gensym [True] [cx] tx 
   [Symbolic (b,x)]
   (Symbolic (b',x'))
   | b == not b' && x == x' = 
-  do writeSTRef tx (Static True)
-     return (S.singleton (GToffoli [True] [cx] tx))
--- Special case: cx x 1 ==> x (not x)
-specialCases gensym [True] [cx] tx 
+  writeSTRef tx (Static True)
+
+-- Special case: ncx x 0 ==> x (not x)
+specialCases gensym [False] [cx] tx 
+  [Symbolic (b,x)]
+  (Static False) =
+  writeSTRef tx (Symbolic (not b, x))
+
+-- Special case: ncx x (not x) ==> x 0
+specialCases gensym [False] [cx] tx 
+  [Symbolic (b,x)]
+  (Symbolic (b',x'))
+  | b == not b' && x == x' = 
+  writeSTRef tx (Static False)
+
+-- Special case: ncx x 1 ==> x x
+specialCases gensym [False] [cx] tx 
   [Symbolic (b,x)]
   (Static True) =
-  do writeSTRef tx (Symbolic (not b, x))
-     return (S.singleton (GToffoli [True] [cx] tx))
--- Special case: ccx x x (not x) ==> x x 1
+  writeSTRef tx (Symbolic (b, x))
+
+-- Special case: ncx x x ==> x 1
+specialCases gensym [False] [cx] tx 
+  [Symbolic (b,x)]
+  (Symbolic (b',x'))
+  | b == b' && x == x' = 
+  writeSTRef tx (Static True)
+
+-- Special case: ccx x x 0 ==> x x x
 specialCases gensym [True,True] [cx1,cx2] tx 
-  [Symbolic (b,x),Symbolic(b',x')]
+  [Symbolic (b,x),Symbolic (b',x')]
+  (Static False)
+  | b == b' && x == x' = 
+  writeSTRef tx (Symbolic (b, x))
+
+-- Special case: ccx x x x ==> x x 0
+specialCases gensym [True,True] [cx1,cx2] tx 
+  [Symbolic (b,x),Symbolic (b',x')]
   (Symbolic (b'',x''))
-  | b == b' && x == x' && b' == not b'' && x' == x'' =  
-  do writeSTRef tx (Static True)
-     return (S.singleton (GToffoli [True,True] [cx1,cx2] tx))
+  | b == b' && x == x' && b' == b'' && x' == x'' =  
+  writeSTRef tx (Static False)
+
 -- Special case: ccx x x 1 ==> x x (not x)
 specialCases gensym [True,True] [cx1,cx2] tx 
-  [Symbolic (b,x),Symbolic(b',x')]
+  [Symbolic (b,x),Symbolic (b',x')]
   (Static True)
   | b == b' && x == x' = 
-  do writeSTRef tx (Symbolic (not b, x))
-     return (S.singleton (GToffoli [True,True] [cx1,cx2] tx))
+  writeSTRef tx (Symbolic (not b, x))
+
+-- Special case: ccx x x (not x) ==> x x 1
+specialCases gensym [True,True] [cx1,cx2] tx 
+  [Symbolic (b,x),Symbolic (b',x')]
+  (Symbolic (b'',x''))
+  | b == b' && x == x' && b' == not b'' && x' == x'' =  
+  writeSTRef tx (Static True)
+
+specialCases gensym [False,True] [cx1,cx2] tx 
+  [Symbolic (b,x),Symbolic (b',x')]
+  (Static True)
+  | b == not b' && x == x' = 
+  writeSTRef tx (Symbolic (b, x))
+
+specialCases gensym [False,True] [cx1,cx2] tx 
+  [Symbolic (b,x),Symbolic (b',x')]
+  (Symbolic (b'',x''))
+  | b == b' && x == x' && b' == not b'' && x' == x'' =  
+  writeSTRef tx (Static True)
+
+specialCases gensym [False,True] [cx1,cx2] tx 
+  [Symbolic (b,x),Symbolic (b',x')]
+  (Static False)
+  | b == not b' && x == x' = 
+  writeSTRef tx (Symbolic (not b, x))
+
+specialCases gensym [False,True] [cx1,cx2] tx 
+  [Symbolic (b,x),Symbolic (b',x')]
+  (Symbolic (b'',x''))
+  | b == not b' && x == x' && b == not b'' && x' == x'' =  
+  writeSTRef tx (Static False)
+
+specialCases gensym [False,True] [cx1,cx2] tx 
+  [Symbolic (b,x),Symbolic (b',x')]
+  (Static False)
+  | b == b' && x == x' = 
+  return () 
+
+specialCases gensym [True,True] [cx1,cx2] tx 
+  [Symbolic (b,x),Symbolic (b',x')]
+  (Static False)
+  | b == not b' && x == x' = 
+  return () 
+
+
+
+
+
+
 -- No special cases apply !!
 specialCases gensym bs cs t controls vt = do
   d <- showGToffoli (GToffoli bs cs t)
   trace (printf "No special cases apply to:\n\t%s" d) $
-    return S.empty
+    -- return S.empty
+    error "STOP"
 
 shrinkControls :: [Bool] -> [Var s] -> [Value] -> ([Bool],[Var s],[Value])
 shrinkControls [] [] [] = ([],[],[])
@@ -367,8 +451,9 @@ peG gensym g@(GToffoli bs' cs' t) = do
          return S.empty
      | ca == Just False ->
          return S.empty
-     | otherwise -> 
+     | otherwise -> do
          specialCases gensym bs cs t controls tv
+         return (S.singleton (GToffoli bs cs t))
 
 peCircuit :: InvExpModCircuit s -> ST s (InvExpModCircuit s)
 peCircuit c = do
