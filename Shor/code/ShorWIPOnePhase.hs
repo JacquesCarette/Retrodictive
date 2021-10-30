@@ -481,9 +481,9 @@ invExpMod15 res = do
           , _circ = S.reverse circuit
           })
 
-run15PE :: () -> (String,[Value],[(Bool,Value)],[(Bool,Value)])
-run15PE () = runST $ do
-  circuit <- invExpMod15 13
+run15PE :: Integer -> (String,[Value],[(Bool,Value)],[(Bool,Value)])
+run15PE res = runST $ do
+  circuit <- invExpMod15 res
   circuit <- peCircuit circuit
   tmp <- showOP $ circuit^.circ
   xs <- mapM readSTRef (circuit^.xs)
@@ -491,9 +491,9 @@ run15PE () = runST $ do
   lzs <- mapM readSTRef (circuit^.lzs)
   return (tmp, xs, zip (fromInt 5 1) os, zip (fromInt 5 0) lzs)
 
-go :: () -> IO () 
-go () = do
-  let (tmp,xs,os,lzs) = run15PE ()
+go :: Integer -> IO () 
+go res = do
+  let (tmp,xs,os,lzs) = run15PE res
   writeFile "tmp.txt" tmp
   putStrLn "xs:"
   mapM_ print xs
@@ -501,6 +501,15 @@ go () = do
   mapM_ print os
   putStrLn "lzs:"
   mapM_ print lzs
+
+{--
+
+go 1    =>    x1x0 = 00
+go 7    =>    x1x0 = 01
+go 4    =>    x1x0 = 10
+go 13   =>    x1x0 = 11
+
+--}
   
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
