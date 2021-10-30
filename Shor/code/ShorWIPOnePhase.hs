@@ -30,6 +30,9 @@ debug = True
 trace :: String -> a -> a
 trace s a = if debug then Debug.trace s a else a
 
+traceM :: Applicative f => String -> f ()
+traceM s = if debug then Debug.traceM s else pure ()
+
 -- Numeric computations
 
 fromInt :: Int -> Integer -> [Bool]
@@ -72,21 +75,18 @@ data Value = Static Bool
            | Symbolic (Bool,String)
            | And (Bool,String) (Bool,String)
            | Or (Bool,String) (Bool,String)
-  deriving (Eq,Show)
+           | Xor (Bool,String) (Bool,String)
+  deriving Eq
 
-newDynValue :: String -> Value
-newDynValue s = Symbolic (True,s)
-
-isStatic :: Value -> Bool
-isStatic (Static _) = True
-isStatic _ = False
-
-extractBool :: Value -> Bool
-extractBool (Static b) = b
-extractBool _ = error "Internal error: expecting a static value"
-
-valueToInt :: [Value] -> Integer
-valueToInt = toInt . map extractBool
+instance Show Value where
+  show (Static b) = if b then "1" else "0"
+  show (Symbolic (b,s)) = if b then s else ("-" ++ s)
+  show (And (b1,s1) (b2,s2)) =
+    printf "(%s . %s)" (show (Symbolic (b1,s1))) (show (Symbolic (b2,s2)))
+  show (Or (b1,s1) (b2,s2)) =
+    printf "(%s + %s)" (show (Symbolic (b1,s1))) (show (Symbolic (b2,s2)))
+  show (Xor (b1,s1) (b2,s2)) =
+    printf "(%s # %s)" (show (Symbolic (b1,s1))) (show (Symbolic (b2,s2)))
 
 -- Symbolic boolean operations when some values are known
 
@@ -95,6 +95,7 @@ negS (Static b) = Static (not b)
 negS (Symbolic (b,s)) = Symbolic (not b, s)
 negS (And (b1,s1) (b2,s2)) = Or (not b1, s1) (not b2,s2)
 negS (Or (b1,s1) (b2,s2)) = And (not b1, s1) (not b2,s2)
+negS (Xor (b1,s1) (b2,s2)) = Xor (not b1, s1) (b2,s2)
 
 andS :: Value -> Value -> Either Value String
 andS (Static False) v = Left (Static False)
@@ -112,7 +113,10 @@ andS (Symbolic (b3,s3)) (And (b1,s1) (b2,s2)) =
   case andS (Symbolic (b1,s1)) (Symbolic (b3,s3)) of
     Left r -> andS r (Symbolic (b2,s2))
     Right s -> Right s
-andS v v' = Right (printf "Don't know how to and(%s,%s)" (show v) (show v'))
+andS (Or (b1,s1) (b2,s2)) (Xor (b3,s3) (b4,s4)) |
+  b1 == not b3 && s1 == s3 && b2 == b4 && s2 == s4 =
+  Left (And (b1,s1) (b2,s2))
+andS v v' = Right (printf "Don't know how to simplify (%s . %s)" (show v) (show v'))
 
 xorS :: Value -> Value -> Either Value String
 xorS (Static False) v = Left v
@@ -125,7 +129,25 @@ xorS (And (b1,s1) (b2,s2)) (Symbolic (b3,s3)) | b1 == b3 && s1 == s3 =
   Left (And (b1,s1) (b2,s2))                                               
 xorS (Symbolic (b3,s3)) (And (b1,s1) (b2,s2)) | b1 == b3 && s1 == s3 =
   Left (And (b1,s1) (b2,s2))                                               
-xorS v v' = Right (printf "Don't know how to xor(%s,%s)" (show v) (show v'))
+xorS (Or (b1,s1) (b2,s2)) (Symbolic (b3,s3)) | b1 == not b3 && s1 == s3 =
+  Left (Xor (b3, s3) (b2,s2))
+xorS v v' = Right (printf "Don't know how to simplify (%s # %s)" (show v) (show v'))
+
+--
+
+newDynValue :: String -> Value
+newDynValue s = Symbolic (True,s)
+
+isStatic :: Value -> Bool
+isStatic (Static _) = True
+isStatic _ = False
+
+extractBool :: Value -> Bool
+extractBool (Static b) = b
+extractBool _ = error "Internal error: expecting a static value"
+
+valueToInt :: [Value] -> Integer
+valueToInt = toInt . map extractBool
 
 --
 -- Locations where values are stored
@@ -161,7 +183,8 @@ showGToffoli :: GToffoli s -> ST s String
 showGToffoli (GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   vt <- readSTRef t
-  return $ printf "GToffoli %-10s%-15s  (%s)\n"
+--  return $ printf "GToffoli %-10s%-15s  (%s)\n"
+  return $ printf "GToffoli %s %s (%s)"
     (show (map fromEnum bs))
     (show controls)
     (show vt)
@@ -342,19 +365,23 @@ makeLenses ''InvExpModCircuit
 -- Partial evaluation
 
 specialCases :: [Bool] -> [Var s] -> Var s -> [Value] -> Value -> ST s ()
-specialCases [b] [cx] tx [x] y =
+specialCases [b] [cx] tx [x] y = 
   case xorS (if b then x else negS x) y of
-    Left v -> writeSTRef tx v
-    Right s -> trace s (error "TODO1")
-specialCases [b1,b2] [cx1,cx2] tx [x1,x2] y =
+    Left v -> do traceM (printf "cx case: simplified target to: %s" (show v))
+                 writeSTRef tx v
+    Right s -> trace s (error "\n\nCX\n\n")
+specialCases [b1,b2] [cx1,cx2] tx [x1,x2] y = do
   case andS (if b1 then x1 else negS x1) (if b2 then x2 else negS x2) of
     Left c -> case xorS c y of 
-      Left v -> writeSTRef tx v
-      Right s -> trace s (error "TODO2")
-    Right s -> trace s (error "TODO3")
+      Left v ->
+        do traceM (printf "ccx case: simplified controls to: %s and target to: %s"
+                   (show c) (show v))
+           writeSTRef tx v
+      Right s -> trace s (error "\n\nCCX control\n\n")
+    Right s -> trace s (error "\n\nCCX TODO\n\n")
 specialCases bs cs t controls vt = do
   d <- showGToffoli (GToffoli bs cs t)
-  trace (printf "Toffoli 4 or more !?") (error "TODO4")
+  trace (printf "Toffoli 4 or more !?") (error "\n\nCCC...X\n\n")
 
 shrinkControls :: [Bool] -> [Var s] -> [Value] -> ([Bool],[Var s],[Value])
 shrinkControls [] [] [] = ([],[],[])
@@ -364,16 +391,20 @@ shrinkControls (b:bs) (c:cs) (v:vs)
     let (bs',cs',vs') = shrinkControls bs cs vs
     in (b:bs',c:cs',v:vs')
 
-peG :: GToffoli s -> ST s (OP s)
-peG g@(GToffoli bs' cs' t) = do
+peG :: Int -> (GToffoli s, Int) -> ST s (OP s)
+peG size (g@(GToffoli bs' cs' t), count) = do
+  d <- showGToffoli g
+  traceM (printf "\nProcessing gate %d of %d: %s" count size d)
   controls' <- mapM readSTRef cs'
   tv <- readSTRef t
   let (bs,cs,controls) = shrinkControls bs' cs' controls'
   let ca = controlsActive bs controls
   if | ca == Just True -> do
+         traceM (printf "controls true: execute")
          writeSTRef t (negS tv)
          return S.empty
-     | ca == Just False ->
+     | ca == Just False -> do
+         traceM (printf "controls false: ignore")
          return S.empty
      | otherwise -> do
          specialCases bs cs t controls tv
@@ -381,7 +412,8 @@ peG g@(GToffoli bs' cs' t) = do
 
 peCircuit :: InvExpModCircuit s -> ST s (InvExpModCircuit s)
 peCircuit c = do
-  op' <- foldMap peG $ c^.circ
+  let size = S.length (c^.circ)
+  op' <- foldMap (peG size) $ S.zip (c^.circ) (S.fromFunction size id)
   return $ set circ op' c
 
 ----------------------------------------------------------------------------------------
