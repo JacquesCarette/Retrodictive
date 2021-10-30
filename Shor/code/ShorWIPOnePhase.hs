@@ -71,7 +71,7 @@ invsqmods a m = invam : invsqmods (am * am) m
 data Value = Static Bool
            | Symbolic (Bool,String)
            | And (Bool,String) (Bool,String)
-  deriving Show
+  deriving (Eq,Show)
 
 newDynValue :: String -> Value
 newDynValue s = Symbolic (True,s)
@@ -420,9 +420,41 @@ specialCases gensym [True,True] [cx1,cx2] tx
   | b == not b' && x == x' = 
   return () 
 
+specialCases gensym [True,True] [cx1,cx2] tx 
+  [Symbolic (b,x),Symbolic (b',x')]
+  (Static False)
+  | x /= x' = 
+  writeSTRef tx (And (b,x) (b',x'))
+
+specialCases gensym [True,True] [cx1,cx2] tx 
+  [And (b1,x1) (b2,x2), Symbolic (b3,x3)]
+  (Static False)
+  | x1 /= x2 && b1 == b3 && x1 == x3 = 
+  writeSTRef tx (And (b1,x1) (b2,x2))
+
+specialCases gensym [True] [cx] tx 
+  [And (b1,x1) (b2,x2)]
+  (Symbolic (b3,x3))
+  | x1 /= x2 && b1 == b3 && x1 == x3 = 
+  writeSTRef tx (Symbolic (not b2, x2))
+
+specialCases gensym [True] [cx] tx 
+  [And (b1,x1) (b2,x2)]
+  (Static False)
+  | x1 /= x2 = 
+  writeSTRef tx (And (b1,x1) (b2,x2))
+
+specialCases gensym [True,True] [cx1,cx2] tx 
+  [cv1,cv2]
+  (Static False)
+  | cv1 == cv2 = 
+  writeSTRef tx cv1
 
 
 
+-- do a better job with shrinkControls
+-- and controlsActive
+-- get rid of [x,not x]... 
 
 
 -- No special cases apply !!
