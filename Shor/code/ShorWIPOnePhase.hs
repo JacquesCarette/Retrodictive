@@ -52,7 +52,7 @@ invmod :: Integer -> Integer -> Integer
 invmod x m = loop x m 0 1
   where
     loop 0 1 a _ = a `mod` m
-    loop 0 _ _ _ = error "Inputs not coprime"
+    loop 0 _ _ _ = error "Panic: Inputs not coprime"
     loop x b a u = loop (b `mod` x) x u (a - (u * (b `div` x)))
 
 invsqmods :: Integer -> Integer -> [Integer]
@@ -71,6 +71,7 @@ invsqmods a m = invam : invsqmods (am * am) m
 data Value = Static Bool
            | Symbolic (Bool,String)
            | And (Bool,String) (Bool,String)
+           | Or (Bool,String) (Bool,String)
   deriving (Eq,Show)
 
 newDynValue :: String -> Value
@@ -82,14 +83,49 @@ isStatic _ = False
 
 extractBool :: Value -> Bool
 extractBool (Static b) = b
-extractBool _ = error "expecting a static value"
+extractBool _ = error "Internal error: expecting a static value"
 
-negValue :: Value -> Value 
-negValue (Static b) = Static (not b)
-negValue (Symbolic (b,s)) = Symbolic (not b, s)
-                   
 valueToInt :: [Value] -> Integer
 valueToInt = toInt . map extractBool
+
+-- Symbolic boolean operations when some values are known
+
+negS :: Value -> Value 
+negS (Static b) = Static (not b)
+negS (Symbolic (b,s)) = Symbolic (not b, s)
+negS (And (b1,s1) (b2,s2)) = Or (not b1, s1) (not b2,s2)
+negS (Or (b1,s1) (b2,s2)) = And (not b1, s1) (not b2,s2)
+
+andS :: Value -> Value -> Either Value String
+andS (Static False) v = Left (Static False)
+andS v (Static False) = Left (Static False)
+andS (Static True) v = Left v
+andS v (Static True) = Left v
+andS v v' | v == v' = Left v
+andS v v' | v == negS v' = Left (Static False)
+andS (Symbolic (b1,s1)) (Symbolic (b2,s2)) = Left (And (b1,s1) (b2,s2))
+andS (And (b1,s1) (b2,s2)) (Symbolic (b3,s3)) =
+  case andS (Symbolic (b1,s1)) (Symbolic (b3,s3)) of
+    Left r -> andS r (Symbolic (b2,s2))
+    Right s -> Right s
+andS (Symbolic (b3,s3)) (And (b1,s1) (b2,s2)) =
+  case andS (Symbolic (b1,s1)) (Symbolic (b3,s3)) of
+    Left r -> andS r (Symbolic (b2,s2))
+    Right s -> Right s
+andS v v' = Right (printf "Don't know how to and(%s,%s)" (show v) (show v'))
+
+xorS :: Value -> Value -> Either Value String
+xorS (Static False) v = Left v
+xorS v (Static False) = Left v
+xorS (Static True) v = Left (negS v)
+xorS v (Static True) = Left (negS v)
+xorS v v' | v == v' = Left (Static False)
+xorS v v' | v == negS v' = Left (Static True)
+xorS (And (b1,s1) (b2,s2)) (Symbolic (b3,s3)) | b1 == b3 && s1 == s3 =
+  Left (And (b1,s1) (b2,s2))                                               
+xorS (Symbolic (b3,s3)) (And (b1,s1) (b2,s2)) | b1 == b3 && s1 == s3 =
+  Left (And (b1,s1) (b2,s2))                                               
+xorS v v' = Right (printf "Don't know how to xor(%s,%s)" (show v) (show v'))
 
 --
 -- Locations where values are stored
@@ -125,7 +161,7 @@ showGToffoli :: GToffoli s -> ST s String
 showGToffoli (GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   vt <- readSTRef t
-  return $ printf "GToffoli %-15s%-25s(%s)\n"
+  return $ printf "GToffoli %-10s%-15s  (%s)\n"
     (show (map fromEnum bs))
     (show controls)
     (show vt)
@@ -252,18 +288,26 @@ controlsActive :: [Bool] -> [Value] -> Maybe Bool
 controlsActive bs cs =
   if | not r' -> Just False
      | Nothing `elem` r -> Nothing
+     | doubleNegs (zip bs cs) -> Just False
      | otherwise -> Just True
-  where r' = and (catMaybes r)
-        r = zipWith f bs cs
-        f b (Static b') = Just (b == b')
-        f b _ = Nothing
+  where
+    r' = and (catMaybes r)
+
+    r = zipWith f bs cs
+
+    f b (Static b') = Just (b == b')
+    f b _ = Nothing
+
+    doubleNegs [] = False
+    doubleNegs ((b, Static b') : bvs) = doubleNegs bvs
+    doubleNegs ((b,v) : bvs) = (b, negS v) `elem` bvs || doubleNegs bvs
 
 interpGT :: GToffoli s -> ST s ()
 interpGT (GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   tv <- readSTRef t
   if controlsActive bs controls == Just True 
-    then writeSTRef t (negValue tv)
+    then writeSTRef t (negS tv)
     else return ()
 
 interpOP :: OP s -> ST s ()
@@ -297,172 +341,20 @@ makeLenses ''InvExpModCircuit
 ----------------------------------------------------------------------------------------
 -- Partial evaluation
 
-specialCases :: STRef s Int -> [Bool] -> [Var s] -> Var s -> [Value] -> Value -> ST s ()
--- Special case: not x = (not x)
-specialCases gensym [] [] tx 
-  []
-  (Symbolic (b,x)) = 
-  writeSTRef tx (Symbolic (not b, x))
-
--- Special case: cx x 0 ==> x x
-specialCases gensym [True] [cx] tx 
-  [Symbolic (b,x)]
-  (Static False) =
-  writeSTRef tx (Symbolic (b,x))
-
--- Special case: cx x x ==> x 0
-specialCases gensym [True] [cx] tx 
-  [Symbolic (b,x)]
-  (Symbolic (b',x'))
-  | b == b' && x == x' = 
-  writeSTRef tx (Static False)
-
--- Special case: cx x 1 ==> x (not x)
-specialCases gensym [True] [cx] tx 
-  [Symbolic (b,x)]
-  (Static True) =
-  writeSTRef tx (Symbolic (not b, x))
-
--- Special case: cx x (not x) ==> x 1
-specialCases gensym [True] [cx] tx 
-  [Symbolic (b,x)]
-  (Symbolic (b',x'))
-  | b == not b' && x == x' = 
-  writeSTRef tx (Static True)
-
--- Special case: ncx x 0 ==> x (not x)
-specialCases gensym [False] [cx] tx 
-  [Symbolic (b,x)]
-  (Static False) =
-  writeSTRef tx (Symbolic (not b, x))
-
--- Special case: ncx x (not x) ==> x 0
-specialCases gensym [False] [cx] tx 
-  [Symbolic (b,x)]
-  (Symbolic (b',x'))
-  | b == not b' && x == x' = 
-  writeSTRef tx (Static False)
-
--- Special case: ncx x 1 ==> x x
-specialCases gensym [False] [cx] tx 
-  [Symbolic (b,x)]
-  (Static True) =
-  writeSTRef tx (Symbolic (b, x))
-
--- Special case: ncx x x ==> x 1
-specialCases gensym [False] [cx] tx 
-  [Symbolic (b,x)]
-  (Symbolic (b',x'))
-  | b == b' && x == x' = 
-  writeSTRef tx (Static True)
-
--- Special case: ccx x x 0 ==> x x x
-specialCases gensym [True,True] [cx1,cx2] tx 
-  [Symbolic (b,x),Symbolic (b',x')]
-  (Static False)
-  | b == b' && x == x' = 
-  writeSTRef tx (Symbolic (b, x))
-
--- Special case: ccx x x x ==> x x 0
-specialCases gensym [True,True] [cx1,cx2] tx 
-  [Symbolic (b,x),Symbolic (b',x')]
-  (Symbolic (b'',x''))
-  | b == b' && x == x' && b' == b'' && x' == x'' =  
-  writeSTRef tx (Static False)
-
--- Special case: ccx x x 1 ==> x x (not x)
-specialCases gensym [True,True] [cx1,cx2] tx 
-  [Symbolic (b,x),Symbolic (b',x')]
-  (Static True)
-  | b == b' && x == x' = 
-  writeSTRef tx (Symbolic (not b, x))
-
--- Special case: ccx x x (not x) ==> x x 1
-specialCases gensym [True,True] [cx1,cx2] tx 
-  [Symbolic (b,x),Symbolic (b',x')]
-  (Symbolic (b'',x''))
-  | b == b' && x == x' && b' == not b'' && x' == x'' =  
-  writeSTRef tx (Static True)
-
-specialCases gensym [False,True] [cx1,cx2] tx 
-  [Symbolic (b,x),Symbolic (b',x')]
-  (Static True)
-  | b == not b' && x == x' = 
-  writeSTRef tx (Symbolic (b, x))
-
-specialCases gensym [False,True] [cx1,cx2] tx 
-  [Symbolic (b,x),Symbolic (b',x')]
-  (Symbolic (b'',x''))
-  | b == b' && x == x' && b' == not b'' && x' == x'' =  
-  writeSTRef tx (Static True)
-
-specialCases gensym [False,True] [cx1,cx2] tx 
-  [Symbolic (b,x),Symbolic (b',x')]
-  (Static False)
-  | b == not b' && x == x' = 
-  writeSTRef tx (Symbolic (not b, x))
-
-specialCases gensym [False,True] [cx1,cx2] tx 
-  [Symbolic (b,x),Symbolic (b',x')]
-  (Symbolic (b'',x''))
-  | b == not b' && x == x' && b == not b'' && x' == x'' =  
-  writeSTRef tx (Static False)
-
-specialCases gensym [False,True] [cx1,cx2] tx 
-  [Symbolic (b,x),Symbolic (b',x')]
-  (Static False)
-  | b == b' && x == x' = 
-  return () 
-
-specialCases gensym [True,True] [cx1,cx2] tx 
-  [Symbolic (b,x),Symbolic (b',x')]
-  (Static False)
-  | b == not b' && x == x' = 
-  return () 
-
-specialCases gensym [True,True] [cx1,cx2] tx 
-  [Symbolic (b,x),Symbolic (b',x')]
-  (Static False)
-  | x /= x' = 
-  writeSTRef tx (And (b,x) (b',x'))
-
-specialCases gensym [True,True] [cx1,cx2] tx 
-  [And (b1,x1) (b2,x2), Symbolic (b3,x3)]
-  (Static False)
-  | x1 /= x2 && b1 == b3 && x1 == x3 = 
-  writeSTRef tx (And (b1,x1) (b2,x2))
-
-specialCases gensym [True] [cx] tx 
-  [And (b1,x1) (b2,x2)]
-  (Symbolic (b3,x3))
-  | x1 /= x2 && b1 == b3 && x1 == x3 = 
-  writeSTRef tx (Symbolic (not b2, x2))
-
-specialCases gensym [True] [cx] tx 
-  [And (b1,x1) (b2,x2)]
-  (Static False)
-  | x1 /= x2 = 
-  writeSTRef tx (And (b1,x1) (b2,x2))
-
-specialCases gensym [True,True] [cx1,cx2] tx 
-  [cv1,cv2]
-  (Static False)
-  | cv1 == cv2 = 
-  writeSTRef tx cv1
-
-
-
--- do a better job with shrinkControls
--- and controlsActive
--- get rid of [x,not x]... 
-
-
--- No special cases apply !!
-specialCases gensym bs cs t controls vt = do
+specialCases :: [Bool] -> [Var s] -> Var s -> [Value] -> Value -> ST s ()
+specialCases [b] [cx] tx [x] y =
+  case xorS (if b then x else negS x) y of
+    Left v -> writeSTRef tx v
+    Right s -> trace s (error "TODO1")
+specialCases [b1,b2] [cx1,cx2] tx [x1,x2] y =
+  case andS (if b1 then x1 else negS x1) (if b2 then x2 else negS x2) of
+    Left c -> case xorS c y of 
+      Left v -> writeSTRef tx v
+      Right s -> trace s (error "TODO2")
+    Right s -> trace s (error "TODO3")
+specialCases bs cs t controls vt = do
   d <- showGToffoli (GToffoli bs cs t)
-  trace (printf "No special cases apply to:\n\t%s" d) $
-    -- return S.empty
-    error "STOP"
+  trace (printf "Toffoli 4 or more !?") (error "TODO4")
 
 shrinkControls :: [Bool] -> [Var s] -> [Value] -> ([Bool],[Var s],[Value])
 shrinkControls [] [] [] = ([],[],[])
@@ -472,25 +364,24 @@ shrinkControls (b:bs) (c:cs) (v:vs)
     let (bs',cs',vs') = shrinkControls bs cs vs
     in (b:bs',c:cs',v:vs')
 
-peG :: STRef s Int -> GToffoli s -> ST s (OP s)
-peG gensym g@(GToffoli bs' cs' t) = do
+peG :: GToffoli s -> ST s (OP s)
+peG g@(GToffoli bs' cs' t) = do
   controls' <- mapM readSTRef cs'
   tv <- readSTRef t
   let (bs,cs,controls) = shrinkControls bs' cs' controls'
   let ca = controlsActive bs controls
   if | ca == Just True -> do
-         writeSTRef t (negValue tv)
+         writeSTRef t (negS tv)
          return S.empty
      | ca == Just False ->
          return S.empty
      | otherwise -> do
-         specialCases gensym bs cs t controls tv
+         specialCases bs cs t controls tv
          return (S.singleton (GToffoli bs cs t))
 
 peCircuit :: InvExpModCircuit s -> ST s (InvExpModCircuit s)
 peCircuit c = do
-  gensym <- newSTRef 0
-  op' <- foldMap (peG gensym) $ c^.circ
+  op' <- foldMap peG $ c^.circ
   return $ set circ op' c
 
 ----------------------------------------------------------------------------------------
@@ -520,7 +411,7 @@ invExpMod15 res = do
           , _circ = S.reverse circuit
           })
 
-run15PE :: () -> (String,[Value])
+run15PE :: () -> (String,[Value],[(Bool,Value)],[(Bool,Value)])
 run15PE () = runST $ do
   circuit <- invExpMod15 13
   circuit <- peCircuit circuit
@@ -528,13 +419,18 @@ run15PE () = runST $ do
   xs <- mapM readSTRef (circuit^.xs)
   os <- mapM readSTRef (circuit^.os)
   lzs <- mapM readSTRef (circuit^.lzs)
-  return (tmp,xs ++ os ++ lzs)
+  return (tmp, xs, zip (fromInt 5 1) os, zip (fromInt 5 0) lzs)
 
 go :: () -> IO () 
 go () = do
-  let (tmp,xs) = run15PE ()
+  let (tmp,xs,os,lzs) = run15PE ()
   writeFile "tmp.txt" tmp
+  putStrLn "xs:"
   mapM_ print xs
+  putStrLn "os:"
+  mapM_ print os
+  putStrLn "lzs:"
+  mapM_ print lzs
   
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
