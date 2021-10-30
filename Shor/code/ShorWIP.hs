@@ -418,9 +418,8 @@ simplifyG (GToffoli bsOrig csOrig t) = do
      | otherwise -> do
          -- save value of target; mark it as unknown for remainder of phase
          if vt^.saved == Nothing
-           then writeSTRef t (set saved (vt^.value) vt)
+           then writeSTRef t (set value Nothing $ set saved (vt^.value) vt)
            else return () 
-         updateDyn t
          return $ S.singleton (GToffoli bs cs t)
 
 simplifyOP :: OP s -> ST s (OP s)
@@ -467,12 +466,17 @@ collapseCircuit c = do
 -- Do full partial evaluation
 -- --------------------------
 
+setSavedIfNothing :: Bool -> Value -> Value
+setSavedIfNothing b v@(Value {_saved = Nothing }) = set saved (Just b) v
+setSavedIfNothing b v = v
+
 specialCases :: STRef s Int -> [Bool] -> [Var s] -> Var s -> [Value] -> Value -> ST s (OP s)
 -- Special case: not x = (not x)
 specialCases gensym [] [] tx 
   []
   tv@(Value {_value = Nothing, _symbolic = Just(b,x)}) = 
-  do writeSTRef tx (set symbolic (Just(not b,x)) tv)     -- not b makes test fail but it can't be b ???
+--  do writeSTRef tx (set symbolic (Just(not b,x)) tv) --- causes test to fail... why !!??
+  do writeSTRef tx (set symbolic (Just(b,x)) tv) --- causes test to fail... why !!??
      return (S.singleton (GToffoli [] [] tx))
 -- Special case: cx x 0 ==> x x
 -- (i) symbolic value exists
@@ -481,7 +485,7 @@ specialCases gensym [True] [cx] tx
   tv@(Value {_value = Just False}) = 
   do writeSTRef tx (set symbolic (Just(b,x)) $
                     set value Nothing $
-                    set saved (tv^.value) tv)
+                    setSavedIfNothing False tv)
      return (S.singleton (GToffoli [True] [cx] tx))
 -- Special case: cx x 0 ==> x x
 -- (ii) symbolic value needs to be created
@@ -494,7 +498,7 @@ specialCases gensym [True] [cx] tx
      writeSTRef cx (set symbolic (Just(True,x)) cv)
      writeSTRef tx (set symbolic (Just(True,x)) $
                     set value Nothing $
-                    set saved (tv^.value) tv)
+                    setSavedIfNothing False tv)
      return (S.singleton (GToffoli [True] [cx] tx))
 -- Special case: cx x x ==> x 0
 specialCases gensym [True] [cx] tx 
@@ -511,7 +515,7 @@ specialCases gensym [False] [cx] tx
   tv@(Value {_value = Just False}) = 
   do writeSTRef tx (set symbolic (Just(not b,x)) $
                     set value Nothing $
-                    set saved (tv^.value) tv)
+                    setSavedIfNothing False tv)
      return (S.singleton (GToffoli [False] [cx] tx))
 -- Special case: ccx(not x, not x, x) ==>  (not x) (not x) 1
 specialCases gensym [True,True] [cx1,cx2] tx 
@@ -535,17 +539,17 @@ specialCases gensym [True,True] [cx1,cx2] tx
 -- No special cases apply: lose all information about t
 specialCases gensym bs cs t controls vt = do
   d <- showGToffoli (GToffoli bs cs t)
-  trace (printf "No special cases apply to:\n\t%s" d) $ error "todo"
- {--
+--  trace (printf "No special cases apply to:\n\t%s" d) $ error "todo"
+-- {--
   trace (printf "No special cases apply to:\n\t%s" d) $ do
     if vt^.saved == Nothing
       then writeSTRef t (set value Nothing $ set saved (vt^.value) vt)
       else return () 
     return $ S.singleton (GToffoli bs cs t)
- --}
+-- --}
 
-peG :: GToffoli s -> ST s (OP s)
-peG g@(GToffoli bs cs t) = do
+peG :: STRef s Int -> GToffoli s -> ST s (OP s)
+peG gensym g@(GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   vt <- readSTRef t
   let ca = controlsActive bs controls
@@ -554,13 +558,12 @@ peG g@(GToffoli bs cs t) = do
          return S.empty
      | ca == Just False ->
          return S.empty
-     | otherwise -> do
-         gensym <- newSTRef 0
-         specialCases gensym bs cs t controls vt
+     | otherwise -> specialCases gensym bs cs t controls vt
 
 peOP :: OP s -> ST s (OP s)
 peOP op = do
-  op <- foldMap peG op
+  gensym <- newSTRef 0
+  op <- foldMap (peG gensym) op
   mapM restoreSaved op
 
 peCircuit :: InvExpModCircuit s -> ST s (InvExpModCircuit s)
@@ -684,7 +687,9 @@ run15PE () = runST $ do
   circuit <- peCircuit       circuit ; check "PE (x=3,res=13)"         circuit 3 13
   tmp <- showOP $ circuit^.circ
   xs <- mapM readSTRef (circuit^.xs)
-  return (tmp,xs)
+  os <- mapM readSTRef (circuit^.os)
+  lzs <- mapM readSTRef (circuit^.lzs)
+  return (tmp,xs ++ os ++ lzs)
 
   where
     
