@@ -2,10 +2,10 @@
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module ShorWIP where
+module ShorWIPOnePhase where
 
-import Data.Maybe (catMaybes, maybe)
-import Data.List (intersperse)
+import Data.Maybe (catMaybes, maybe, fromJust)
+import Data.List (find,union,intersperse)
 
 import qualified Data.Sequence as S
 import Data.Sequence (Seq, singleton, viewl, ViewL(..), (><))
@@ -71,24 +71,103 @@ invsqmods a m = invam : invsqmods (am * am) m
 -- Values with either static or dynamic information
 -- ------------------------------------------------
 
+type Literal = (Bool,String)
+
 data Value = Static Bool
-           | Symbolic (Bool,String)
-           | And (Bool,String) (Bool,String)
-           | Or (Bool,String) (Bool,String)
-           | Xor (Bool,String) (Bool,String)
+           | Symbolic Literal
+           | And Literal Literal
+           | Or Literal Literal
+           | Xor Literal Literal
   deriving Eq
 
 instance Show Value where
   show (Static b) = if b then "1" else "0"
   show (Symbolic (b,s)) = if b then s else ("-" ++ s)
-  show (And (b1,s1) (b2,s2)) =
-    printf "(%s . %s)" (show (Symbolic (b1,s1))) (show (Symbolic (b2,s2)))
-  show (Or (b1,s1) (b2,s2)) =
-    printf "(%s + %s)" (show (Symbolic (b1,s1))) (show (Symbolic (b2,s2)))
-  show (Xor (b1,s1) (b2,s2)) =
-    printf "(%s # %s)" (show (Symbolic (b1,s1))) (show (Symbolic (b2,s2)))
+  show (And lit1 lit2) = 
+    printf "(%s . %s)" (show (Symbolic lit1)) (show (Symbolic lit2))
+  show (Or lit1 lit2) = 
+    printf "(%s + %s)" (show (Symbolic lit1)) (show (Symbolic lit2))
+  show (Xor lit1 lit2) = 
+    printf "(%s # %s)" (show (Symbolic lit1)) (show (Symbolic lit2))
 
 -- Symbolic boolean operations when some values are known
+
+data Formula = NEG Value
+             | AND Value Value
+             | XOR Value Value
+
+instance Show Formula where
+  show (NEG v) = printf "(not %s)" (show v)
+  show (AND v1 v2) = printf "(%s . %s)" (show v1) (show v2)
+  show (XOR v1 v2) = printf "(%s # %s)" (show v1) (show v2)
+
+extractLiteralsV :: Value -> [String]
+extractLiteralsV (Static _) = []
+extractLiteralsV (Symbolic (b,s)) = [s]
+extractLiteralsV (And (_,s1) (_,s2)) = union [s1] [s2]
+extractLiteralsV (Or (_,s1) (_,s2))  = union [s1] [s2]
+extractLiteralsV (Xor (_,s1) (_,s2)) = union [s1] [s2] 
+
+extractLiteralsF :: Formula -> [String]
+extractLiteralsF (NEG v) = extractLiteralsV v
+extractLiteralsF (AND v1 v2) = union (extractLiteralsV v1) (extractLiteralsV v2)
+extractLiteralsF (XOR v1 v2) = union (extractLiteralsV v1) (extractLiteralsV v2)
+
+type Env = [(String,Bool)]
+
+makeEnv :: [String] -> [Env]
+makeEnv = env
+  where baseEnv :: String -> Env
+        baseEnv s = [ (s,b) | b <- [False, True] ]
+
+        env :: [String] -> [Env]
+        env [] = [[]]
+        env (s:ss) = [ t:ts | t <- baseEnv s, ts <- env ss ]
+
+evalValue :: Value -> Env -> Bool
+evalValue (Static b) env = b
+evalValue (Symbolic (b,s)) env = (not b) /= (fromJust $ lookup s env)
+evalValue (And lit1 lit2) env = evalValue (Symbolic lit1) env && evalValue (Symbolic lit2) env
+evalValue (Or lit1 lit2)  env = evalValue (Symbolic lit1) env || evalValue (Symbolic lit2) env
+evalValue (Xor lit1 lit2) env = evalValue (Symbolic lit1) env /= evalValue (Symbolic lit2) env
+
+evalFormula :: Formula -> Env -> Bool
+evalFormula (NEG v) env = evalValue v env
+evalFormula (AND v1 v2) env = evalValue v1 env && evalValue v2 env
+evalFormula (XOR v1 v2) env = evalValue v1 env /= evalValue v2 env
+
+evalV :: Value -> [String] -> [(Env,Bool)]
+evalV v vars = [ (env, evalValue v env) | env <- makeEnv vars ]
+
+evalF :: Formula -> [String] -> [(Env,Bool)]
+evalF f vars = [ (env, evalFormula f env) | env <- makeEnv vars ]
+
+generateValues :: [String] -> [Value]
+generateValues [] = [Static False, Static True]
+generateValues [s] = generateValues [] ++ [Symbolic (False,s) , Symbolic (True,s)] 
+generateValues [s1,s2] = foldr union [] [vs1,vs2,ands,ors,xors]
+  where vs1 = generateValues [s1]
+        vs2 = generateValues [s2]
+        pairs = [ ((b1,v1),(b2,v2)) | b1 <- [False,True]
+                                    , b2 <- [False,True]
+                                    , v1 <- [s1,s2]
+                                    , v2 <- [s1,s2]
+                                    , (b1,v1) /= (b2,v2)
+                                    , (b1,v1) /= (not b2,v2)]
+        ands = map (uncurry And) pairs
+        ors  = map (uncurry Or) pairs
+        xors = map (uncurry Xor) pairs
+
+simplify :: Formula -> Value
+simplify f = case vTT of
+  Just (v,_) -> v
+  Nothing -> error "SIMPLIFY"
+  where vars = extractLiteralsF f
+        formTT = evalF f vars
+        valsTT = map (\v -> (v, evalV v vars)) (generateValues vars)
+        vTT = find (\ (v,b) -> formTT == b) valsTT
+
+--
 
 negS :: Value -> Value 
 negS (Static b) = Static (not b)
@@ -96,66 +175,6 @@ negS (Symbolic (b,s)) = Symbolic (not b, s)
 negS (And (b1,s1) (b2,s2)) = Or (not b1, s1) (not b2,s2)
 negS (Or (b1,s1) (b2,s2)) = And (not b1, s1) (not b2,s2)
 negS (Xor (b1,s1) (b2,s2)) = Xor (not b1, s1) (b2,s2)
-
-andS :: Value -> Value -> Either Value String
-andS (Static False) v = Left (Static False)
-andS v (Static False) = Left (Static False)
-andS (Static True) v = Left v
-andS v (Static True) = Left v
-andS v v' | v == v' = Left v
-andS v v' | v == negS v' = Left (Static False)
-andS (Symbolic (b1,s1)) (Symbolic (b2,s2)) = Left (And (b1,s1) (b2,s2))
-andS (And (b1,s1) (b2,s2)) (Symbolic (b3,s3)) =
-  case andS (Symbolic (b1,s1)) (Symbolic (b3,s3)) of
-    Left r -> andS r (Symbolic (b2,s2))
-    Right s -> Right s
-andS (Symbolic (b3,s3)) (And (b1,s1) (b2,s2)) =
-  case andS (Symbolic (b1,s1)) (Symbolic (b3,s3)) of
-    Left r -> andS r (Symbolic (b2,s2))
-    Right s -> Right s
-andS (And (b1,s1) (b2,s2)) (And (b3,s3) (b4,s4)) |
-  b2 == not b4 && s2 == s4 = Left (Static False)
-andS (Or (b1,s1) (b2,s2)) (Symbolic (b3,s3)) |
-  b1 == b3 && s1 == s3 =
-  Left (Symbolic (b3,s3))
-andS (Or (b1,s1) (b2,s2)) (Symbolic (b3,s3)) |
-  b1 == not b3 && s1 == s3 =
-  Left (And (b3,s3) (b2,s2))
-andS (Or (b1,s1) (b2,s2)) (Xor (b3,s3) (b4,s4)) |
-  b1 == not b3 && s1 == s3 && b2 == b4 && s2 == s4 =
-  Left (And (b1,s1) (b2,s2))
-andS (Or (b1,s1) (b2,s2)) (And (b3,s3) (b4,s4)) |
-  b1 == not b3 && s1 == s3 && b2 == b4 && s2 == s4 =
-  Left (And (b3,s3) (b4,s4))
-andS (Or (b1,s1) (b2,s2)) (Or (b3,s3) (b4,s4)) |
-  b1 == b3 && s1 == s3 && b2 == not b4 && s2 == s4 =
-  Left (Symbolic (b1,s1))
-andS v v' = Right (printf "Don't know how to simplify (%s . %s)" (show v) (show v'))
-
-xorS :: Value -> Value -> Either Value String
-xorS (Static False) v = Left v
-xorS v (Static False) = Left v
-xorS (Static True) v = Left (negS v)
-xorS v (Static True) = Left (negS v)
-xorS v v' | v == v' = Left (Static False)
-xorS v v' | v == negS v' = Left (Static True)
-xorS (And (b1,s1) (b2,s2)) (Symbolic (b3,s3)) | b1 == b3 && s1 == s3 =
-  Left (And (b1,s1) (not b2,s2))                                               
-xorS (Symbolic (b3,s3)) (And (b1,s1) (b2,s2)) | b1 == b3 && s1 == s3 =
-  Left (And (b1,s1) (not b2,s2))
-xorS (Symbolic (b3,s3)) (And (b1,s1) (b2,s2)) | b1 == not b3 && s1 == s3 =
-  Left (Or (b3,s3) (b2,s2))
-xorS (Symbolic (b3,s3)) (Or (b1,s1) (b2,s2)) | b1 == not b3 && s1 == s3 =
-  Left (Or (b1,s1) (not b2,s2))
-xorS (And (b1,s1) (b2,s2)) (And (b3,s3) (b4,s4)) |
-  b1 == b3 && s1 == s3 && b2 == not b4 && s2 == s4 = Left (Symbolic (b1,s1))
-xorS (Or (b1,s1) (b2,s2)) (And (b3,s3) (b4,s4)) |
-  b1 == not b3 && s1 == s3 && b2 == b4 && s2 == s4 =
-  Left (Symbolic (b1,s1))
-xorS (Or (b1,s1) (b2,s2)) (Or (b3,s3) (b4,s4)) |
-  b1 == b3 && s1 == s3 && b2 == not b4 && s2 == s4 =
-  Left (Symbolic (not b1,s1))
-xorS v v' = Right (printf "Don't know how to simplify (%s # %s)" (show v) (show v'))
 
 --
 
@@ -353,9 +372,8 @@ interpGT :: GToffoli s -> ST s ()
 interpGT (GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   tv <- readSTRef t
-  if controlsActive bs controls == Just True 
-    then writeSTRef t (negS tv)
-    else return ()
+  when (controlsActive bs controls == Just True) $
+    writeSTRef t (negS tv)
 
 interpOP :: OP s -> ST s ()
 interpOP = foldMap interpGT
@@ -389,20 +407,16 @@ makeLenses ''InvExpModCircuit
 -- Partial evaluation
 
 specialCases :: [Bool] -> [Var s] -> Var s -> [Value] -> Value -> ST s ()
-specialCases [b] [cx] tx [x] y = 
-  case xorS (if b then x else negS x) y of
-    Left v -> do traceM (printf "cx case: simplified target to: %s" (show v))
-                 writeSTRef tx v
-    Right s -> trace s (error "\n\nCX\n\n")
+specialCases [b] [cx] tx [x] y = do
+  let sv = simplify (XOR (if b then x else negS x) y)
+  traceM (printf "cx case: simplified target to: %s" (show sv))
+  writeSTRef tx sv
 specialCases [b1,b2] [cx1,cx2] tx [x1,x2] y = do
-  case andS (if b1 then x1 else negS x1) (if b2 then x2 else negS x2) of
-    Left c -> case xorS c y of 
-      Left v ->
-        do traceM (printf "ccx case: simplified controls to: %s and target to: %s"
-                   (show c) (show v))
-           writeSTRef tx v
-      Right s -> trace s (error "\n\nCCX control\n\n")
-    Right s -> trace s (error "\n\nCCX TODO\n\n")
+  let sc = simplify (AND (if b1 then x1 else negS x1) (if b2 then x2 else negS x2))
+  let sv = simplify (XOR sc y)
+  traceM (printf "ccx case: simplified controls to: %s and target to: %s"
+           (show sc) (show sv))
+  writeSTRef tx sv
 specialCases bs cs t controls vt = do
   d <- showGToffoli (GToffoli bs cs t)
   trace (printf "Toffoli 4 or more !?") (error "\n\nCCC...X\n\n")
