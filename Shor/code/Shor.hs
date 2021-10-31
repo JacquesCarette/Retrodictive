@@ -2,7 +2,7 @@
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module ShorWIPOnePhase where
+module Shor where
 
 import Data.Maybe (catMaybes, maybe, fromJust)
 import Data.List (find,union,intersperse)
@@ -457,7 +457,7 @@ peCircuit c = do
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
--- InvExpMod example
+-- InvExpMod 
 
 makeInvExpMod :: Int -> Integer -> Integer -> Integer -> ST s (InvExpModCircuit s)
 makeInvExpMod n a m res = do
@@ -518,62 +518,6 @@ factor m = do
 {--
 
 Can factor 15 and compute the period reliably
-
---}
-----------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------
--- InvExpMod example WORKS !!!
-
-invExpMod15 :: Integer -> ST s (InvExpModCircuit s)
-invExpMod15 res = do
-  let n = 4
-  let a = 7
-  let m = 15
-  gensym <- newSTRef 0
-  xs <- newDynVars gensym "x" (n+1)
-  ts <- newVars (fromInt (n+1) 0)
-  us <- newVars (fromInt (n+1) res)
-  circuit <- makeExpMod n a m xs ts us
-  return (InvExpModCircuit
-          { _ps   = Params { numberOfBits = 4
-                           , base         = 7
-                           , toFactor     = 15
-                           }
-          , _xs   = xs
-          , _rs   = us
-          , _rzs  = ts
-          , _os   = ts
-          , _lzs  = us
-          , _circ = S.reverse circuit
-          })
-
-run15PE :: Integer -> (String,[Value],[(Bool,Value)],[(Bool,Value)])
-run15PE res = runST $ do
-  circuit <- invExpMod15 res
-  circuit <- peCircuit circuit
-  tmp <- showOP $ circuit^.circ
-  xs <- mapM readSTRef (circuit^.xs)
-  os <- mapM readSTRef (circuit^.os)
-  lzs <- mapM readSTRef (circuit^.lzs)
-  return (tmp, xs, zip (fromInt 5 1) os, zip (fromInt 5 0) lzs)
-
-go15 :: Integer -> IO () 
-go15 res = do
-  let (tmp,xs,os,lzs) = run15PE res
-  writeFile "tmp.txt" tmp
-  putStrLn "xs:"
-  mapM_ print xs
-  putStrLn "os:"
-  mapM_ print os
-  putStrLn "lzs:"
-  mapM_ print lzs
-
-{--
-
-go15 1    =>    x1x0 = 00
-go15 7    =>    x1x0 = 01
-go15 4    =>    x1x0 = 10
-go15 13   =>    x1x0 = 11
 
 --}
 
