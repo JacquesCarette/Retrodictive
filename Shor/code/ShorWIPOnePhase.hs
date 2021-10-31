@@ -162,7 +162,6 @@ generateValues [s1,s2] = foldr union [] [vs1,vs2,ands,ors,xors]
         xors = map (uncurry Xor) pairs
 generateValues _ = error "Formula with more than two variables"
 
-
 simplify :: Formula -> Value
 simplify f = case vTT of
   Just (v,_) -> v
