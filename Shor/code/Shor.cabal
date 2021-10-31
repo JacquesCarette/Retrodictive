@@ -23,12 +23,8 @@ source-repository head
 
 library
   exposed-modules:
-    BASolver
-    Junk
     QFT
-    ShorClean
-    ShorWIPNaive
-    ShorWIPOnePhase
+    Shor
   other-modules:
     Paths_Shor
   hs-source-dirs:

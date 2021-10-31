@@ -28,7 +28,7 @@ import qualified Debug.Trace as Debug
 
 -- Debug Helpers
 
-debug = False
+debug = True
 
 trace :: String -> a -> a
 trace s a = if debug then Debug.trace s a else a
