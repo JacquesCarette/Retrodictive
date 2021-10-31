@@ -14,6 +14,9 @@ import Control.Lens hiding (op,(:<))
 import Control.Monad 
 import Control.Monad.ST
 import Data.STRef
+
+import System.Random
+import GHC.Integer.GMP.Internals
   
 import Text.Printf (printf)
 import Test.QuickCheck hiding ((><))
@@ -157,11 +160,13 @@ generateValues [s1,s2] = foldr union [] [vs1,vs2,ands,ors,xors]
         ands = map (uncurry And) pairs
         ors  = map (uncurry Or) pairs
         xors = map (uncurry Xor) pairs
+generateValues _ = error "Formula with more than two variables"
+
 
 simplify :: Formula -> Value
 simplify f = case vTT of
   Just (v,_) -> v
-  Nothing -> error "SIMPLIFY"
+  Nothing -> error (printf "Cannot simplify formula %s" (show f))
   where vars = extractLiteralsF f
         formTT = evalF f vars
         valsTT = map (\v -> (v, evalV v vars)) (generateValues vars)
@@ -175,8 +180,6 @@ negS (Symbolic (b,s)) = Symbolic (not b, s)
 negS (And (b1,s1) (b2,s2)) = Or (not b1, s1) (not b2,s2)
 negS (Or (b1,s1) (b2,s2)) = And (not b1, s1) (not b2,s2)
 negS (Xor (b1,s1) (b2,s2)) = Xor (not b1, s1) (b2,s2)
-
---
 
 newDynValue :: String -> Value
 newDynValue s = Symbolic (True,s)
@@ -458,6 +461,62 @@ peCircuit c = do
 ----------------------------------------------------------------------------------------
 -- InvExpMod example
 
+makeInvExpMod :: Int -> Integer -> Integer -> Integer -> ST s (InvExpModCircuit s)
+makeInvExpMod n a m res = do
+  gensym <- newSTRef 0
+  xs <- newDynVars gensym "x" (n+1)
+  ts <- newVars (fromInt (n+1) 0)
+  us <- newVars (fromInt (n+1) res)
+  circuit <- makeExpMod n a m xs ts us
+  return (InvExpModCircuit
+          { _ps   = Params { numberOfBits = n
+                           , base         = a
+                           , toFactor     = m
+                           }
+          , _xs   = xs
+          , _rs   = us
+          , _rzs  = ts
+          , _os   = if even n then ts else us
+          , _lzs  = if even n then us else ts
+          , _circ = S.reverse circuit
+          })
+
+runPE :: Int -> Integer -> Integer -> Integer -> IO ()
+runPE n a m res = pretty $ runST $ do
+  circuit <- makeInvExpMod n a m res 
+  circuit <- peCircuit circuit
+  xs <- mapM readSTRef (circuit^.xs)
+  os <- mapM readSTRef (circuit^.os)
+  lzs <- mapM readSTRef (circuit^.lzs)
+  return (xs, zip (fromInt (n+1) 1) os, zip (fromInt (n+1) 0) lzs)
+
+  where pretty (xs,os,lzs) = do
+          putStrLn "xs:"
+          mapM_ print xs
+          putStrLn "os:"
+          mapM_ print os
+          putStrLn "lzs:"
+          mapM_ print lzs
+
+factor :: Integer -> IO ()
+factor m = do
+      let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
+      a <- randomRIO (2,m-1)
+      if gcd m a /= 1 
+        then putStrLn "Lucky"
+        else do
+          x <- randomRIO (0,m)
+          runPE n a m (powModInteger a x m)
+
+{--
+
+Can factor 15 and compute the period reliably
+
+--}
+----------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------
+-- InvExpMod example WORKS !!!
+
 invExpMod15 :: Integer -> ST s (InvExpModCircuit s)
 invExpMod15 res = do
   let n = 4
@@ -491,8 +550,8 @@ run15PE res = runST $ do
   lzs <- mapM readSTRef (circuit^.lzs)
   return (tmp, xs, zip (fromInt 5 1) os, zip (fromInt 5 0) lzs)
 
-go :: Integer -> IO () 
-go res = do
+go15 :: Integer -> IO () 
+go15 res = do
   let (tmp,xs,os,lzs) = run15PE res
   writeFile "tmp.txt" tmp
   putStrLn "xs:"
@@ -504,12 +563,12 @@ go res = do
 
 {--
 
-go 1    =>    x1x0 = 00
-go 7    =>    x1x0 = 01
-go 4    =>    x1x0 = 10
-go 13   =>    x1x0 = 11
+go15 1    =>    x1x0 = 00
+go15 7    =>    x1x0 = 01
+go15 4    =>    x1x0 = 10
+go15 13   =>    x1x0 = 11
 
 --}
-  
+
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------

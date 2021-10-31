@@ -24,6 +24,7 @@ source-repository head
 library
   exposed-modules:
     BASolver
+    Junk
     QFT
     ShorClean
     ShorWIPNaive
@@ -39,6 +40,7 @@ library
     containers ==0.6.*,
     integer-gmp >=1.0 && <2.0,
     lens >=4.10 && <6.0,
+    random >=1.2.0,
     simple-smt,
     vector >=0.12 && <1
   default-language: Haskell2010
