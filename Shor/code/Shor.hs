@@ -504,16 +504,45 @@ runPE n a m res = pretty $ runST $ do
     filterStatic :: (Value,Bool) -> Bool
     filterStatic (Static b1, b2) = b1 /= b2
     filterStatic _ = True
+
+    -- QFT instead of that search for matching values ??
+
+    getBit :: Integer -> Literal -> Bool
+    getBit x (b,s) =
+      let bits = fromInt (n+1) x
+          i = read (tail s)
+          bit = bits !! i
+      in if b then bit else not bit
+
+    checkV :: Value -> Integer -> Bool
+    checkV (Static b) x = b
+    checkV (Symbolic lit) x = getBit x lit
+    checkV (And lit1 lit2) x  = checkV (Symbolic lit1) x && checkV (Symbolic lit2) x
+    checkV (Or  lit1 lit2) x  = checkV (Symbolic lit1) x || checkV (Symbolic lit2) x
+    checkV (Xor lit1 lit2) x  = checkV (Symbolic lit1) x /= checkV (Symbolic lit2) x
+
+    isMatch :: Integer -> (Value,Bool) -> Bool
+    isMatch x (v,b) = checkV v x == b
+
+    isMatchAll :: Integer -> [(Value,Bool)] -> Bool
+    isMatchAll x vbs = and (map (isMatch x) vbs)
     
     pretty (xs,os,lzs) = do
-      putStrLn (take 50 (repeat '-'))
       assertMessage
         "runPE"
         (printf "Expecting 0s but found %s" (show lzs))
         (assert (null lzs))
         (return ())
       unless (null os) ( mapM_ print os)
-      putStrLn (take 50 (repeat '-'))
+      let nums = take 10 $ filter (\x -> isMatchAll x os) [0..(m-1)]
+      let period = nums !! 1 - nums !! 0
+      if (odd period || ((a ^ (period `div` 2)) `mod` m) == ((-1) `mod` m))
+        then putStrLn "Bad period... repeat"
+        else do
+        putStrLn "First few matching values..."
+        print nums
+        printf "Period = %d\n" period
+        putStrLn (take 50 (repeat '-'))
 
 factor :: Integer -> IO ()
 factor m = do
