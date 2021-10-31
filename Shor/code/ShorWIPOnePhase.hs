@@ -453,7 +453,7 @@ peG size (g@(GToffoli bs' cs' t), count) = do
 peCircuit :: InvExpModCircuit s -> ST s (InvExpModCircuit s)
 peCircuit c = do
   let size = S.length (c^.circ)
-  op' <- foldMap (peG size) $ S.zip (c^.circ) (S.fromFunction size id)
+  op' <- foldMap (peG size) $ S.zip (c^.circ) (S.fromFunction size (+1))
   return $ set circ op' c
 
 ----------------------------------------------------------------------------------------
@@ -487,7 +487,7 @@ runPE n a m res = pretty $ runST $ do
   xs <- mapM readSTRef (circuit^.xs)
   os <- mapM readSTRef (circuit^.os)
   lzs <- mapM readSTRef (circuit^.lzs)
-  return (xs, zip (fromInt (n+1) 1) os, zip (fromInt (n+1) 0) lzs)
+  return (xs, zip os (fromInt (n+1) 1), zip lzs (fromInt (n+1) 0))
 
   where pretty (xs,os,lzs) = do
           putStrLn "xs:"
@@ -502,7 +502,7 @@ factor m = do
       let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
       a <- randomRIO (2,m-1)
       if gcd m a /= 1 
-        then putStrLn "Lucky"
+        then factor m -- lucky guess but try again to test circuit approach
         else do
           x <- randomRIO (0,m)
           runPE n a m (powModInteger a x m)
