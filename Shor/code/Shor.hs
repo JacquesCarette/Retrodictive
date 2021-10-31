@@ -536,12 +536,15 @@ runPE n a m res = pretty $ runST $ do
       unless (null os) ( mapM_ print os)
       let nums = take 10 $ filter (\x -> isMatchAll x os) [0..(m-1)]
       let period = nums !! 1 - nums !! 0
-      if (odd period || ((a ^ (period `div` 2)) `mod` m) == ((-1) `mod` m))
+      if odd period || powModInteger a (period `div` 2) m == m - 1
         then putStrLn "Bad period... repeat"
         else do
         putStrLn "First few matching values..."
         print nums
         printf "Period = %d\n" period
+        let p1 = a ^ (period `div` 2) - 1
+        let p2 = a ^ (period `div` 2) + 1
+        printf "Factors are %d and %d\n" (gcd p1 m) (gcd p2 m)
         putStrLn (take 50 (repeat '-'))
 
 factor :: Integer -> IO ()
@@ -557,6 +560,10 @@ factor m = do
           putStrLn (printf "n = %d; a = %d; x = %d; res = %d"
                     n a x res)
           runPE n a m res
+
+
+go :: IO ()
+go = replicateM_  20 (factor 15)
 
 {--
 
