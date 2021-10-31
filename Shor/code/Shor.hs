@@ -1,4 +1,3 @@
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -15,8 +14,8 @@ import Control.Monad
 import Control.Monad.ST
 import Data.STRef
 
-import System.Random
-import GHC.Integer.GMP.Internals
+import System.Random (randomRIO)
+import GHC.Integer.GMP.Internals (powModInteger)
   
 import Text.Printf (printf)
 import Test.QuickCheck hiding ((><))
@@ -28,7 +27,7 @@ import qualified Debug.Trace as Debug
 
 -- Debug Helpers
 
-debug = True
+debug = False
 
 trace :: String -> a -> a
 trace s a = if debug then Debug.trace s a else a
@@ -84,14 +83,12 @@ data Value = Static Bool
   deriving Eq
 
 instance Show Value where
-  show (Static b) = if b then "1" else "0"
+  show (Static b)       = if b then "1" else "0"
   show (Symbolic (b,s)) = if b then s else ("-" ++ s)
-  show (And lit1 lit2) = 
-    printf "(%s . %s)" (show (Symbolic lit1)) (show (Symbolic lit2))
-  show (Or lit1 lit2) = 
-    printf "(%s + %s)" (show (Symbolic lit1)) (show (Symbolic lit2))
-  show (Xor lit1 lit2) = 
-    printf "(%s # %s)" (show (Symbolic lit1)) (show (Symbolic lit2))
+  show (And lit1 lit2)  = printf "(%s . %s)" (show (Symbolic lit1)) (show (Symbolic lit2))
+  show (Or  lit1 lit2)  = printf "(%s + %s)" (show (Symbolic lit1)) (show (Symbolic lit2))
+  show (Xor lit1 lit2)  = printf "(%s # %s)" (show (Symbolic lit1)) (show (Symbolic lit2))
+    
 
 -- Symbolic boolean operations when some values are known
 
@@ -100,19 +97,19 @@ data Formula = NEG Value
              | XOR Value Value
 
 instance Show Formula where
-  show (NEG v) = printf "(not %s)" (show v)
+  show (NEG v)     = printf "(not %s)"  (show v)
   show (AND v1 v2) = printf "(%s . %s)" (show v1) (show v2)
   show (XOR v1 v2) = printf "(%s # %s)" (show v1) (show v2)
 
 extractLiteralsV :: Value -> [String]
-extractLiteralsV (Static _) = []
-extractLiteralsV (Symbolic (b,s)) = [s]
+extractLiteralsV (Static _)          = []
+extractLiteralsV (Symbolic (b,s))    = [s]
 extractLiteralsV (And (_,s1) (_,s2)) = union [s1] [s2]
 extractLiteralsV (Or (_,s1) (_,s2))  = union [s1] [s2]
 extractLiteralsV (Xor (_,s1) (_,s2)) = union [s1] [s2] 
 
 extractLiteralsF :: Formula -> [String]
-extractLiteralsF (NEG v) = extractLiteralsV v
+extractLiteralsF (NEG v)     = extractLiteralsV v
 extractLiteralsF (AND v1 v2) = union (extractLiteralsV v1) (extractLiteralsV v2)
 extractLiteralsF (XOR v1 v2) = union (extractLiteralsV v1) (extractLiteralsV v2)
 
@@ -128,14 +125,14 @@ makeEnv = env
         env (s:ss) = [ t:ts | t <- baseEnv s, ts <- env ss ]
 
 evalValue :: Value -> Env -> Bool
-evalValue (Static b) env = b
+evalValue (Static b) env       = b
 evalValue (Symbolic (b,s)) env = (not b) /= (fromJust $ lookup s env)
-evalValue (And lit1 lit2) env = evalValue (Symbolic lit1) env && evalValue (Symbolic lit2) env
-evalValue (Or lit1 lit2)  env = evalValue (Symbolic lit1) env || evalValue (Symbolic lit2) env
-evalValue (Xor lit1 lit2) env = evalValue (Symbolic lit1) env /= evalValue (Symbolic lit2) env
+evalValue (And lit1 lit2) env  = evalValue (Symbolic lit1) env && evalValue (Symbolic lit2) env
+evalValue (Or lit1 lit2)  env  = evalValue (Symbolic lit1) env || evalValue (Symbolic lit2) env
+evalValue (Xor lit1 lit2) env  = evalValue (Symbolic lit1) env /= evalValue (Symbolic lit2) env
 
 evalFormula :: Formula -> Env -> Bool
-evalFormula (NEG v) env = evalValue v env
+evalFormula (NEG v) env     = evalValue v env
 evalFormula (AND v1 v2) env = evalValue v1 env && evalValue v2 env
 evalFormula (XOR v1 v2) env = evalValue v1 env /= evalValue v2 env
 
@@ -145,39 +142,42 @@ evalV v vars = [ (env, evalValue v env) | env <- makeEnv vars ]
 evalF :: Formula -> [String] -> [(Env,Bool)]
 evalF f vars = [ (env, evalFormula f env) | env <- makeEnv vars ]
 
-generateValues :: [String] -> [Value]
-generateValues [] = [Static False, Static True]
-generateValues [s] = generateValues [] ++ [Symbolic (False,s) , Symbolic (True,s)] 
-generateValues [s1,s2] = foldr union [] [vs1,vs2,ands,ors,xors]
-  where vs1 = generateValues [s1]
-        vs2 = generateValues [s2]
-        pairs = [ ((b1,v1),(b2,v2)) | b1 <- [False,True]
-                                    , b2 <- [False,True]
-                                    , v1 <- [s1,s2]
-                                    , v2 <- [s1,s2]
-                                    , (b1,v1) /= (b2,v2)
-                                    , (b1,v1) /= (not b2,v2)]
-        ands = map (uncurry And) pairs
-        ors  = map (uncurry Or) pairs
-        xors = map (uncurry Xor) pairs
-generateValues _ = error "Formula with more than two variables"
+generateValues :: [String] -> Maybe [Value]
+generateValues []      = Just $ [Static False, Static True]
+generateValues [s]     = do
+  vs0 <- generateValues []
+  return $ vs0 ++ [Symbolic (False,s) , Symbolic (True,s)]
+generateValues [s1,s2] = do
+  vs1 <- generateValues [s1]
+  vs2 <- generateValues [s2]
+  let pairs = [ ((b1,v1),(b2,v2)) | b1 <- [False,True]
+                                  , b2 <- [False,True]
+                                  , v1 <- [s1,s2]
+                                  , v2 <- [s1,s2]
+                                  , (b1,v1) /= (b2,v2)
+                                  , (b1,v1) /= (not b2,v2)]
+  let ands = map (uncurry And) pairs
+  let ors  = map (uncurry Or) pairs
+  let xors = map (uncurry Xor) pairs
+  return $ foldr union [] [vs1,vs2,ands,ors,xors]
+generateValues _ = Nothing
 
-simplify :: Formula -> Value
-simplify f = case vTT of
-  Just (v,_) -> v
-  Nothing -> error (printf "Cannot simplify formula %s" (show f))
-  where vars = extractLiteralsF f
-        formTT = evalF f vars
-        valsTT = map (\v -> (v, evalV v vars)) (generateValues vars)
-        vTT = find (\ (v,b) -> formTT == b) valsTT
+simplify :: Formula -> Maybe Value
+simplify f = do
+  let vars = extractLiteralsF f
+  let formTT = evalF f vars
+  vals <- generateValues vars
+  let valsTT = map (\v -> (v, evalV v vars)) vals
+  (v,_) <- find (\ (v,b) -> formTT == b) valsTT
+  return v
 
 --
 
 negS :: Value -> Value 
-negS (Static b) = Static (not b)
-negS (Symbolic (b,s)) = Symbolic (not b, s)
+negS (Static b)            = Static (not b)
+negS (Symbolic (b,s))      = Symbolic (not b, s)
 negS (And (b1,s1) (b2,s2)) = Or (not b1, s1) (not b2,s2)
-negS (Or (b1,s1) (b2,s2)) = And (not b1, s1) (not b2,s2)
+negS (Or  (b1,s1) (b2,s2)) = And (not b1, s1) (not b2,s2)
 negS (Xor (b1,s1) (b2,s2)) = Xor (not b1, s1) (b2,s2)
 
 newDynValue :: String -> Value
@@ -185,11 +185,11 @@ newDynValue s = Symbolic (True,s)
 
 isStatic :: Value -> Bool
 isStatic (Static _) = True
-isStatic _ = False
+isStatic _          = False
 
 extractBool :: Value -> Bool
 extractBool (Static b) = b
-extractBool _ = error "Internal error: expecting a static value"
+extractBool _          = error "Internal error: expecting a static value"
 
 valueToInt :: [Value] -> Integer
 valueToInt = toInt . map extractBool
@@ -373,8 +373,7 @@ interpGT :: GToffoli s -> ST s ()
 interpGT (GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   tv <- readSTRef t
-  when (controlsActive bs controls == Just True) $
-    writeSTRef t (negS tv)
+  when (controlsActive bs controls == Just True) $ writeSTRef t (negS tv)
 
 interpOP :: OP s -> ST s ()
 interpOP = foldMap interpGT
@@ -409,18 +408,30 @@ makeLenses ''InvExpModCircuit
 
 specialCases :: [Bool] -> [Var s] -> Var s -> [Value] -> Value -> ST s ()
 specialCases [b] [cx] tx [x] y = do
-  let sv = simplify (XOR (if b then x else negS x) y)
-  traceM (printf "cx case: simplified target to: %s" (show sv))
-  writeSTRef tx sv
+  let msv = simplify (XOR (if b then x else negS x) y)
+  case msv of
+    Nothing -> error (printf "Could not simplify %s"
+                       (show (XOR (if b then x else negS x) y)))
+    Just sv -> do
+      traceM (printf "cx case: simplified target to %s" (show sv))
+      writeSTRef tx sv
 specialCases [b1,b2] [cx1,cx2] tx [x1,x2] y = do
-  let sc = simplify (AND (if b1 then x1 else negS x1) (if b2 then x2 else negS x2))
-  let sv = simplify (XOR sc y)
-  traceM (printf "ccx case: simplified controls to: %s and target to: %s"
-           (show sc) (show sv))
-  writeSTRef tx sv
+  let msc = simplify (AND (if b1 then x1 else negS x1) (if b2 then x2 else negS x2))
+  case msc of
+    Nothing -> error
+               (printf "Could not simplify %s"
+                 (show (AND (if b1 then x1 else negS x1) (if b2 then x2 else negS x2))))
+    Just sc -> do
+      let msv = simplify (XOR sc y)
+      case msv of 
+        Nothing -> error (printf "Could not simplify %s" (show (XOR sc y)))
+        Just sv -> do 
+          traceM (printf "ccx case: simplified controls to %s and target to %s"
+                  (show sc) (show sv))
+          writeSTRef tx sv
 specialCases bs cs t controls vt = do
   d <- showGToffoli (GToffoli bs cs t)
-  trace (printf "Toffoli 4 or more !?") (error "\n\nCCC...X\n\n")
+  error (printf "Toffoli 4 or more: %s" (show d))
 
 shrinkControls :: [Bool] -> [Var s] -> [Value] -> ([Bool],[Var s],[Value])
 shrinkControls [] [] [] = ([],[],[])
@@ -439,11 +450,11 @@ peG size (g@(GToffoli bs' cs' t), count) = do
   let (bs,cs,controls) = shrinkControls bs' cs' controls'
   let ca = controlsActive bs controls
   if | ca == Just True -> do
-         traceM (printf "controls true: execute")
+         traceM (printf "controls true: negate target")
          writeSTRef t (negS tv)
          return S.empty
      | ca == Just False -> do
-         traceM (printf "controls false: ignore")
+         traceM (printf "controls false: no op")
          return S.empty
      | otherwise -> do
          specialCases bs cs t controls tv
@@ -489,7 +500,6 @@ runPE n a m res = pretty $ runST $ do
   return (xs,
           filter filterStatic $ zip os (fromInt (n+1) 1),
           filter filterStatic $ zip lzs (fromInt (n+1) 0))
-
   where
     filterStatic :: (Value,Bool) -> Bool
     filterStatic (Static b1, b2) = b1 /= b2
@@ -513,7 +523,11 @@ factor m = do
         then factor m -- lucky guess but try again to test circuit approach
         else do
           x <- randomRIO (0,m)
-          runPE n a m (powModInteger a x m)
+          let res = powModInteger a x m
+          putStrLn "Running InvExpMod circuit symbolically..."
+          putStrLn (printf "n = %d; a = %d; x = %d; res = %d"
+                    n a x res)
+          runPE n a m res
 
 {--
 
