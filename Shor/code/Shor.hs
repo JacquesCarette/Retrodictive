@@ -410,7 +410,7 @@ specialCases :: [Bool] -> [Var s] -> Var s -> [Value] -> Value -> ST s ()
 specialCases [b] [cx] tx [x] y = do
   let msv = simplify (XOR (if b then x else negS x) y)
   case msv of
-    Nothing -> error (printf "Could not simplify %s"
+    Nothing -> error (printf "Could not simplify cx target %s"
                        (show (XOR (if b then x else negS x) y)))
     Just sv -> do
       traceM (printf "cx case: simplified target to %s" (show sv))
@@ -419,12 +419,12 @@ specialCases [b1,b2] [cx1,cx2] tx [x1,x2] y = do
   let msc = simplify (AND (if b1 then x1 else negS x1) (if b2 then x2 else negS x2))
   case msc of
     Nothing -> error
-               (printf "Could not simplify %s"
+               (printf "Could not simplify ccx control %s"
                  (show (AND (if b1 then x1 else negS x1) (if b2 then x2 else negS x2))))
     Just sc -> do
       let msv = simplify (XOR sc y)
       case msv of 
-        Nothing -> error (printf "Could not simplify %s" (show (XOR sc y)))
+        Nothing -> error (printf "Could not simplify ccx target %s" (show (XOR sc y)))
         Just sv -> do 
           traceM (printf "ccx case: simplified controls to %s and target to %s"
                   (show sc) (show sv))
@@ -535,6 +535,7 @@ runPE n a m res = pretty $ runST $ do
         (return ())
       unless (null os) ( mapM_ print os)
       let nums = take 10 $ filter (\x -> isMatchAll x os) [0..(m-1)]
+      when (length nums < 2) (error "No values matching!")
       let period = nums !! 1 - nums !! 0
       if odd period || powModInteger a (period `div` 2) m == m - 1
         then putStrLn "Bad period... repeat"
