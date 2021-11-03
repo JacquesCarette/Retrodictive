@@ -1,7 +1,12 @@
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Shor where
+-- Follow https://arxiv.org/pdf/quant-ph/0205095.pdf
+-- to implement the circuit in the Fourier basis
+-- minimizing the number of bits needed as well as the number
+-- of control gates
+
+module ShorFourier where
 
 import Data.Maybe (catMaybes, maybe, fromMaybe, fromJust)
 import Data.List (find,union,intersperse)
@@ -27,7 +32,7 @@ import qualified Debug.Trace as Debug
 
 -- Debug Helpers
 
-debug = True
+debug = False
 
 trace :: String -> a -> a
 trace s a = if debug then Debug.trace s a else a
@@ -77,48 +82,83 @@ type Literal = (Bool,String)
 
 data Value = Static Bool
            | Symbolic Literal
-           | And Value Value
-           | Or Value Value
-           | Xor Value Value
-           | Eq Value Value
+           | And Integer Value Value
+           | Or Integer Value Value
+           | Xor Integer Value Value
+           | Eq Integer Value Value
   deriving Eq
 
+{--
+depth :: Value -> Int
+depth (Static _) = 0
+depth (Symbolic _) = 1
+depth (And v1 v2) = 1 + max (depth v1) (depth v2) 
+depth (Or v1 v2) = 1 + max (depth v1) (depth v2) 
+depth (Xor v1 v2) = 1 + max (depth v1) (depth v2) 
+depth (Eq v1 v2) = 1 + max (depth v1) (depth v2) 
+--}
+size :: Value -> Integer
+size (Static _) = 0
+size (Symbolic _) = 1
+size (And d v1 v2) = d
+size (Or d v1 v2) = d
+size (Xor d v1 v2) = d
+size (Eq d v1 v2) = d
+
+
 instance Show Value where
+{--
   show (Static b)       = if b then "1" else "0"
   show (Symbolic (b,s)) = if b then s else ("-" ++ s)
   show (And v1 v2)  = printf "(%s . %s)" (show v1) (show v2)
   show (Or  v1 v2)  = printf "(%s + %s)" (show v1) (show v2)
   show (Xor v1 v2)  = printf "(%s # %s)" (show v1) (show v2)
   show (Eq v1 v2)   = printf "(%s = %s)" (show v1) (show v2)
-    
+--}
+  show (Static b)       = if b then "1" else "0"
+  show (Symbolic (b,s)) = if b then s else ("-" ++ s)
+  show v@(And d v1 v2)  = printf "AND @ %d" d
+  show v@(Or  d v1 v2)  = printf "OR @ %d" d
+  show v@(Xor d v1 v2)  = printf "Xor @ %d" d
+  show v@(Eq d v1 v2)   = printf "Eq  @ %d" d
+  
 -- Smart constructors
+
+snot :: Value -> Value 
+snot (Static b)            = Static (not b)
+snot (Symbolic (b,s))      = Symbolic (not b, s)
+snot (And d v1 v2) = Or d (snot v1) (snot v2)
+snot (Or  d v1 v2) = And d (snot v1) (snot v2)
+snot (Xor d v1 v2) = Eq d v1 v2
+snot (Eq d v1 v2) = Xor d v1 v2
 
 sand :: Value -> Value -> Value
 sand (Static False) v = Static False
 sand v (Static False) = Static False
 sand (Static True) v = v
 sand v (Static True) = v
-sand v1 v2 = And v1 v2
+sand v1 v2 = And (1 + size v1 + size v2) v1 v2
 
 sor :: Value -> Value -> Value
 sor (Static False) v = v
 sor v (Static False) = v
 sor (Static True) v = Static True
 sor v (Static True) = Static True
-sor v1 v2 = Or v1 v2
+sor v1 v2 = Or (1 + size v1 + size v2) v1 v2
 
 sxor :: Value -> Value -> Value
 sxor (Static False) v = v
 sxor v (Static False) = v
-sxor (Static True) v = negS v
-sxor v (Static True) = negS v
-sxor v1 v2 = Xor v1 v2
+sxor (Static True) v = snot v
+sxor v (Static True) = snot v
+-- sxor v1 v2 | v1 == v2 = Static False
+sxor v1 v2 = Xor (1 + size v1 + size v2) v1 v2
 
 seq :: Value -> Value -> Value
-seq v1 v2 | v1 == v2 = (Static True)
-seq v1 v2 = Eq v1 v2
+-- seq v1 v2 | v1 == v2 = (Static True)
+seq v1 v2 = Eq (1 + size v1 + size v2) v1 v2
 
-
+{--
 -- Symbolic boolean operations when some values are known
 
 extractLiterals :: Value -> [String]
@@ -182,15 +222,9 @@ simplify v = do
   (v,_) <- find (\ (v,b) -> formTT == b) valsTT
   return v
 
---
+--}
 
-negS :: Value -> Value 
-negS (Static b)            = Static (not b)
-negS (Symbolic (b,s))      = Symbolic (not b, s)
-negS (And v1 v2) = Or (negS v1) (negS v2)
-negS (Or  v1 v2) = And (negS v1) (negS v2)
-negS (Xor v1 v2) = Eq v1 v2
-negS (Eq v1 v2) = Xor v1 v2
+--
 
 newDynValue :: String -> Value
 newDynValue s = Symbolic (True,s)
@@ -379,13 +413,13 @@ controlsActive bs cs =
 
     doubleNegs [] = False
     doubleNegs ((b, Static b') : bvs) = doubleNegs bvs
-    doubleNegs ((b,v) : bvs) = (b, negS v) `elem` bvs || doubleNegs bvs
+    doubleNegs ((b,v) : bvs) = (b, snot v) `elem` bvs || doubleNegs bvs
 
 interpGT :: GToffoli s -> ST s ()
 interpGT (GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   tv <- readSTRef t
-  when (controlsActive bs controls == Just True) $ writeSTRef t (negS tv)
+  when (controlsActive bs controls == Just True) $ writeSTRef t (snot tv)
 
 interpOP :: OP s -> ST s ()
 interpOP = foldMap interpGT
@@ -420,14 +454,17 @@ makeLenses ''InvExpModCircuit
 
 specialCases :: [Bool] -> [Var s] -> Var s -> [Value] -> Value -> ST s ()
 specialCases [b] [cx] tx [x] y =
-  let targetFR = sxor (if b then x else negS x) y
-      targetF = fromMaybe targetFR (simplify targetFR)
+  let targetFR = sxor (if b then x else snot x) y
+--      targetF = fromMaybe targetFR (simplify targetFR)
+      targetF = targetFR
   in writeSTRef tx targetF
 specialCases [b1,b2] [cx1,cx2] tx [x1,x2] y = 
-  let controlsFR = sand (if b1 then x1 else negS x1) (if b2 then x2 else negS x2)
-      controlsF = fromMaybe controlsFR (simplify controlsFR)
+  let controlsFR = sand (if b1 then x1 else snot x1) (if b2 then x2 else snot x2)
+--      controlsF = fromMaybe controlsFR (simplify controlsFR)
+      controlsF = controlsFR 
       targetFR = sxor controlsF y
-      targetF = fromMaybe targetFR (simplify targetFR)
+--      targetF = fromMaybe targetFR (simplify targetFR)
+      targetF = targetFR
   in writeSTRef tx targetF
 specialCases bs cs t controls vt = do
   d <- showGToffoli (GToffoli bs cs t)
@@ -445,14 +482,14 @@ peG :: Int -> (GToffoli s, Int) -> ST s (OP s)
 peG size (g@(GToffoli bs' cs' t), count) = do
   d <- showGToffoli g
 --  traceM (printf "\nProcessing gate %d of %d: %s" count size d)
-  traceM (printf "\nProcessing gate %d of %d..." count size)
+  traceM (printf "Processing gate %d of %d..." count size)
   controls' <- mapM readSTRef cs'
   tv <- readSTRef t
   let (bs,cs,controls) = shrinkControls bs' cs' controls'
   let ca = controlsActive bs controls
   if | ca == Just True -> do
 --         traceM (printf "controls true: negate target")
-         writeSTRef t (negS tv)
+         writeSTRef t (snot tv)
          return S.empty
      | ca == Just False -> do
 --         traceM (printf "controls false: no op")
@@ -513,6 +550,10 @@ runPE n a m res = pretty $ runST $ do
 
 factor :: Integer -> IO ()
 factor m = do
+
+  -- The period might approach m/2 and we need at least m different
+  -- values of x that have the same image
+
       let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
       a <- randomRIO (2,m-1)
       if gcd m a /= 1 
@@ -524,15 +565,6 @@ factor m = do
           putStrLn (printf "n = %d; a = %d; x = %d; res = %d"
                     n a x res)
           runPE n a m res
-
-go :: IO ()
-go = replicateM_  20 (factor 15)
-
-{--
-
-Can factor 15 and compute the period reliably
-
---}
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
