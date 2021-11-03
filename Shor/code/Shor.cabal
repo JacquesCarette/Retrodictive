@@ -23,8 +23,7 @@ source-repository head
 
 library
   exposed-modules:
-    QFT
-    Shor
+    ShorFourier
   other-modules:
     Paths_Shor
   hs-source-dirs:
