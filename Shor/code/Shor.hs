@@ -91,6 +91,34 @@ instance Show Value where
   show (Xor v1 v2)  = printf "(%s # %s)" (show v1) (show v2)
   show (Eq v1 v2)   = printf "(%s = %s)" (show v1) (show v2)
     
+-- Smart constructors
+
+sand :: Value -> Value -> Value
+sand (Static False) v = Static False
+sand v (Static False) = Static False
+sand (Static True) v = v
+sand v (Static True) = v
+sand v1 v2 = And v1 v2
+
+sor :: Value -> Value -> Value
+sor (Static False) v = v
+sor v (Static False) = v
+sor (Static True) v = Static True
+sor v (Static True) = Static True
+sor v1 v2 = Or v1 v2
+
+sxor :: Value -> Value -> Value
+sxor (Static False) v = v
+sxor v (Static False) = v
+sxor (Static True) v = negS v
+sxor v (Static True) = negS v
+sxor v1 v2 = Xor v1 v2
+
+seq :: Value -> Value -> Value
+seq v1 v2 | v1 == v2 = (Static True)
+seq v1 v2 = Eq v1 v2
+
+
 -- Symbolic boolean operations when some values are known
 
 extractLiterals :: Value -> [String]
@@ -392,13 +420,13 @@ makeLenses ''InvExpModCircuit
 
 specialCases :: [Bool] -> [Var s] -> Var s -> [Value] -> Value -> ST s ()
 specialCases [b] [cx] tx [x] y =
-  let targetFR = Xor (if b then x else negS x) y
+  let targetFR = sxor (if b then x else negS x) y
       targetF = fromMaybe targetFR (simplify targetFR)
   in writeSTRef tx targetF
 specialCases [b1,b2] [cx1,cx2] tx [x1,x2] y = 
-  let controlsFR = And (if b1 then x1 else negS x1) (if b2 then x2 else negS x2)
+  let controlsFR = sand (if b1 then x1 else negS x1) (if b2 then x2 else negS x2)
       controlsF = fromMaybe controlsFR (simplify controlsFR)
-      targetFR = Xor controlsF y
+      targetFR = sxor controlsF y
       targetF = fromMaybe targetFR (simplify targetFR)
   in writeSTRef tx targetF
 specialCases bs cs t controls vt = do
@@ -480,8 +508,8 @@ runPE n a m res = pretty $ runST $ do
 
     pretty (xs,os,lzs) = do
       unless (null xs) (mapM_ print xs)
-      unless (null os) (print (length os)) -- (mapM_ print os)
-      unless (null lzs) (print (length lzs)) -- (mapM_ print lzs)
+      unless (null os) (mapM_ print os)
+      unless (null lzs) (mapM_ print lzs)
 
 factor :: Integer -> IO ()
 factor m = do
