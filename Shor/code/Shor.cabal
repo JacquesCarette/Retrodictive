@@ -23,7 +23,8 @@ source-repository head
 
 library
   exposed-modules:
-    ShorFourier
+    ShorComputationalBasis
+    ShorFourierBasis
   other-modules:
     Paths_Shor
   hs-source-dirs:

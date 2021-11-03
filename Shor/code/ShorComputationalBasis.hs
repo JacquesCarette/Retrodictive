@@ -1,7 +1,7 @@
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Shor where
+module ShorComputationalBasis where
 
 import Data.Maybe (catMaybes, maybe, fromMaybe, fromJust)
 import Data.List (find,union,intersperse)

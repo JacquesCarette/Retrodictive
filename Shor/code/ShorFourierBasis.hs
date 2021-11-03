@@ -6,7 +6,7 @@
 -- minimizing the number of bits needed as well as the number
 -- of control gates
 
-module ShorFourier where
+module ShorFourierBasis where
 
 import Data.Maybe (catMaybes, maybe, fromMaybe, fromJust)
 import Data.List (find,union,intersperse)
