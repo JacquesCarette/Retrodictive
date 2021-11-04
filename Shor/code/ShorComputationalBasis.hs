@@ -6,7 +6,7 @@ module ShorComputationalBasis where
 import Prelude hiding (seq)
 
 import Data.Maybe (catMaybes, maybe, fromMaybe, fromJust)
-import Data.List (find,union,intersperse,delete,(\\),intersect)
+import Data.List (find,union,intersperse,delete,(\\),intersect,sort,nub)
 
 import qualified Data.Sequence as S
 import Data.Sequence (Seq, singleton, viewl, ViewL(..), (><))
@@ -29,7 +29,7 @@ import qualified Debug.Trace as Debug
 
 -- Debug Helpers
 
-debug = True
+debug = False
 
 trace :: String -> a -> a
 trace s a = if debug then Debug.trace s a else a
@@ -68,197 +68,82 @@ invsqmods a m = invam : invsqmods (am * am) m
         invam = a `invmod` m 
 
 ----------------------------------------------------------------------------------------
--- Circuits are sequences of generalized Toffoli gates manipulating
--- locations holding static boolean values or dynamic values
+-- Values can static or symbolic formulae
+-- Formulae are in "algebraic normal form"
 
---
--- Values with either static or dynamic information
--- ------------------------------------------------
+type Literal = String
 
-type Literal = (Bool,String)
+-- []      = True
+-- [a,b,c] = a && b && c
 
-data Formula = Static Bool
-             | Symbolic Literal
-             | And Formula Formula
-             | Or Formula Formula
-             | Xor Formula Formula
-             | XorList [Literal]
-             | Eq Formula Formula
+newtype Ands = Ands { lits :: [Literal] }
   deriving (Eq,Ord)
 
-isStatic :: Formula -> Bool
-isStatic (Static _) = True
-isStatic _  = False
+instance Show Ands where
+  show as = showL (lits as)
+    where showL [] = "1"
+          showL ss = concat ss
 
-isSymbolic :: Formula -> Bool
-isSymbolic (Symbolic _) = True
-isSymbolic _ = False
+-- Formula [] = False
+-- Formula [[],[a],[b,c]] = True XOR a XOR (b && c)
 
-extractBool :: Formula -> Bool
-extractBool (Static b) = b
-extractBool _ = error "Internal error: expecting a static value"
-
-bigFormula :: Formula -> Bool
-bigFormula (Static _) = False
-bigFormula (Symbolic _) = False
-bigFormula (And (Symbolic _) (Symbolic _)) = False
-bigFormula (Or (Symbolic _) (Symbolic _)) = False
-bigFormula (Xor (Symbolic _) (Symbolic _)) = False
-bigFormula (XorList vs) = length vs <= 3
-bigFormula (Eq (Symbolic _) (Symbolic _)) = False
-bigFormula _ = True
+newtype Formula = Formula { clauses :: [Ands]}
+  deriving (Eq,Ord)
 
 instance Show Formula where
-  show (Static b)       = if b then "1" else "0"
-  show (Symbolic (b,s)) = if b then s else ("-" ++ s)
-  show (And v1 v2)  = printf "(%s . %s)" (show v1) (show v2)
-  show (Or  v1 v2)  = printf "(%s + %s)" (show v1) (show v2)
-  show (Xor v1 v2)  = printf "(%s # %s)" (show v1) (show v2)
-  show (XorList lits)  = printf "(# [%s])"
-    (concat (intersperse "," (map (\(b,s) -> if b then s else ("-" ++ s)) lits)))
-  show (Eq v1 v2)   = printf "(%s = %s)" (show v1) (show v2)
+  show f = showC (clauses f)
+    where
+      showC [] = "0"
+      showC cs = concat $ intersperse " + " (map show cs)
 
--- Smart constructors
+false :: Formula
+false = Formula { clauses = [] }
 
-snot :: Formula -> Formula 
-snot (Static b) = Static (not b)
-snot (Symbolic (b,s)) = Symbolic (not b, s)
-snot (And v1 v2) = sor (snot v1) (snot v2)
-snot (Or  v1 v2) = sand (snot v1) (snot v2)
-snot (Xor v1 v2) = seq v1 v2
-snot (XorList []) = Static True
-snot (XorList ((b,s):lits)) = XorList ((not b,s) : lits)
-snot (Eq v1 v2) = sxor v1 v2
+true :: Formula
+true = Formula { clauses = [ Ands [] ] }
 
-sand :: Formula -> Formula -> Formula
-sand (Static False) v = Static False
-sand v (Static False) = Static False
-sand (Static True) v = v
-sand v (Static True) = v
-sand (Symbolic (b1,s1)) (Symbolic (b2,s2)) | s1 == s2 =
-  if b1 == b2 then Symbolic (b1,s1) else Static False
-sand v1 v2 | v1 /= v2 = v1
-sand v1 v2 = And v1 v2
+isStatic :: Formula -> Bool
+isStatic f = f == false || f == true
 
-sor :: Formula -> Formula -> Formula
-sor (Static False) v = v
-sor v (Static False) = v
-sor (Static True) v = Static True
-sor v (Static True) = Static True
-sor (Symbolic (b1,s1)) (Symbolic (b2,s2)) | s1 == s2 =
-  if b1 == b2 then Symbolic (b1,s1) else Static True
-sor v1 v2 = Or v1 v2
+fromBool :: Bool -> Formula
+fromBool False = false
+fromBool True = true
+
+toBool :: Formula -> Bool
+toBool f | f == false = False
+         | f == true = True
+         | otherwise = error "Internal error: converting a complex formula to bool"
+
+fromVar :: String -> Formula
+fromVar s = Formula { clauses = [ Ands [s] ] }
+
+-- 
+
+simplifyLits :: [Literal] -> [Literal]
+simplifyLits [] = []
+simplifyLits [s] = [s]
+simplifyLits (s1 : s2 : ss) 
+  | s1 == s2 = simplifyLits (s2 : ss)
+  | otherwise = s1 : simplifyLits (s2 : ss)
+
+simplifyAnds :: [Ands] -> [Ands]
+simplifyAnds [] = []
+simplifyAnds [c] = [c]
+simplifyAnds (c1 : c2 : cs) 
+  | c1 == c2 = simplifyAnds cs
+  | otherwise = c1 : simplifyAnds (c2 : cs)
+
+snot :: Formula -> Formula
+snot f = Formula (simplifyAnds (clauses true ++ clauses f))
 
 sxor :: Formula -> Formula -> Formula
-sxor (Static False) v = v
-sxor v (Static False) = v
-sxor (Static True) v = snot v
-sxor v (Static True) = snot v
-sxor (Symbolic (b1,s1)) (Symbolic (b2,s2))
-  | s1 == s2 = Static (b1 /= b2)
-  | otherwise = XorList [(b1,s1),(b2,s2)]
-sxor (Symbolic (b1,s1)) (Xor (Symbolic (b2,s2)) v) 
-  | s1 == s2 = if b1 == b2 then v else snot v
-  | otherwise = sxor (XorList [(b1,s1),(b2,s2)]) v
-sxor (Symbolic (b,s)) (XorList vs) 
-  | (b,s) `elem` vs = XorList (delete (not b,s) vs)
-  | (not b,s) `elem` vs = snot (XorList (delete (not b,s) vs))
-  | otherwise = XorList ((b,s) : vs)
-sxor (XorList vs) (Symbolic (b,s))
-  | (b,s) `elem` vs = XorList (delete (not b,s) vs)
-  | (not b,s) `elem` vs = snot (XorList (delete (not b,s) vs))
-  | otherwise = XorList ((b,s) : vs)
-sxor (XorList vs) (Xor (Symbolic (b,s)) v)
-  | (b,s) `elem` vs = sxor (XorList (delete (not b,s) vs)) v
-  | (not b,s) `elem` vs = sxor (snot (XorList (delete (not b,s) vs))) v
-  | otherwise = sxor (XorList ((b,s) : vs)) v
-{--sxor (XorList vs1) (XorList vs2) =
-  let common = intersect vs1 vs2
-  in if odd (length common) then snot (XorList ((vs1 ++ vs2) \\ common))
-     else XorList ((vs1 ++ vs2) \\ common)
---}
-sxor v1 v2 = Xor v1 v2
+sxor (Formula cs1) (Formula cs2) = Formula (simplifyAnds (sort (cs1 ++ cs2)))
 
-seq :: Formula -> Formula -> Formula
-seq (Static False) v = snot v
-seq v (Static False) = snot v
-seq (Static True) v = v
-seq v (Static True) = v
-seq (Symbolic (b1,s1)) (Symbolic (b2,s2)) | s1 == s2 = Static (b1 == b2)
-seq v1 v2 = Eq v1 v2
-
--- More aggressive simplification
--- Be careful: only use with limited depth or limited number of variables
-
-type Env = [(String,Bool)]
-
-makeEnv :: [String] -> [Env]
-makeEnv = env
-  where baseEnv :: String -> Env
-        baseEnv s = [ (s,b) | b <- [False, True] ]
-
-        env :: [String] -> [Env]
-        env [] = [[]]
-        env (s:ss) = [ t:ts | t <- baseEnv s, ts <- env ss ]
-
-eval :: Formula -> Env -> Bool
-eval (Static b) env = b
-eval (Symbolic (b,s)) env = (not b) /= (fromJust $ lookup s env)
-eval (And v1 v2) env = eval v1 env && eval v2 env
-eval (Or v1 v2) env = eval v1 env || eval v2 env
-eval (Xor v1 v2) env = eval v1 env /= eval v2 env
-eval (XorList []) env = False
-eval (XorList (v:vs)) env =
-  let vvs = eval (XorList vs) env
-  in if eval (Symbolic v) env then not vvs else vvs
-eval (Eq v1 v2) env  = eval v1 env == eval v2 env
-
-formulaTT :: Formula -> [String] -> [(Env,Bool)]
-formulaTT v vars = [ (env, eval v env) | env <- makeEnv vars ]
-
-generateStatics :: [Formula]
-generateStatics = [Static False, Static True]
-
-generateLits :: [String] -> [Formula]
-generateLits vars = concatMap (\s -> [Symbolic (False,s), Symbolic (True,s)]) vars
-
-generateOps :: (Formula -> Formula -> Formula) -> [Formula] -> [Formula]
-generateOps op fs = [ op f1 f2 | f1 <- fs, f2 <- fs, f1 < f2]
-
-generateFormulas :: Int -> [String] -> [Formula]
-generateFormulas 0 vars = generateStatics
-generateFormulas 1 vars = generateStatics ++ generateLits vars
-generateFormulas depth vars = foldr union [] $ 
-  [fs, generateOps sand fs, generateOps sor fs,
-   generateOps sxor fs, generateOps seq fs]
-  where fs = generateFormulas (depth-1) vars
-
-simplifyForm :: Formula -> Maybe Formula
-simplifyForm form | length vars > 5 = Nothing
-              | otherwise = do 
-  let formTT = formulaTT form vars
-  let depth = 2
-  let allFormulas = generateFormulas depth vars
-  let allTT  = map (\f -> (f, formulaTT f vars)) allFormulas
-  (sf,_) <- find (\ (f,ftt) -> formTT == ftt) allTT
-  return sf
-
-  where
-
-    vars = extractVars form
-    
-    extractVars :: Formula -> [String]
-    extractVars (Static _) = []
-    extractVars (Symbolic (b,s)) = [s]
-    extractVars (And v1 v2) = union (extractVars v1) (extractVars v2)
-    extractVars (Or v1 v2) = union (extractVars v1) (extractVars v2)
-    extractVars (Xor v1 v2) = union (extractVars v1) (extractVars v2)
-    extractVars (XorList vs) = map snd vs
-    extractVars (Eq v1 v2) = union (extractVars v1) (extractVars v2)
-
-simplifyXor :: Formula  -> Formula -> Maybe Formula
-simplifyXor cf tf = simplifyForm (sxor cf tf)
-
+sand :: Formula -> Formula -> Formula
+sand (Formula cs1) (Formula cs2) = Formula (simplifyAnds (sort (prod cs1 cs2)))
+  where prod cs1 cs2 = [ Ands (simplifyLits (sort (lits c1 ++ lits c2)))
+                       | c1 <- cs1, c2 <- cs2 ]
+          
 --
 
 data Value = Value { _current :: Formula, _saved :: Maybe Bool }
@@ -275,17 +160,20 @@ vnot v = set current (snot (v^.current)) v
 --
 
 newValue :: Bool -> Value
-newValue b = Value { _current = Static b, _saved = Nothing }
+newValue b = Value { _current = fromBool b , _saved = Nothing }
 
 newDynValue :: String -> Value
-newDynValue s = Value { _current = Symbolic (True,s), _saved = Nothing }
+newDynValue s = Value { _current = fromVar s , _saved = Nothing }
 
 valueToInt :: [Value] -> Integer
-valueToInt = toInt . map (\v -> extractBool (v^.current)) 
+valueToInt = toInt . map (\v -> toBool (v^.current)) 
+
+----------------------------------------------------------------------------------------
+-- Circuits manipulate locations holding values
 
 --
 -- Locations where values are stored
--- ---------------------------------
+-- ---------------------------------<
 
 type Var s = STRef s Value
 
@@ -306,9 +194,11 @@ newDynVar gensym s = do
 newDynVars :: STRef s Int -> String -> Int -> ST s [Var s]
 newDynVars gensym s n = replicateM n (newDynVar gensym s)
 
+--
+-- A circuit is a sequence of generalized Toffoli gates
+-- ----------------------------------------------------
 
--- Generalized Toffoli gates
--- -------------------------
+type OP s = Seq (GToffoli s)
 
 data GToffoli s = GToffoli String [Bool] [Var s] (Var s)
   deriving Eq
@@ -322,12 +212,6 @@ showGToffoli (GToffoli ctx bs cs t) = do
     (show (map fromEnum bs))
     (show controls)
     (show vt)
-
---
--- A circuit is a sequence of generalized Toffoli gates
--- ----------------------------------------------------
-
-type OP s = Seq (GToffoli s)
 
 showOP :: OP s -> ST s String
 showOP = foldMap showGToffoli
@@ -416,6 +300,9 @@ makeCMulMod n a m c xs ts = do
             ccop "cMulMod" (copyOP a ps) [c,x] ><
             loop adderPT as xs ps
 
+-- if n odd, result is in ts
+-- if n even, result is in us
+
 makeExpMod :: Int -> Integer -> Integer ->
               [ Var s ] -> [ Var s ] -> [ Var s ] -> ST s (OP s)
 makeExpMod n a m xs ts us = do
@@ -457,7 +344,7 @@ data InvExpModCircuit s =
   InvExpModCircuit { _ps    :: Params
                    , _xs    :: [Var s] 
                    , _ts    :: [Var s] 
-                   , _us   :: [Var s]
+                   , _us    :: [Var s]
                    , _circ  :: OP s
                    }
 
@@ -466,25 +353,21 @@ makeLenses ''InvExpModCircuit
 ----------------------------------------------------------------------------------------
 -- Standard evaluation
 
+-- checking whether controls are active
 -- returns yes/no/unknown as Just True, Just False, Nothing
 
 controlsActive :: [Bool] -> [Value] -> Maybe Bool
 controlsActive bs cs =
   if | not r' -> Just False
      | Nothing `elem` r -> Nothing
-     | doubleNegs (zip bs (map (^.current) cs)) -> Just False
      | otherwise -> Just True
   where
     r' = and (catMaybes r)
 
     r = zipWith f bs (map (^.current) cs)
 
-    f b (Static b') = Just (b == b')
+    f b form | isStatic form = Just (b == toBool form)
     f b _ = Nothing
-
-    doubleNegs [] = False
-    doubleNegs ((b, Static b') : bfs) = doubleNegs bfs
-    doubleNegs ((b,f) : bfs) = (b, snot f) `elem` bfs || doubleNegs bfs
 
 interpGT :: GToffoli s -> ST s ()
 interpGT (GToffoli ctx bs cs t) = do
@@ -501,21 +384,21 @@ interpCircuit c = do
   return c
 
 ----------------------------------------------------------------------------------------
--- Partial evaluation
+-- Phase to deal with all statically known gates
 
 restoreSaved :: GToffoli s -> ST s (GToffoli s)
 restoreSaved g@(GToffoli ctx bsOrig csOrig t) = do
   vt <- readSTRef t
   maybe
     (return ()) 
-    (\vs -> writeSTRef t (set saved Nothing $ set current (Static vs) vt))
+    (\vs -> writeSTRef t (set saved Nothing $ set current (fromBool vs) vt))
     (vt^.saved)
   return g
 
 shrinkControls :: [Bool] -> [Var s] -> [Value] -> ([Bool],[Var s],[Value])
 shrinkControls [] [] [] = ([],[],[])
 shrinkControls (b:bs) (c:cs) (v:vs)
-  | isStatic (v^.current) && extractBool (v^.current) == b = shrinkControls bs cs vs
+  | isStatic (v^.current) && toBool (v^.current) == b = shrinkControls bs cs vs
   | otherwise =
     let (bs',cs',vs') = shrinkControls bs cs vs
     in (b:bs',c:cs',v:vs')
@@ -535,8 +418,8 @@ simplifyG (GToffoli ctx bsOrig csOrig t) = do
          -- save value of target; mark it as unknown for remainder of phase
          when (vt^.saved == Nothing && isStatic (vt^.current)) $
            writeSTRef t
-           (set current (Symbolic (False,"_")) $
-             set saved (Just $ extractBool (vt^.current)) vt)
+           (set current (fromVar "_") $ 
+             set saved (Just $ toBool (vt^.current)) vt)
          return $ S.singleton (GToffoli ctx bs cs t)
 
 simplifyOP :: OP s -> ST s (OP s)
@@ -549,30 +432,28 @@ simplifyCircuit c = do
   simplified <- simplifyOP $ c^.circ
   return (set circ simplified c)
 
-
--- Generate constraints
--- --------------------
+----------------------------------------------------------------------------------------
+-- Phase to run symbolically generating formulae instead of values
+-- ---------------------------------------------------------------
 
 specialCases :: String -> [Bool] -> [Var s] -> Var s -> [Value] -> Value -> ST s ()
 specialCases msg [b] [cx] tx [x] y =
   let fc = if b then x^.current else snot (x^.current)
-      fs = fromMaybe (sxor fc (y^.current)) (simplifyXor fc (y^.current))
-  in  do when (bigFormula fs) $ traceM (printf "%s ==> %s" msg (show fs))
+      fs = sxor fc (y^.current)
+  in  do traceM (printf "%s ==> %s" msg (show fs))
          writeSTRef tx $ set current fs y
 specialCases msg [b1,b2] [cx1,cx2] tx [x1,x2] y = 
-  let cfr = sand
+  let cfs = sand
             (if b1 then x1^.current else snot (x1^.current))
             (if b2 then x2^.current else snot (x2^.current))
-      cfs = fromMaybe cfr (simplifyForm cfr)
-      tfs = fromMaybe (sxor cfs (y^.current)) (simplifyXor cfs (y^.current))
-  in do when (bigFormula tfs) $ traceM (printf "%s ==> %s" msg (show tfs))
+      tfs = sxor cfs (y^.current)
+  in do traceM (printf "%s ==> %s" msg (show tfs))
         writeSTRef tx $ set current tfs y
 specialCases msg bs cs t controls vt = do
-  error (printf "Toffoli 4 or more: %s" msg)
+  error (printf "%s (Toffoli 4 or more)" msg)
 
 peG :: Int -> (GToffoli s, Int) -> ST s (OP s)
 peG size (g@(GToffoli ctx bs' cs' t), count) = do
-  d <- showGToffoli g
   controls' <- mapM readSTRef cs'
   tv <- readSTRef t
   let (bs,cs,controls) = shrinkControls bs' cs' controls'
@@ -583,16 +464,14 @@ peG size (g@(GToffoli ctx bs' cs' t), count) = do
      | ca == Just False -> do
          return S.empty
      | otherwise -> do
-         specialCases (msg d) bs cs t controls tv
-         return (S.singleton (GToffoli ctx bs cs t))
-
-  where msg :: String -> String
-        msg d = printf "\nProcessing gate %d of %d:\n\n\t%s" count size d
+         let gSimple = GToffoli ctx bs cs t
+         d <- showGToffoli gSimple
+         let msg = printf "\nProcessing gate %d of %d:\n\n\t%s" count size d
+         specialCases msg bs cs t controls tv
+         return (S.singleton gSimple)
 
 peCircuit :: InvExpModCircuit s -> ST s (InvExpModCircuit s)
 peCircuit c = do
-  let size = S.length (c^.circ)
-  traceM (printf "Original size = %d" size)
   c <- simplifyCircuit c
   let size = S.length (c^.circ)
   op' <- foldMap (peG size) $ S.zip (c^.circ) (S.fromFunction size (+1))
@@ -600,7 +479,7 @@ peCircuit c = do
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
--- InvExpMod 
+-- Making and executing circuits
 
 makeInvExpMod :: Int -> Integer -> Integer -> Integer -> ST s (InvExpModCircuit s)
 makeInvExpMod n a m res = do
@@ -675,24 +554,27 @@ runPE :: Int -> Integer -> Integer -> Integer -> IO ()
 runPE n a m res = pretty $ runST $ do
   circuit <- makeInvExpMod n a m res 
   circuit <- peCircuit circuit
-  xs <- mapM readSTRef (circuit^.xs)
   ts <- mapM readSTRef (circuit^.ts)
   us <- mapM readSTRef (circuit^.us)
-  assertMessage "runPE"
-    (printf "xs are not symbolic !?: %s" (show xs))
-    (assert (all (\x -> isSymbolic (x^.current)) xs))
-    (return ())
-  return (filter filterStatic $ zip ts (fromInt (n+1) 1),
-          filter filterStatic $ zip us (fromInt (n+1) 0))
+  return (zip ts (fromInt (n+1) 1), zip us (fromInt (n+1) 0))
   where
-    filterStatic :: (Value,Bool) -> Bool
-    filterStatic (Value {_current = Static b1}, b2) = b1 /= b2
-    filterStatic _ = True
+    trueEq (v,b) = isStatic (v^.current) && toBool (v^.current) == b
+    
+    pretty (ts',us') = do
+      putStrLn (take 50 (repeat '_'))
+      let ts = filter (not . trueEq) (nub ts')
+      let us = filter (not . trueEq) (nub us')
+      unless (null ts)
+        (mapM_ (\(v,b) -> printf "%s = %s\n" (show v) (if b then "1" else "0")) ts)
+      unless (null us)
+        (mapM_ (\(v,b) -> printf "%s = %s\n" (show v) (if b then "1" else "0")) us)
+      putStrLn (take 50 (repeat '_'))
 
-    pretty (ts,us) = do
-      unless (null ts) (mapM_ print ts)
-      unless (null us) (mapM_ print us)
+----------------------------------------------------------------------------------------
+-- Eventual entry point
 
+-- Products of primes of the form 2^k+1 seem to work best:
+-- first few are 3, 5, 17, 257, and 65537
 factor :: Integer -> IO ()
 factor m = do
 
