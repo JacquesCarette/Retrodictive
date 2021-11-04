@@ -274,6 +274,9 @@ vnot v = set current (snot (v^.current)) v
 
 --
 
+newValue :: Bool -> Value
+newValue b = Value { _current = Static b, _saved = Nothing }
+
 newDynValue :: String -> Value
 newDynValue s = Value { _current = Symbolic (True,s), _saved = Nothing }
 
@@ -289,7 +292,7 @@ type Var s = STRef s Value
 -- Stateful functions to deal with variables
 
 newVar :: Bool -> ST s (Var s)
-newVar b = newSTRef (Value { _current = Static b, _saved = Nothing })
+newVar = newSTRef . newValue
 
 newVars :: [Bool] -> ST s [Var s]
 newVars = mapM newVar
@@ -438,6 +441,29 @@ makeExpMod n a m xs ts us = do
                     rest)
 
 ----------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------
+-- Setting up for PE
+
+-- Inverse expmod circuits abstraction for PE; can be run with
+-- all static parameters or with mixed static and dynamic parameters
+
+data Params =
+  Params { numberOfBits :: Int
+         , base         :: Integer
+         , toFactor     :: Integer
+         }
+
+data InvExpModCircuit s =
+  InvExpModCircuit { _ps    :: Params
+                   , _xs    :: [Var s] 
+                   , _ts    :: [Var s] 
+                   , _us   :: [Var s]
+                   , _circ  :: OP s
+                   }
+
+makeLenses ''InvExpModCircuit
+
+----------------------------------------------------------------------------------------
 -- Standard evaluation
 
 -- returns yes/no/unknown as Just True, Just False, Nothing
@@ -469,28 +495,10 @@ interpGT (GToffoli ctx bs cs t) = do
 interpOP :: OP s -> ST s ()
 interpOP = foldMap interpGT
 
-----------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------
--- Setting up for PE
-
--- Inverse expmod circuits abstraction for PE; can be run with
--- all static parameters or with mixed static and dynamic parameters
-
-data Params =
-  Params { numberOfBits :: Int
-         , base         :: Integer
-         , toFactor     :: Integer
-         }
-
-data InvExpModCircuit s =
-  InvExpModCircuit { _ps    :: Params
-                   , _xs    :: [Var s] 
-                   , _ts    :: [Var s] 
-                   , _us   :: [Var s]
-                   , _circ  :: OP s
-                   }
-
-makeLenses ''InvExpModCircuit
+interpCircuit :: InvExpModCircuit s -> ST s (InvExpModCircuit s)
+interpCircuit c = do
+  interpOP (c^.circ)
+  return c
 
 ----------------------------------------------------------------------------------------
 -- Partial evaluation
@@ -597,7 +605,7 @@ peCircuit c = do
 makeInvExpMod :: Int -> Integer -> Integer -> Integer -> ST s (InvExpModCircuit s)
 makeInvExpMod n a m res = do
   gensym <- newSTRef 0
-  (xs,ts,us) <- if even n
+  (xs,ts,us) <- if odd n
                 then do xs <- newDynVars gensym "x" (n+1)
                         ts <- newVars (fromInt (n+1) res)
                         us <- newVars (fromInt (n+1) 0)
@@ -617,6 +625,51 @@ makeInvExpMod n a m res = do
           , _us  = us
           , _circ = S.reverse circuit
           })
+
+runForward :: Int -> Integer -> Integer -> Integer -> Integer
+runForward n a m x = runST $ do
+  circuitR <- makeInvExpMod n a m 0
+  mapM_ (uncurry writeSTRef) (zip (circuitR^.xs) (map newValue (fromInt (n+1) x)))
+  mapM_ (uncurry writeSTRef) (zip (circuitR^.ts) (map newValue (fromInt (n+1) 1)))
+  mapM_ (uncurry writeSTRef) (zip (circuitR^.us) (map newValue (fromInt (n+1) 0)))
+  let circuit = set circ (S.reverse (circuitR^.circ)) circuitR
+  circuit <- interpCircuit circuit
+  xs <- mapM readSTRef (circuit^.xs)
+  ts <- mapM readSTRef (circuit^.ts)
+  us <- mapM readSTRef (circuit^.us)
+  let res = if odd n then ts else us
+  let zeros = if odd n then us else ts
+  assertMessage "runForward"
+    (printf "xs have changed to %d" (valueToInt xs))
+    (assert (x == valueToInt xs))
+    (return ())
+  assertMessage "runForward"
+    (printf "us are not 0s: %d" (valueToInt zeros))
+    (assert (0 == valueToInt zeros))
+    (return ())
+  return (valueToInt res)
+
+runBackward :: Int -> Integer -> Integer -> Integer -> Integer -> Bool
+runBackward n a m x res = runST $ do
+  circuit <- makeInvExpMod n a m res
+  mapM_ (uncurry writeSTRef) (zip (circuit^.xs) (map newValue (fromInt (n+1) x)))
+  circuit <- interpCircuit circuit
+  xs <- mapM readSTRef (circuit^.xs)
+  ts <- mapM readSTRef (circuit^.ts)
+  us <- mapM readSTRef (circuit^.us)
+  assertMessage "runBackward"
+    (printf "xs have changed to %d" (valueToInt xs))
+    (assert (x == valueToInt xs))
+    (return ())
+  assertMessage "BackForward"
+    (printf "ts are not 1s: %d" (valueToInt ts))
+    (assert (1 == valueToInt ts))
+    (return ())
+  assertMessage "BackForward"
+    (printf "us are not 0s: %d" (valueToInt us))
+    (assert (0 == valueToInt us))
+    (return ())
+  return True     
 
 runPE :: Int -> Integer -> Integer -> Integer -> IO ()
 runPE n a m res = pretty $ runST $ do
