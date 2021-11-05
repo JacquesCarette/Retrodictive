@@ -1,4 +1,5 @@
 module QFT where
+
 -- Do classical simulation of QFT
 
 -- Shor:
