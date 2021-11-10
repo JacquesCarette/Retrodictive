@@ -28,7 +28,6 @@ dependencies:
 - integer-gmp >= 1.0 && < 2.0
 - lens >= 4.10 && < 6.0
 - random >= 1.2.0
-- simple-smt
 
 library:
   source-dirs: .
