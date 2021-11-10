@@ -577,6 +577,8 @@ runPE n a m res = pretty $ runST $ do
 ----------------------------------------------------------------------------------------
 -- Eventual entry point
 
+-- We need to make sure this does not search too far !!!
+
 searchAround :: Int -> Integer -> Integer -> Integer -> Maybe Integer
 searchAround i y m a
   | powModInteger a y m == 1 = Just y
