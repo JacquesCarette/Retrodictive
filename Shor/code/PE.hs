@@ -1,5 +1,4 @@
 {-# LANGUAGE MultiWayIf #-}
---{-# LANGUAGE TemplateHaskell #-}
 
 module PE where
 
