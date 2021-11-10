@@ -579,16 +579,17 @@ runPE n a m res = pretty $ runST $ do
 
 -- We need to make sure this does not search too far !!!
 
-searchAround :: Int -> Integer -> Integer -> Integer -> Maybe Integer
-searchAround i y m a
-  | powModInteger a y m == 1 = Just y
-  | otherwise =
+searchAround :: Integer -> Integer -> Integer -> Maybe Integer
+searchAround  y m a =
+  trace (printf "Searching for a multiple of the period around %d\n" y) $ 
+  if powModInteger a y m == 1 then Just y
+  else 
     let s = maybe
-            (searchAround i (y-1) m a)
+            (searchAround (y-1) m a)
             Just
-            (searchAround i (y+1) m a)
+            (searchAround (y+1) m a)
     in if s == Nothing
-        then searchAround (i+1) y m a
+        then searchAround y m a
         else s
 
 factor :: Integer -> IO (Integer,Integer)
@@ -605,7 +606,7 @@ factor m = do
     numberVars <- runPE n a m res
     let y = 2 ^ numberVars
     -- y is close to a multiple of the period
-    case searchAround 0 y m a of
+    case searchAround y m a of
       Nothing -> factor m
       Just s -> 
         if  odd s || powModInteger a (s `div` 2) m == m - 1
