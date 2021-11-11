@@ -78,16 +78,25 @@ type Literal = String
 -- []      = True
 -- [a,b,c] = a && b && c
 
+-- maintain sorted
+
 newtype Ands = Ands { lits :: [Literal] }
-  deriving (Eq,Ord)
+  deriving Eq
 
 instance Show Ands where
   show as = showL (lits as)
     where showL [] = "1"
           showL ss = concat ss
 
+instance Ord Ands where
+  (Ands lits1) <= (Ands lits2) =
+    length lits1 < length lits2 ||
+    (length lits1 == length lits2 && lits1 < lits2)
+
 -- Formula [] = False
 -- Formula [[],[a],[b,c]] = True XOR a XOR (b && c)
+
+-- maintain no clause is a subset of another
 
 newtype Formula = Formula { clauses :: [Ands]}
   deriving (Eq,Ord)
@@ -124,12 +133,12 @@ fromVar s = Formula { clauses = [ Ands [s] ] }
 
 -- 
 
-simplifyLits :: [Literal] -> [Literal]
-simplifyLits [] = []
-simplifyLits [s] = [s]
-simplifyLits (s1 : s2 : ss) 
-  | s1 == s2 = simplifyLits (s2 : ss)
-  | otherwise = s1 : simplifyLits (s2 : ss)
+mergeLits :: [Literal] -> [Literal] -> [Literal]
+mergeLits [] ss = ss
+mergeLits ss [] = ss
+mergeLits (s1:ss1) (s2:ss2) | s1 < s2 = s1 : mergeLits ss1 (s2:ss2)
+                            | s2 < s1 = s2 : mergeLits (s1:ss1) ss2
+                            | otherwise = mergeLits ss1 (s2 : ss2)
 
 -- As far as period funding is concerned
 --   a + ab
@@ -142,19 +151,24 @@ simplifyAnds [] = []
 simplifyAnds [c] = [c]
 simplifyAnds (c1 : c2 : cs) 
   | c1 == c2 = simplifyAnds cs
-  | any (\c -> null $ lits c \\ lits c1) (c2 : cs) = simplifyAnds (c2 : cs)
+  | any (\c -> null $ lits c1 \\ lits c) (c2 : cs) = simplifyAnds (c2 : cs)
   | otherwise = c1 : simplifyAnds (c2 : cs)
 
+-- As far as period finding is concerned
+--   f
+-- is the same as
+--   not f
+
 snot :: Formula -> Formula
-snot f = Formula (simplifyAnds (clauses true ++ clauses f))
+snot f = f 
 
 sxor :: Formula -> Formula -> Formula
 sxor (Formula cs1) (Formula cs2) = Formula (simplifyAnds (sort (cs1 ++ cs2)))
 
 sand :: Formula -> Formula -> Formula
 sand (Formula cs1) (Formula cs2) = Formula (simplifyAnds (sort (prod cs1 cs2)))
-  where prod cs1 cs2 = [ Ands (simplifyLits (sort (lits c1 ++ lits c2)))
-                       | c1 <- cs1, c2 <- cs2 ]
+  where
+    prod cs1 cs2 = [ Ands (mergeLits (lits c1) (lits c2)) | c1 <- cs1, c2 <- cs2 ]
           
 --
 
@@ -579,7 +593,7 @@ runPE n a m res = pretty $ runST $ do
       unless (null us)
         (mapM_ (\(v,b) -> printf "US: %s = %s\n" (show v) (if b then "1" else "0")) us)
       putStrLn (take 50 (repeat '_'))
-      return (foldr max 0 (map (length . extractVarsF . (^.current) . fst) ts))
+      return (foldr max 0 (map (length . extractVarsF . (^.current) . fst) (ts ++ us)))
 
 ----------------------------------------------------------------------------------------
 -- Eventual entry point
@@ -617,7 +631,12 @@ factor m = do
       Nothing -> factor m
       Just s ->
         D.trace (printf "Found period %d" s) $
-        return (gcd (a ^ (s `div` 2) - 1) m, gcd (a ^ (s `div` 2) + 1) m)
-                    
+--        let (f1,f2) = (gcd (a ^ (s `div` 2) - 1) m, gcd (a ^ (s `div` 2) + 1) m)
+        let (f1,f2) = (gcd (powModInteger a (s `div` 2) m - 1) m,
+                       gcd (powModInteger a (s `div` 2) m + 1) m)
+        in if f1 == 1 || f2 == 1
+           then D.trace "Bad period; restart" (factor m)
+           else return (f1,f2)
+                              
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
