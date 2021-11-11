@@ -30,6 +30,8 @@ import qualified Debug.Trace as D
 ----------------------------------------------------------------------------------------
 -- Debug Helpers
 
+-- Use D.trace to overide the flag
+
 debug = False
 
 trace :: String -> a -> a
@@ -96,7 +98,7 @@ instance Ord Ands where
 -- Formula [] = False
 -- Formula [[],[a],[b,c]] = True XOR a XOR (b && c)
 
--- maintain no clause is a subset of another
+-- maintain that no clause is a subset of another
 
 newtype Formula = Formula { clauses :: [Ands]}
   deriving (Eq,Ord)
@@ -133,6 +135,8 @@ fromVar s = Formula { clauses = [ Ands [s] ] }
 
 -- 
 
+-- maintain sorting; remove duplicates
+
 mergeLits :: [Literal] -> [Literal] -> [Literal]
 mergeLits [] ss = ss
 mergeLits ss [] = ss
@@ -140,11 +144,13 @@ mergeLits (s1:ss1) (s2:ss2) | s1 < s2 = s1 : mergeLits ss1 (s2:ss2)
                             | s2 < s1 = s2 : mergeLits (s1:ss1) ss2
                             | otherwise = mergeLits ss1 (s2 : ss2)
 
+-- Input sorted
 -- As far as period funding is concerned
 --   a + ab
 -- is the same as
 --   ab
 -- so remove subsets
+-- a + a = 0 so remove duplicates
 
 simplifyAnds :: [Ands] -> [Ands]
 simplifyAnds [] = []
@@ -354,34 +360,6 @@ makeExpMod n a m xs ts us = do
                     rest)
 
 ----------------------------------------------------------------------------------------
--- Standard evaluation
-
--- checking whether controls are active
--- returns yes/no/unknown as Just True, Just False, Nothing
-
-controlsActive :: [Bool] -> [Value] -> Maybe Bool
-controlsActive bs cs =
-  if | not r' -> Just False
-     | Nothing `elem` r -> Nothing
-     | otherwise -> Just True
-  where
-    r' = and (catMaybes r)
-
-    r = zipWith f bs (map (^.current) cs)
-
-    f b form | isStatic form = Just (b == toBool form)
-    f b _ = Nothing
-
-interpGT :: GToffoli s -> ST s ()
-interpGT (GToffoli ctx bs cs t) = do
-  controls <- mapM readSTRef cs
-  tv <- readSTRef t
-  when (controlsActive bs controls == Just True) $ writeSTRef t (vnot tv)
-
-interpOP :: OP s -> ST s ()
-interpOP = foldMap interpGT
-
-----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
 -- Inverse expmod circuits abstraction for PE; can be run with
 -- all static parameters or with mixed static and dynamic parameters
@@ -426,58 +404,21 @@ makeInvExpMod n a m res = do
           , _circ = S.reverse circuit
           })
 
-interpCircuit :: InvExpModCircuit s -> ST s (InvExpModCircuit s)
-interpCircuit c = do
-  interpOP (c^.circ)
-  return c
-
-runForward :: Int -> Integer -> Integer -> Integer -> Integer
-runForward n a m x = runST $ do
-  circuitR <- makeInvExpMod n a m 0
-  mapM_ (uncurry writeSTRef) (zip (circuitR^.xs) (map newValue (fromInt (n+1) x)))
-  mapM_ (uncurry writeSTRef) (zip (circuitR^.ts) (map newValue (fromInt (n+1) 1)))
-  mapM_ (uncurry writeSTRef) (zip (circuitR^.us) (map newValue (fromInt (n+1) 0)))
-  let circuit = set circ (S.reverse (circuitR^.circ)) circuitR
-  circuit <- interpCircuit circuit
-  xs <- mapM readSTRef (circuit^.xs)
-  ts <- mapM readSTRef (circuit^.ts)
-  us <- mapM readSTRef (circuit^.us)
-  let res = if odd n then ts else us
-  let zeros = if odd n then us else ts
-  assertMessage "runForward"
-    (printf "xs have changed to %d" (valueToInt xs))
-    (assert (x == valueToInt xs))
-    (return ())
-  assertMessage "runForward"
-    (printf "us are not 0s: %d" (valueToInt zeros))
-    (assert (0 == valueToInt zeros))
-    (return ())
-  return (valueToInt res)
-
-runBackward :: Int -> Integer -> Integer -> Integer -> Integer -> Bool
-runBackward n a m x res = runST $ do
-  circuit <- makeInvExpMod n a m res
-  mapM_ (uncurry writeSTRef) (zip (circuit^.xs) (map newValue (fromInt (n+1) x)))
-  circuit <- interpCircuit circuit
-  xs <- mapM readSTRef (circuit^.xs)
-  ts <- mapM readSTRef (circuit^.ts)
-  us <- mapM readSTRef (circuit^.us)
-  assertMessage "runBackward"
-    (printf "xs have changed to %d" (valueToInt xs))
-    (assert (x == valueToInt xs))
-    (return ())
-  assertMessage "BackForward"
-    (printf "ts are not 1s: %d" (valueToInt ts))
-    (assert (1 == valueToInt ts))
-    (return ())
-  assertMessage "BackForward"
-    (printf "us are not 0s: %d" (valueToInt us))
-    (assert (0 == valueToInt us))
-    (return ())
-  return True     
-
 ----------------------------------------------------------------------------------------
 -- Phase to deal with all statically known gates
+
+controlsActive :: [Bool] -> [Value] -> Maybe Bool
+controlsActive bs cs =
+  if | not r' -> Just False
+     | Nothing `elem` r -> Nothing
+     | otherwise -> Just True
+  where
+    r' = and (catMaybes r)
+
+    r = zipWith f bs (map (^.current) cs)
+
+    f b form | isStatic form = Just (b == toBool form)
+    f b _ = Nothing
 
 restoreSaved :: GToffoli s -> ST s (GToffoli s)
 restoreSaved g@(GToffoli ctx bsOrig csOrig t) = do
@@ -542,6 +483,11 @@ specialCases msg [b1,b2] [cx1,cx2] tx [x1,x2] y =
       tfs = sxor cfs (y^.current)
   in do traceM (printf "%s ==> %s" msg (show tfs))
         writeSTRef tx $ set current tfs y
+specialCases msg [b1,b2,b3] [cx1,cx2,cx3] tx [x1,x2,x3] y = 
+  let cfs = sand (x1^.current) (sand (x2^.current) (x3^.current))
+      tfs = sxor cfs (y^.current)
+  in do traceM (printf "%s ==> %s" msg (show tfs))
+        writeSTRef tx $ set current tfs y
 specialCases msg bs cs t controls vt = do
   error (printf "%s (Toffoli 4 or more)" msg)
 
@@ -565,7 +511,9 @@ peG size (g@(GToffoli ctx bs' cs' t), count) = do
 
 peCircuit :: InvExpModCircuit s -> ST s (InvExpModCircuit s)
 peCircuit c = do
-  c <- simplifyCircuit c
+  D.traceM (printf "Circuit has %d gates" (S.length (c^.circ)))
+--  c <- simplifyCircuit c
+--  D.traceM (printf "Simplified to circuit with %d gates" (S.length (c^.circ)))
   let size = S.length (c^.circ)
   op' <- foldMap (peG size) $ S.zip (c^.circ) (S.fromFunction size (+1))
   return $ set circ op' c
@@ -576,7 +524,8 @@ peCircuit c = do
 
 runPE :: Int -> Integer -> Integer -> Integer -> IO Int
 runPE n a m res = pretty $ runST $ do
-  circuit <- makeInvExpMod n a m res 
+  circuit <- makeInvExpMod n a m res
+  D.traceM (printf "Generated circuit")
   circuit <- peCircuit circuit
   ts <- mapM readSTRef (circuit^.ts)
   us <- mapM readSTRef (circuit^.us)
@@ -599,6 +548,9 @@ runPE n a m res = pretty $ runST $ do
 -- Eventual entry point
 
 -- We need to make sure this does not search too far !!!
+-- This is not good enough I think:
+-- it seems that the period is between 2^(v-1) and 2(v+1) for
+-- the v we chose (y = 2^v)
 
 searchAround :: Integer -> Integer -> Integer -> Maybe Integer
 searchAround  y m a =
@@ -620,17 +572,17 @@ factor m = do
     else do
     x <- randomRIO (0,m)
     let res = powModInteger a x m 
-    let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
+--    let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
+    let n = ceiling $ logBase 2 (fromInteger m)
     putStr "Running InvExpMod circuit symbolically with: "
     putStrLn (printf "n = %d; a = %d; m = %d; res = %d" n a m res)
     numberVars <- runPE n a m res
     let y = 2 ^ numberVars
-    -- y is close to a multiple of the period
+    putStrLn (printf "Searching for period around %d" y)
     case searchAround y m a of
       Nothing -> factor m
       Just s ->
         D.trace (printf "Found period %d" s) $
---        let (f1,f2) = (gcd (a ^ (s `div` 2) - 1) m, gcd (a ^ (s `div` 2) + 1) m)
         let (f1,f2) = (gcd (powModInteger a (s `div` 2) m - 1) m,
                        gcd (powModInteger a (s `div` 2) m + 1) m)
         in if f1 == 1 || f2 == 1
@@ -639,3 +591,5 @@ factor m = do
                               
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
+
+-- 150878640977
