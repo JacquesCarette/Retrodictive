@@ -602,7 +602,6 @@ runPE n a m res = pretty $ runST $ do
 
 searchAround :: Integer -> Integer -> Integer -> Maybe Integer
 searchAround  y m a =
-  D.trace (printf "Searching for a multiple of the period around %d" y) $ 
   if powModInteger a y m == 1 then Just y
   else 
     let s = maybe
