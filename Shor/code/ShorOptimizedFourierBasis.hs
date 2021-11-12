@@ -560,16 +560,15 @@ runPE n a m res = pretty $ runST $ do
 -- the v we chose (y = 2^v)
 
 searchAround :: Int -> Integer -> Integer -> Integer -> Maybe Integer
-searchAround  n y m a = loop pinc pdec
+searchAround  n y m a = loop pinc
   where 
     bound = n * n * n -- about (log N)^3
     pinc = take bound [0,2..]
-    pdec = take bound [0,-2..]
     check y = powModInteger a y m == 1
-    loop [] [] = Nothing
-    loop (d:ds) (e:es) = if check (y+d) then Just (y+d)
-                         else if check (y-e) then Just (y-e)
-                              else loop ds es
+    loop [] = Nothing
+    loop (d:ds) = if check (y+d) then Just (y+d)
+                  else if check (y-d) then Just (y-d)
+                       else loop ds
 
 factor :: Integer -> Int -> IO (Integer,Integer)
 factor m pat = do
