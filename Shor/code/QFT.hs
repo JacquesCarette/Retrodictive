@@ -11,6 +11,14 @@ import Text.Printf
 
 type C = Complex Double
 
+delta :: Double
+delta = 1e-03
+
+showC :: C -> String
+showC (a :+ b) | abs b < delta = printf "%.1f" a
+               | abs a < delta = printf "i(%.1f)" b
+               | otherwise = printf "(%.1f) + i(%.1f)" a b
+
 omegaN :: Integer -> C
 omegaN n = cis (2 * pi / (fromInteger n))
 
@@ -20,6 +28,7 @@ omegaNpowers n = [ wn ^ p | p <- [0..] ] where wn = omegaN n
 dft :: Integer -> Int -> [C]
 dft n k = [ w  ^ r | r <- [0..] ] where w = (omegaNpowers n) !! k
   
+{--
 -- compute QFT_8 of |0> + |2> + |4> + |6>
 
 q0 :: [C]
@@ -38,6 +47,47 @@ q6 :: [C]
 q6 = dft 8 6
 -- q6 = [1,-i,-1,i,1,-i,-1,i]
 
+-- zipWith (+) q0,q2,q4,q6
+--}
+
+qs :: [[C]]
+qs = map (take 16 . dft 16) [2,5,8,11,14,1]
+
+rs :: [(Int,C)]
+rs = [ (i,sum $ map (!! i) qs) | i <- [0..15]]
+
+sq x = x * x
+
+go :: IO ()
+go = mapM_
+  (\(i,c) ->
+      putStrLn (printf "%2d => %.2f" i (sq (magnitude c))))
+  rs
+
+{--
+
+QFT_16 of |0> + |3> + |6> + |9>  + |12> + |15>
+next to   |1> + |4> + |7> + |10 >+ |13> + |0> 
+next to   |2> + |5> + |8> + |11 >+ |14> + |1> 
+
+ 0 => 36.00  36.00
+ 1 => 0.47    0.47
+ 2 => 0.59    0.59
+ 3 => 0.89    0.89
+ 4 => 2.00    2.00
+ 5 => 22.43  22.43
+ 6 => 3.41    3.41
+ 7 => 0.21    0.21
+ 8 => 0.00    0.00
+ 9 => 0.21    0.21
+10 => 3.41    3.41
+11 => 22.43  22.43
+12 => 2.00    2.00
+13 => 0.89    0.89
+14 => 0.59    0.59
+15 => 0.47    0.47
+
+--}
 
 -------------------------------------------------------------------------------------
 

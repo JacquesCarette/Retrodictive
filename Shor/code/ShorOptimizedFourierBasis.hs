@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module ShorOptimizedFourierBasis where
 
@@ -493,6 +494,10 @@ specialCases msg bs cs t controls vt = do
 
 peG :: Int -> (GToffoli s, Int) -> ST s (OP s)
 peG size (g@(GToffoli ctx bs' cs' t), count) = do
+  when (count `mod` (size `div` 10) == 0) $ 
+    let cd :: Double = fromInteger (toInteger count)
+        sd :: Double = fromInteger (toInteger size)
+    in D.traceM (printf "%.0f %% processed" (cd * 100.0 / sd))
   controls' <- mapM readSTRef cs'
   tv <- readSTRef t
   let (bs,cs,controls) = shrinkControls bs' cs' controls'
@@ -531,17 +536,19 @@ runPE n a m res = pretty $ runST $ do
   us <- mapM readSTRef (circuit^.us)
   return (zip ts (fromInt (n+1) 1), zip us (fromInt (n+1) 0))
   where
-    trueEq (v,b) = isStatic (v^.current) && toBool (v^.current) == b
+    trueEq (v,b) = isStatic (v^.current) 
     
     pretty (ts',us') = do
-      putStrLn (take 50 (repeat '_'))
       let ts = filter (not . trueEq) (nub ts')
       let us = filter (not . trueEq) (nub us')
+{--
+      putStrLn (take 50 (repeat '_'))
       unless (null ts)
         (mapM_ (\(v,b) -> printf "TS: %s = %s\n" (show v) (if b then "1" else "0")) ts)
       unless (null us)
         (mapM_ (\(v,b) -> printf "US: %s = %s\n" (show v) (if b then "1" else "0")) us)
       putStrLn (take 50 (repeat '_'))
+--}
       return (foldr max 0 (map (length . extractVarsF . (^.current) . fst) (ts ++ us)))
 
 ----------------------------------------------------------------------------------------
@@ -572,24 +579,51 @@ factor m = do
     else do
     x <- randomRIO (0,m)
     let res = powModInteger a x m 
---    let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
-    let n = ceiling $ logBase 2 (fromInteger m)
+    let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
+--    let n = ceiling $ logBase 2 (fromInteger m)
+    let q :: Integer = 2 ^ (n+1)
     putStr "Running InvExpMod circuit symbolically with: "
     putStrLn (printf "n = %d; a = %d; m = %d; res = %d" n a m res)
     numberVars <- runPE n a m res
+    putStrLn (printf "%d out of %d variables are involved" numberVars (n+1))
+--    if numberVars == n + 1
+--      then D.trace "Give up; try again" (factor m)
+--      else do
     let y = 2 ^ numberVars
     putStrLn (printf "Searching for period around %d" y)
     case searchAround y m a of
       Nothing -> factor m
       Just s ->
-        D.trace (printf "Found period %d" s) $
+        D.trace (printf "Found period %d (after testing %d of %d (or %.6f %%)"
+                  s (abs (s-y)) q
+                  (let sd :: Double = fromInteger s
+                       yd :: Double = fromInteger y
+                   in (100.0 * (abs (sd - yd)) / (2 ^ (n+1))))) $ 
         let (f1,f2) = (gcd (powModInteger a (s `div` 2) m - 1) m,
                        gcd (powModInteger a (s `div` 2) m + 1) m)
         in if f1 == 1 || f2 == 1
-           then D.trace "Bad period; restart" (factor m)
+           then D.trace "\n\n\t\t********* Bad period; restart\n\n" (factor m)
            else return (f1,f2)
+
+primes :: [Integer]
+primes = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,
+          61,67,71,73,79,83,89,97,101,103,107,109,113,127,
+          131,137,139,149,151,157,163,167,173,179,181,191,
+          193,197,199,211,223,227,229,233,239,241,251,257,
+          263,269,271]
+
+test :: IO Integer
+test= do
+  let p = length primes
+  i <- randomRIO (0, p-1)
+  j <- randomRIO (0, p-1)
+  putStrLn (printf "\n\n\nNumber to factor is product of %d and %d"
+            (primes !! i) (primes !! j))
+  return (primes !! i * primes !! j)
+
+go :: IO (Integer,Integer)
+go = test >>= factor
                               
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
 
--- 150878640977
