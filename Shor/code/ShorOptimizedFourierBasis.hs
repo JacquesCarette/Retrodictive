@@ -572,8 +572,8 @@ searchAround  n y m a = loop (n * n * n) y -- max about (log N)^3
                   then loop (i-1) y
                   else s
 
-factor :: Integer -> IO (Integer,Integer)
-factor m = do
+factor :: Integer -> Int -> IO (Integer,Integer)
+factor m pat = do
   a <- randomRIO (2,m-1)
   let k = gcd m a
   if k /= 1 then do putStrLn "Lucky!"; return (k , m `div` k)
@@ -582,7 +582,9 @@ factor m = do
     let res = powModInteger a x m 
     let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
 --    let n = ceiling $ logBase 2 (fromInteger m)
-    let q :: Integer = 2 ^ (n+1)
+--    let q :: Integer = 2 ^ (n+1)
+    putStr "Pattern.... "
+    putStrLn $ show $ take pat $ map (\x -> (x,powModInteger a x m)) [0..]
     putStr "Running InvExpMod circuit symbolically with: "
     putStrLn (printf "n = %d; a = %d; m = %d; res = %d" n a m res)
     numberVars <- runPE n a m res
@@ -590,10 +592,13 @@ factor m = do
 --    if numberVars == n + 1
 --      then D.trace "Give up; try again" (factor m)
 --      else do
-    let y = 2 ^ numberVars
+    postProcessing n (2 ^ numberVars) m a pat
+
+postProcessing :: Int -> Integer -> Integer -> Integer -> Int -> IO (Integer,Integer)    
+postProcessing n y m a pat = do
     putStrLn (printf "Searching for period around %d" y)
     case searchAround n y m a of
-      Nothing -> factor m
+      Nothing -> factor m pat
       Just s ->
         D.trace (printf "Found period %d (after testing %d of %d (or %.6f %%)"
                   s (abs (s-y)) (n * n * n)
@@ -604,7 +609,9 @@ factor m = do
         let (f1,f2) = (gcd (powModInteger a (s `div` 2) m - 1) m,
                        gcd (powModInteger a (s `div` 2) m + 1) m)
         in if f1 == 1 || f2 == 1
-           then D.trace "\n\n\t\t********* Bad period; restart\n\n" (factor m)
+           then do D.traceM "Trying another multiple"
+                   postProcessing n (y `div` 2) m a pat
+                -- D.trace "\n\n\t\t********* Bad period; restart\n\n" (factor m pat)
            else return (f1,f2)
 
 primes :: [Integer]
@@ -642,7 +649,7 @@ test= do
   return (primes !! i * primes !! j)
 
 go :: IO (Integer,Integer)
-go = test >>= factor
+go = test >>= \m -> factor m 10
                               
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------

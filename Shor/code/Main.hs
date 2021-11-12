@@ -11,7 +11,7 @@ main = do
   putStrLn "Number to factor: (0 to exit)"
   m <- readLn
   when (m /= 0) $ do
-    (f1,f2) <- factor m 
+    (f1,f2) <- factor m 10
     printf "Factors are %d and %d\n" f1 f2
     putStrLn (take 79 (repeat '_'))
     main
