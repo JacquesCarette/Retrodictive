@@ -560,17 +560,16 @@ runPE n a m res = pretty $ runST $ do
 -- the v we chose (y = 2^v)
 
 searchAround :: Int -> Integer -> Integer -> Integer -> Maybe Integer
-searchAround  n y m a = loop (n * n * n) y -- max about (log N)^3
-  where loop 0 y = Nothing
-        loop i y = 
-          if powModInteger a y m == 1 then Just y
-          else let s = maybe
-                       (loop (i-1) (y-2))
-                       Just
-                       (loop (i-1) (y+2))
-               in if s == Nothing
-                  then loop (i-1) y
-                  else s
+searchAround  n y m a = loop pinc pdec
+  where 
+    bound = n * n * n -- about (log N)^3
+    pinc = take bound [0,2..]
+    pdec = take bound [0,-2..]
+    check y = powModInteger a y m == 1
+    loop [] [] = Nothing
+    loop (d:ds) (e:es) = if check (y+d) then Just (y+d)
+                         else if check (y-e) then Just (y-e)
+                              else loop ds es
 
 factor :: Integer -> Int -> IO (Integer,Integer)
 factor m pat = do
@@ -609,7 +608,7 @@ postProcessing n y m a pat = do
         let (f1,f2) = (gcd (powModInteger a (s `div` 2) m - 1) m,
                        gcd (powModInteger a (s `div` 2) m + 1) m)
         in if f1 == 1 || f2 == 1
-           then do D.traceM "Trying another multiple"
+           then do D.traceM "Bad multiple: trying another multiple"
                    postProcessing n (y `div` 2) m a pat
                 -- D.trace "\n\n\t\t********* Bad period; restart\n\n" (factor m pat)
            else return (f1,f2)
