@@ -1,46 +1,123 @@
 module QFT where
 
 import Data.Complex
+import Data.List
 
 import Text.Printf
 
+--
+
+import Numeric (doublemods)
+
 -------------------------------------------------------------------------------------
--- Roots of unity and their powers
+-- Roots of unity 
 
 type C = Complex Double
 
-delta :: Double
-delta = 1e-20
-
-showC :: C -> String
-showC (a :+ b) | abs b < delta = printf "%.20f" a
-               | abs a < delta = printf "i(%.20f)" b
-               | otherwise = printf "(%.20f) + i(%.20f)" a b
-
--- divide complex plane in 2^n turns
+-- divide complex plane in 2^n turns; each turn is (omegaN n)
 
 omegaN :: Int -> C
 omegaN n = cis (2 * pi / (fromInteger (2 ^ n)))
 
--- divide complex plane in 2^n turns and go around 0,1,2,3,... times
+-- Some simple control over howing complex numbers
 
-omegaPowers :: Int -> [C]
-omegaPowers n = [ wn ^ p | p <- [0..] ] where wn = omegaN n
+-- when a number is close enough to 0
+
+delta :: Double
+delta = 1e-20
+
+-- format strings
+
+digits :: Int -> String
+digits = printf "%%.%df" 
+
+digitsPar :: Int -> String
+digitsPar deltaP = "(" ++ digits deltaP ++ ")"
+
+showC :: Int -> C -> String
+showC deltaP (a :+ b)
+  | abs b < delta = printf (digits deltaP) a
+  | abs a < delta = printf ("i" ++ digitsPar deltaP) b
+  | otherwise = printf (digitsPar deltaP ++ " + i" ++ digitsPar deltaP) a b 
+
+printC :: Int -> [C] -> IO ()
+printC deltaP = mapM_ (putStrLn . showC deltaP)
 
 -------------------------------------------------------------------------------------
 -- Represent numbers in fourier basis
 
--- n = 4 bits; total number of rotations around complex plane = 16
--- units (# of rotations)  1/16 , 2/16 , 4/16 , 8/16
--- to represent x in fourier basis:
--- (w^1)^x, (w^2)^x, (w^4)^x, (w^8)^x
+-- Things are reasonably accurate until dimension n ~ 500
 
-fourierBasis :: Int -> [C]
-fourierBasis n = [ wn ^ (2 ^ i) | i <- [0..(n-1)] ] where wn = omegaN n
+-- Fourier basis
 
-toFourierBasis :: Int -> Integer -> [C]
-toFourierBasis n x = [ fb ^ x | fb <- fourierBasis n ] 
+-- when n=2, the complex plane is divided in four regions and the unit
+-- of rotation is pi/2;
+-- the representation of a number x in this Fourier basis is [x, 2x]
+-- where each entry represents the number of turns to perform. So
+
+-- 0 |-> [0,0]         so [ right , right ]
+-- 1 |-> [1,2]         so [ up , left ]
+-- 2 |-> [2,4] = [2,0] so [ left, right ]
+-- 3 |-> [3,6] = [3,2] so [ down , left ]
+
+-- gives the numbers of rotations to perform in each position
+
+toFourierBasis :: Int -> Integer -> [Integer]
+toFourierBasis n x = take n (doublemods x (2 ^ n))
+
+-- > map (toFourierBasis 2) [0..3]
+-- [[0,0],[1,2],[2,0],[3,2]]
+
+-- actually do the rotations
+
+valueFB :: Int -> [Integer] -> [C]
+valueFB n = map ((omegaN n) ^)
+
+-- > map (valueFB 2 . toFourierBasis 2) [0..3]
+-- [ 1, 1]
+-- [ i,-1]
+-- [-1, 1]
+-- [-i,-1]
+
+-- We are more interested in the opposite direction
+
+-- If we know one coefficient and its index, what can we say
+-- about the corresponding number in the computational basis
+-- In the example:
+
+-- 0 |-> [0,0] |-> [ 1, 1]
+-- 1 |-> [1,2] |-> [ i,-1]
+-- 2 |-> [2,0] |-> [-1, 1]
+-- 3 |-> [3,2] |-> [-i,-1]
+
+-- say we know that second position (pos) is 1
+-- we calculate that the exponent (expon) must be 0
+-- and then we solve for x:
+--        x (2 ^ pos) = expon mod (2 ^ n)
+-- i.e.   2x = 0 mod 4
+-- to get x = [0,2]
+
+fromFourierBasis :: Int -> (Int,C) -> [Integer]
+fromFourierBasis n (fi,fc) = sort . nub $ xs
+  where expon = round $ realPart $ log fc / log (omegaN n)
+        xs = [ ((2^n * y + expon) `div` (2 ^ fi)) `mod` (2 ^ n)
+             | y <- [0..((2 ^ n) - 1)]]
   
+
+-- test
+
+testFB :: Int -> Integer -> Int -> [Integer]
+testFB n x pos = fromFourierBasis n (pos,cs !! pos)
+  where cs = valueFB n $ toFourierBasis n x
+
+-- When pos = 0, we recover the number exactly
+-- QFT> map (\y -> testFB 2 y 0) [0..3]
+-- [[0],[1],[2],[3]]
+
+-- When pos = 1, we recover numbers with the same parity
+-- QFT> map (\y -> testFB 2 y 1) [0..3]
+-- [[0,2],[1,3],[0,2],[1,3]]
+
 -------------------------------------------------------------------------------------
 -- Now we need to do x, cx, and ccx in fourier basis
 
@@ -55,6 +132,10 @@ toFourierBasis n x = [ fb ^ x | fb <- fourierBasis n ]
 
 
 {--
+
+omegaPowers :: Int -> [C]
+omegaPowers n = [ wn ^ p | p <- [0..] ] where wn = omegaN n
+
 dft :: Int -> Int -> [C]
 dft n k = [ w  ^ r | r <- [0..] ] where w = (omegaPowers n) !! k
   
@@ -113,10 +194,6 @@ next to   |2> + |5> + |8> + |11 >+ |14> + |1>
 14 => 0.59    0.59
 15 => 0.47    0.47
 
---}
-
--------------------------------------------------------------------------------------
-
 -- Do classical simulation of QFT
 
 -- Shor:
@@ -139,4 +216,5 @@ next to   |2> + |5> + |8> + |11 >+ |14> + |1>
 -- if we get rid of ccx, becomes 2SAT or some decidable graph
 -- algorithm or some variant of Ising model that is decidable
 
--------------------------------------------------------------------------------------
+--}
+
