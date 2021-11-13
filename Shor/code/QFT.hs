@@ -5,30 +5,59 @@ import Data.Complex
 import Text.Printf
 
 -------------------------------------------------------------------------------------
--- A small experiment
-
 -- Roots of unity and their powers
 
 type C = Complex Double
 
 delta :: Double
-delta = 1e-03
+delta = 1e-20
 
 showC :: C -> String
-showC (a :+ b) | abs b < delta = printf "%.1f" a
-               | abs a < delta = printf "i(%.1f)" b
-               | otherwise = printf "(%.1f) + i(%.1f)" a b
+showC (a :+ b) | abs b < delta = printf "%.20f" a
+               | abs a < delta = printf "i(%.20f)" b
+               | otherwise = printf "(%.20f) + i(%.20f)" a b
 
-omegaN :: Integer -> C
-omegaN n = cis (2 * pi / (fromInteger n))
+-- divide complex plane in 2^n turns
 
-omegaNpowers :: Integer -> [C]
-omegaNpowers n = [ wn ^ p | p <- [0..] ] where wn = omegaN n
+omegaN :: Int -> C
+omegaN n = cis (2 * pi / (fromInteger (2 ^ n)))
 
-dft :: Integer -> Int -> [C]
-dft n k = [ w  ^ r | r <- [0..] ] where w = (omegaNpowers n) !! k
+-- divide complex plane in 2^n turns and go around 0,1,2,3,... times
+
+omegaPowers :: Int -> [C]
+omegaPowers n = [ wn ^ p | p <- [0..] ] where wn = omegaN n
+
+-------------------------------------------------------------------------------------
+-- Represent numbers in fourier basis
+
+-- n = 4 bits; total number of rotations around complex plane = 16
+-- units (# of rotations)  1/16 , 2/16 , 4/16 , 8/16
+-- to represent x in fourier basis:
+-- (w^1)^x, (w^2)^x, (w^4)^x, (w^8)^x
+
+fourierBasis :: Int -> [C]
+fourierBasis n = [ wn ^ (2 ^ i) | i <- [0..(n-1)] ] where wn = omegaN n
+
+toFourierBasis :: Int -> Integer -> [C]
+toFourierBasis n x = [ fb ^ x | fb <- fourierBasis n ] 
   
+-------------------------------------------------------------------------------------
+-- Now we need to do x, cx, and ccx in fourier basis
+
+-------------------------------------------------------------------------------------
+-------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
 {--
+dft :: Int -> Int -> [C]
+dft n k = [ w  ^ r | r <- [0..] ] where w = (omegaPowers n) !! k
+  
 -- compute QFT_8 of |0> + |2> + |4> + |6>
 
 q0 :: [C]
@@ -48,7 +77,6 @@ q6 = dft 8 6
 -- q6 = [1,-i,-1,i,1,-i,-1,i]
 
 -- zipWith (+) q0,q2,q4,q6
---}
 
 qs :: [[C]]
 qs = map (take 16 . dft 16) [2,5,8,11,14,1]
@@ -63,8 +91,6 @@ go = mapM_
   (\(i,c) ->
       putStrLn (printf "%2d => %.2f" i (sq (magnitude c))))
   rs
-
-{--
 
 QFT_16 of |0> + |3> + |6> + |9>  + |12> + |15>
 next to   |1> + |4> + |7> + |10 >+ |13> + |0> 
