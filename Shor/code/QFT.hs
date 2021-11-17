@@ -9,6 +9,73 @@ import Text.Printf
 
 import Numeric (doublemods)
 
+{--
+
+
+What is the Fourier transform of a formula
+
+  ands0 + ands1 + ands2 + ...
+
+
+Try simple things:
+
+FT_4 (x0 + x1) = 9
+
+if we expand x0=0,x1=1 or x0=1,x1=0
+
+0001  1, 2, 4, 8
+0010  2, 4, 8, 0
+0101  5,10, 4, 8
+0110  6,12, 8, 0
+1001  9, 2, 4, 8
+1010 10, 4, 8, 0
+1101 13,10, 4, 8
+1110 15,14,12, 8
+----------------
+     13,10, 4, 8 ==> 9
+
+
+FT_4 (x0 x1) = 4
+
+if we expand x0=1,x1=1 
+
+0011  3, 6,12, 8
+0111  7,14,12, 8
+1011 11, 6,12, 8
+1111 15,14,12, 8
+----------------
+      4, 8, 0, 0 ==> 4
+
+
+
+No need to forget about boolean value or ALL variables
+Try to keep track of values; if they get too complex then run with approximation
+
+n = 4
+period = 3
+
+0000
+0011
+0110
+1001
+1100
+1111
+0010
+0101
+1000
+1011
+1110
+0001
+0100
+0111
+1010
+1101
+0000
+
+All the numbers are really involved in the cycle
+
+--}
+
 -------------------------------------------------------------------------------------
 -- Roots of unity 
 
@@ -103,7 +170,33 @@ fromFourierBasis n (fi,fc) = sort . nub $ xs
         xs = [ ((2^n * y + expon) `div` (2 ^ fi)) `mod` (2 ^ n)
              | y <- [0..((2 ^ n) - 1)]]
   
+-- In Shor's algorithm, we measure one number in the Fourier
+-- basis. Let n = 8, N = 2^n = 256, and say we measured:
+-- [123,246,236,216,176,96,192,128]
+-- which is 123 in that FourierBasis.
+-- We are promised this number is close to 2^n / period
 
+-- When evaluating backwards, we don't know this number but we know
+-- that what was measured was of the form:
+-- 
+-- [    q `mod` N
+-- ,   2q `mod` N
+-- ,   4q `mod` N
+-- ,   8q `mod` N
+-- ,  16q `mod` N
+-- ,  32q `mod` N
+-- ,  64q `mod` N
+-- , 128q `mod` N
+-- ]
+--
+-- for some unknown q
+
+-- Let's feed this through QFT backwards to see what we get in terms
+-- in the computational basis in terms of the unkonwn q
+
+
+
+-------------------------------------------------------------------------------------
 -- test
 
 testFB :: Int -> Integer -> Int -> [Integer]
