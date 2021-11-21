@@ -53,6 +53,29 @@ showSimple = runST $ do
   writeSTRef (qs !! 1) (newDynValue "q" "1" "q1")
   showOP op
 
+
+forwSimple :: String
+forwSimple = runST $ do
+  (op,cs,qs) <- simple 0
+  writeSTRef (cs !! 0) (newDynValue "c" "0" "c0")
+  writeSTRef (cs !! 1) (newDynValue "c" "1" "c1")
+  writeSTRef (cs !! 2) (newDynValue "c" "2" "c2")
+  writeSTRef (qs !! 0) (newValue "q" "0" False)
+  writeSTRef (qs !! 1) (newValue "q" "1" False)
+  peOP op
+  cvs <- mapM readSTRef cs
+  qvs <- mapM readSTRef qs
+  return (show cvs ++ show qvs)
+
+{--
+
+q0 = c1 + c0c1 + c0c2 + c1c2
+q1 = c0 + c2 + c0c1 + c1c2 + c0c1c2
+
+
+
+--}
+
 retroSimple :: Integer -> String
 retroSimple q = runST $ do
   (op,cs,qs) <- simple 0
