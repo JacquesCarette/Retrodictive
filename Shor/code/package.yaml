@@ -1,0 +1,33 @@
+name:                Shor
+version:             0.1.0.0
+github:              JacquesCarette/Theseus
+license:             BSD3
+author:
+  - Jacques Carette
+  - Amr Sabry
+maintainer:          "carette@mcmaster.ca"
+copyright:           "Jacques Carette, Amr Sabry"
+category:            "software"
+
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/JacquesCarette/Theseus#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- vector >= 0.12 && < 1
+- QuickCheck >= 2.12 && < 3
+- containers >= 0.6 && < 0.7
+- assert >= 0.0 && < 0.1
+- integer-gmp >= 1.0 && < 2.0
+- lens >= 4.10 && < 6.0
+- random >= 1.2.0
+
+library:
+  source-dirs: .

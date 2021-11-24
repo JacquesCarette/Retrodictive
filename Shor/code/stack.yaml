@@ -1,0 +1,8 @@
+resolver: lts-18.13
+
+packages:
+- .
+
+extra-deps:
+- assert-0.0.1.2
+
