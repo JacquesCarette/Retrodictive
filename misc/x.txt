@@ -1,0 +1,7 @@
+[[1,  0]
+ [0, -1]]
+;
+
+% I_1 + (-1)*J_1
+% the reason to use J_1 instead of I_1 (they are equal) is that it
+% generalizes better
