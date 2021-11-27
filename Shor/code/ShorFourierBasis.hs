@@ -13,6 +13,10 @@
 -- X basis or real wave basis or Fourier 2 basis
 -- Values are sequences of length 2 that takes integer values
 
+-- Use comonads to reprsent the "wave"; how each bit contributes to
+-- the global correlation?
+-- Ideas from cellular automata ??
+
 -- Running in the X basis gives us information about phase difference
 -- between values
 

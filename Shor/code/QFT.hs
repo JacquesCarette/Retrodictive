@@ -130,7 +130,7 @@ printC deltaP = mapM_ (putStrLn . showC deltaP)
 -- gives the numbers of rotations to perform in each position
 
 toFourierBasis :: Int -> Integer -> [Integer]
-toFourierBasis n x = take n (doublemods x (2 ^ n))
+toFourierBasis n x = take n (doublemods (x `mod` 2 ^ n)(2 ^ n))
 
 -- > map (toFourierBasis 2) [0..3]
 -- [[0,0],[1,2],[2,0],[3,2]]
