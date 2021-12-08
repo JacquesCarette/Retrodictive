@@ -1,8 +1,5 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module ANF where
 
-import Control.Lens hiding (op,(:<))
 import Data.List (intersperse,sort)
 
 --
@@ -61,12 +58,17 @@ fromVar s = Formula { clauses = [ Ands [s] ] }
 
 -- 
 
-simplifyLits :: [Literal] -> [Literal]
-simplifyLits [] = []
-simplifyLits [s] = [s]
-simplifyLits (s1 : s2 : ss) 
-  | s1 == s2 = simplifyLits (s2 : ss)
-  | otherwise = s1 : simplifyLits (s2 : ss)
+-- Remove duplicates from a sorted list of literals
+
+removeDups :: [Literal] -> [Literal]
+removeDups [] = []
+removeDups [s] = [s]
+removeDups (s1 : s2 : ss) 
+  | s1 == s2 = removeDups (s2 : ss)
+  | otherwise = s1 : removeDups (s2 : ss)
+
+-- Since a & a => a
+-- remove redundant formulae from a sorted list
 
 simplifyAnds :: [Ands] -> [Ands]
 simplifyAnds [] = []
@@ -74,6 +76,8 @@ simplifyAnds [c] = [c]
 simplifyAnds (c1 : c2 : cs) 
   | c1 == c2 = simplifyAnds cs
   | otherwise = c1 : simplifyAnds (c2 : cs)
+
+-- Boolean operations on formulae in ANF
 
 snot :: Formula -> Formula
 snot f = Formula (simplifyAnds (clauses true ++ clauses f))
@@ -83,32 +87,21 @@ sxor (Formula cs1) (Formula cs2) = Formula (simplifyAnds (sort (cs1 ++ cs2)))
 
 sand :: Formula -> Formula -> Formula
 sand (Formula cs1) (Formula cs2) = Formula (simplifyAnds (sort (prod cs1 cs2)))
-  where prod cs1 cs2 = [ Ands (simplifyLits (sort (lits c1 ++ lits c2)))
+  where prod cs1 cs2 = [ Ands (removeDups (sort (lits c1 ++ lits c2)))
                        | c1 <- cs1, c2 <- cs2 ]
           
 --
 
-data Value = Value { _current :: Formula, _saved :: Maybe Bool }
-  deriving Eq
-
-makeLenses ''Value
-
-instance Show Value where
-  show v = show (v^.current)
-
-vnot :: Value -> Value
-vnot v = set current (snot (v^.current)) v
-
---
+type Value = Formula
 
 newValue :: Bool -> Value
-newValue b = Value { _current = fromBool b , _saved = Nothing }
+newValue = fromBool
 
 newDynValue :: String -> Value
-newDynValue s = Value { _current = fromVar s , _saved = Nothing }
+newDynValue = fromVar
 
-valueToInt :: [Value] -> Integer
-valueToInt = toInt . map (\v -> toBool (v^.current)) 
+valuesToInt :: [Value] -> Integer
+valuesToInt = toInt . map toBool
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------

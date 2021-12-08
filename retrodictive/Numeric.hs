@@ -3,6 +3,12 @@ module Numeric where
 ----------------------------------------------------------------------------------------
 -- Numeric computations
 
+-- 
+-- Least significant bit at the head of the list
+-- > fromInt 3 4
+-- [False,False,True]
+-- 
+
 fromInt :: Int -> Integer -> [Bool]
 fromInt len n = bits ++ replicate (len - length bits) False 
   where bin 0 = []
@@ -13,7 +19,8 @@ toInt :: [Bool] -> Integer
 toInt bs = foldr (\ b n -> toInteger (fromEnum b) + 2*n) 0 bs
 
 doublemods :: Integer -> Integer -> [Integer]
-doublemods a m = a : doublemods ((2*a) `mod` m) m
+doublemods a m = am : doublemods ((2*am) `mod` m) m
+  where am = a `mod` m
 
 sqmods :: Integer -> Integer -> [Integer]
 sqmods a m = am : sqmods (am * am) m

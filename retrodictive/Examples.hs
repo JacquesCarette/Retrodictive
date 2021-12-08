@@ -134,6 +134,49 @@ retrodictiveRunBernsteinVazirani n u b = runST $ do
 
 -- Simon
 
+-- Given a two-to-one function f : B^n -> B^n where f(x) = f(x+a)
+-- Find a
+
+-- Example: n=2, a=11
+
+simon1 :: ST s (Circuit s)
+simon1 = do
+  x0 <- newDynS "x0"
+  x1 <- newDynS "x1"
+  t0 <- newDynS "t0"
+  t1 <- newDynS "t1"
+  return $ Circuit { op = c x0 x1 t0 t1, ins = [x0,x1], outs = [t0,t1] }
+    where c x0 x1 t0 t1 = S.fromList [cx x0 t0,
+                                      cx x0 t1,
+                                      cx x1 t0,
+                                      cx x1 t1]
+
+-- pick random x (=3), set t0t1 = 00 in input; run forward to get f(x) (=0)
+-- now run backwards with that value for f(x) (=0)
+-- that gives us the equations for x0x1 such f(x0x1) = f(x0x1 + a0a1)
+
+runSimon1 :: Integer -> Integer
+runSimon1 x = runST $ do
+  c <- simon1
+  updateVarsB (ins c) (fromInt 2 x)
+  updateVarsB (outs c) (fromInt 2 0)
+  evalCircuit c Forward
+  rs <- mapM readSTRef (outs c)
+  return (valuesToInt rs)
+
+retrodictiveSimon1 :: Integer -> [Formula]
+retrodictiveSimon1 r = runST $ do
+  c <- simon1
+  updateVarsB (outs c) (fromInt 2 r)
+  evalCircuit c Backward
+  rs <- mapM readSTRef (outs c)
+  return rs
+
+-- result:
+-- a0 = x0 + x1
+-- a1 = x0 + x1 
+-- So either x0 = x1, a0=0  a1=0
+-- or x0 /= x1,       a0=1  a1=1
 
 
 
