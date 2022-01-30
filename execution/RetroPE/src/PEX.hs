@@ -1,10 +1,11 @@
 
-module PEZ where
+module PEX where
 
--- partial evaluation of a circuit in the Z basis (the computational basis)
+-- partial evaluation of a circuit;
+-- here we only care if a variable is used or not
 
 import Data.STRef
-import Data.List (intercalate,group,sort)
+import Data.List (intercalate,group,sort,nub,intersect,(\\))
 import Data.Maybe (catMaybes, maybe, fromMaybe, fromJust)
 import qualified Data.Sequence as S
 
@@ -16,16 +17,23 @@ import System.Random (randomRIO)
 import Text.Printf
 
 import Circuits
-import Synthesis
 
 ----------------------------------------------------------------------------------------
--- Values can static or symbolic formulae
--- Formulae are in "algebraic normal form"
+{--
+
+Approximate the full ANF by only keep track of ONE variable in each AND clause. We
+will assume that x_{i+1} is more significant that x_{i} so we will approximate
+x_5 && x_2 but just x_5
+
+Next approximation in PEY keeps track of at most two variables
+
+--}
 
 type Literal = String
 
 -- Ands []      = True
 -- Ands [a,b,c] = a && b && c
+-- but only keep on variable in list (msb)
 
 newtype Ands = Ands { lits :: [Literal] }
   deriving (Eq,Ord)
@@ -39,7 +47,8 @@ mapA :: ([Literal] -> [Literal]) -> Ands -> Ands
 mapA f (Ands lits) = Ands (f lits)
 
 (&&&) :: Ands -> Ands -> Ands
-(Ands lits1) &&& (Ands lits2) = Ands (lits1 ++ lits2)
+(Ands []) &&& (Ands []) = Ands []
+(Ands lits1) &&& (Ands lits2) = Ands [foldr max "" (lits1 ++ lits2)]
 
 (***) :: [Ands] -> [Ands] -> [Ands]
 ands1 *** ands2 = [ and1 &&& and2 | and1 <- ands1, and2 <- ands2 ]
@@ -160,7 +169,7 @@ run circ = pe $ S.reverse (op circ)
 ----------------------------------------------------------------------------------------
 -- Tests
 
--- Retrodictive execution of Shor's algorithm
+-- Retrodictive execution
 
 peExpMod :: Int -> Integer -> Integer -> Integer -> IO ()
 peExpMod n a m r = printResult $ runST $ do
@@ -189,43 +198,6 @@ retroShor m = do
         then putStrLn (printf "Lucky guess %d = %d * %d\n" m gma (m `div` gma))
         else do putStrLn (printf "n=%d; a=%d\n" n a)
                 peExpMod n a m 1
-
--- Deutsch
-
-
-retroDeutsch :: ([Bool] -> [Bool]) -> IO ()
-retroDeutsch f = printResult $ runST $ do
-  x <- newVar (fromVar "x")
-  y <- newVar false
-  run Circuit { op = synthesis 2 [x,y] f
-              , xs = [x]
-              , ancillaIns = [y]
-              , ancillaOuts = [y]
-              , ancillaVals = undefined
-              }
-  readSTRef y
-  where printResult yv = putStrLn (show yv)
-
-deutschId [x,y]  = [x,y /= x]
-deutschNot [x,y] = [x,y /= not x]
-deutsch0 [x,y]   = [x,y]
-deutsch1 [x,y]   = [x,not y]
-
-{--
-
-*PEZ> retroDeutsch deutschId
-x
-
-*PEZ> retroDeutsch deutschNot
-1 + x
-
-*PEZ> retroDeutsch deutsch0
-0
-
-*PEZ> retroDeutsch deutsch1
-1
-
---}
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------

@@ -1,4 +1,6 @@
 {-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Synthesis where
 
@@ -6,62 +8,42 @@ import Data.List
 import qualified Data.Sequence as S
 import Data.Sequence (Seq, singleton, viewl, ViewL(..), (><))
 import Control.Monad.ST
+import Data.STRef
+
+import Debug.Trace as D
+import Text.Printf
 
 import Circuits
 
-{--
+-- Synthsis algorithm from https://msoeken.github.io/papers/2016_rc_1.pdf
 
-A fast symbolic transformation based algorithm for reversible logic synthesis
+----------------------------------------------------------------------------------------
+-- Simple helpers
 
- Given 1-1 function f : n <-> n
- generate n vars
- C circuit over n vars = empty
-
- x = i
- y = f(i)
-
- X0 = { i | xi = 0 }
- X1 = { i | xi = 1 }
-
- Y0 = { i | yi = 0 }
- Y1 = { i | yi = 1 }
-
- Positions where x and y differ are:
-
-   X1 intersect Y0 
-   X0 intersect Y1
-
- Transform C
-
-   Toffoli (X1,i) for i in X0 intersect Y1;
-   Toffoli (Y1,i) for i in X1 intersect Y0;
-   old C
- 
---}
-
-{--
-
-Take two bit sequences x and y and return GToffoli gates to convert x to y
-without disturbing any bit sequences that is lexicographically smaller than x
-
---}
-
-instance Value Bool where
-  zero = False
-  one =  True
-  snot b =  not b
-  sand b1 b2 = b1 && b2
-  sxor b1 b2 = b1 /= b2
+-- negate bit i 
 
 notI :: Int -> [Bool] -> [Bool]
-notI i as = xs ++ (not y : ys)
-  where (xs,y:ys) = splitAt i as
+notI i as = xs ++ (not y : ys) where (xs,y:ys) = splitAt i as
 
 notIs :: [Bool] -> [Int] -> [Bool]
 notIs = foldr notI
 
+----------------------------------------------------------------------------------------
+-- Algorithm
+
+-- Core step of algorithm
+-- Take two bit sequences x and y and return GToffoli gates to convert x to y
+-- without disturbing any bit sequence that is lexicographically smaller than x
+
+allBools :: Int -> [[Bool]]
+allBools 0 = [[]]
+allBools n = map (False :) bs ++ map (True :) bs
+  where bs = allBools (n-1)
+
 synthesisStep :: Value v => [Var s v] -> [Bool] -> [Bool] -> (OP s v, [Bool] -> [Bool])
-synthesisStep vars xbools ybools = 
+synthesisStep vars xbools ybools
+  | xbools == ybools = (S.empty, id)
+  | otherwise = 
   let
     x0 = elemIndices False xbools
     x1 = elemIndices True  xbools
@@ -69,6 +51,8 @@ synthesisStep vars xbools ybools =
     y1 = elemIndices True  ybools
     x0y1 = x0 `intersect` y1
     x1y0 = x1 `intersect` y0
+    f01 xs = if and [ xs !! k | k <- x1] then notIs xs x0y1 else xs
+    f10 xs = if and [ xs !! k | k <- x0] then notIs xs x1y0 else xs
     toff01 = [ GToffoli
                (replicate (length x1) True)
                [vars !! k | k <- x1]
@@ -76,68 +60,74 @@ synthesisStep vars xbools ybools =
              | i <- x0y1
              ]
     toff10 = [ GToffoli
-               (replicate (length y1) True)
-               [vars !! k | k <- y1]
+               (replicate (length x0) True)
+               [vars !! k | k <- x0]
                (vars !! i)
              | i <- x1y0
              ]
-    f01 xs = if and [xs !! k | k <- x1]
-             then notIs xs x0y1
-             else xs
-    f10 xs = if and [xs !! k | k <- y1]
-             then notIs xs x1y0
-             else xs
-  in (S.fromList (toff01 ++ toff10), f10 . f01)
+  in (S.fromList (toff01 ++ toff10), f01 . f10)
 
--- Not quite probably; needs testing
--- give names to vars; or perhaps just interp
--- and check it is equivalent to original function
+-- Initialize; repeat synthesis; extract circuit
 
-synthesis :: Int -> ([Bool] -> [Bool]) -> ST s (OP s Bool)
-synthesis n f = undefined
+showF f = concat $ map (\b -> printf "%s\n" (show (b,f b))) (allBools 3)
 
--- 
+synthesisLoop :: Value v =>
+                 [Var s v] -> OP s v -> ([Bool] -> [Bool]) ->
+                 [[Bool]] -> OP s v
+synthesisLoop xs circ f [] = circ
+synthesisLoop xs circ f (xbools : rest) = 
+  let ybools = f xbools
+      (circg,g) = synthesisStep xs xbools ybools
+  in synthesisLoop xs (circg >< circ) (g . f) rest
+
+synthesis :: Value v => Int -> [Var s v] -> ([Bool] -> [Bool]) -> OP s v
+synthesis n xs f = synthesisLoop xs S.empty f (allBools n)
+
+----------------------------------------------------------------------------------------
+-- Some test cases
+
+instance Enum String where
+  toEnum = undefined
+  fromEnum = undefined
+
+instance Value String where
+  zero =  undefined
+  one =  undefined
+  snot =  undefined
+  sxor =  undefined
+  sand =  undefined
+
 
 test1 :: IO ()
 test1 = putStrLn $ runST $ do
-  op <- synthesis 2 (\[a,b] -> [a,a/=b])
+  x0 <- newSTRef "x0"
+  x1 <- newSTRef "x1"
+  let op = synthesis 2 [x1,x0] (\[a,b] -> [a,a/=b])
   showOP op
 
 test2 :: IO ()
 test2 = putStrLn $ runST $ do
-  op <- synthesis 3 (\[a,b,c] -> [a,b,(a&&b)/=c])
+  x0 <- newSTRef "x0"
+  x1 <- newSTRef "x1"
+  x2 <- newSTRef "x2"
+  let op = synthesis 3 [x2,x1,x0] (\[a,b,c] -> [a,b,(a&&b)/=c])
   showOP op
 
-test3 :: IO ()
+test3 :: IO () 
 test3 = putStrLn $ runST $ do
-  op <- synthesis 12 f
-  -- showOP op
-  return ("length = " ++ show (S.length op))
-  where f xs = let (as,bs) = splitAt 7 xs
-                   (cs,ds) = elevenPowerMod21 as bs
-               in cs ++ ds
-
-test4 :: IO () 
-test4 = putStrLn $ runST $ do
-  op <- synthesis 3 f
-  showOP op
-  where f [False,False,False] = [True,True,True]
-        f [False,False,True]  = [False,False,False]
-        f [False,True,False]  = [True,True,False]
-        f [False,True,True]   = [True,False,False]
-        f [True,False,False]  = [False,True,False]
-        f [True,False,True]   = [False,False,True]
-        f [True,True,False]   = [False,True,True]
-        f [True,True,True]    = [True,False,True]
+  x0 <- newSTRef "x1"
+  x1 <- newSTRef "x2"
+  x2 <- newSTRef "x3"
+  let op = synthesis 3 [x0,x1,x2] f
+  showOP op 
+  where f [False,False,False] = [True,True,True]     -- 7
+        f [False,False,True]  = [False,False,False]  -- 0
+        f [False,True,False]  = [True,True,False]    -- 6
+        f [False,True,True]   = [True,False,False]   -- 4
+        f [True,False,False]  = [False,True,False]   -- 2 
+        f [True,False,True]   = [False,False,True]   -- 1
+        f [True,True,False]   = [False,True,True]    -- 3
+        f [True,True,True]    = [True,False,True]    -- 5
 
 
-elevenPowerMod21 :: [Bool] -> [Bool] -> ([Bool],[Bool])
-elevenPowerMod21 xs hs@[h4,h3,h2,h1,h0] =
-  if | xInt `elem` [0,6..126]  -> (xs, [h4,h3,h2,h1,not h0])
-     | xInt `elem` [1,7..127]  -> (xs, [h4,not h3,h2,not h1,not h0])
-     | xInt `elem` [2,8..122]  -> (xs, [not h4,h3,h2,h1,h0])
-     | xInt `elem` [3,9..123]  -> (xs, [h4,not h3,h2,h1,h0])
-     | xInt `elem` [4,10..124] -> (xs, [h4,h3,not h2,h1,h0])
-     | xInt `elem` [5,11..125] -> (xs, [h4,h3,h2,not h1,h0])
-  where xInt = toInt xs
-
+----------------------------------------------------------------------------------------

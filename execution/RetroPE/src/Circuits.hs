@@ -97,7 +97,7 @@ showGToffoli :: Value v => GToffoli s v -> ST s String
 showGToffoli (GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   vt <- readSTRef t
-  return $ printf "GToffoli %s %s (%s)"
+  return $ printf "GToffoli %s %s (%s)\n"
     (show (map fromEnum bs))
     (show controls)
     (show vt)

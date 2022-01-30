@@ -11,15 +11,7 @@ test s nums = [(x,y,z) | (x,y,z) <- nums, x /= y, x /= z, y /= z, x+y+z == s]
 find :: Int -> Int -> (Int,Int,Int)
 find s =  head . test s . generate
 
-{--
-:set +s
-
-*Simple> find 15 10000000
-(1,2,12)
-(3.29 secs, 2,240,460,360 bytes)
---}
-
--- PE
+-- PE idea
 
 power :: Int -> Int -> Int
 power a n

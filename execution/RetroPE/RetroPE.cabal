@@ -27,6 +27,8 @@ library
   exposed-modules:
       Circuits
       EvalZ
+      PEX
+      PEY
       PEZ
       Simple
       Synthesis
