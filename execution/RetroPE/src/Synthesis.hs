@@ -1,5 +1,3 @@
-{-# LANGUAGE MultiWayIf #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 
 module Synthesis where
@@ -14,8 +12,9 @@ import Debug.Trace as D
 import Text.Printf
 
 import Circuits
+import Value
 
--- Synthsis algorithm from https://msoeken.github.io/papers/2016_rc_1.pdf
+-- Synthesis algorithm from https://msoeken.github.io/papers/2016_rc_1.pdf
 
 ----------------------------------------------------------------------------------------
 -- Simple helpers
@@ -28,6 +27,11 @@ notI i as = xs ++ (not y : ys) where (xs,y:ys) = splitAt i as
 notIs :: [Bool] -> [Int] -> [Bool]
 notIs = foldr notI
 
+allBools :: Int -> [[Bool]]
+allBools 0 = [[]]
+allBools n = map (False :) bs ++ map (True :) bs
+  where bs = allBools (n-1)
+
 ----------------------------------------------------------------------------------------
 -- Algorithm
 
@@ -35,12 +39,8 @@ notIs = foldr notI
 -- Take two bit sequences x and y and return GToffoli gates to convert x to y
 -- without disturbing any bit sequence that is lexicographically smaller than x
 
-allBools :: Int -> [[Bool]]
-allBools 0 = [[]]
-allBools n = map (False :) bs ++ map (True :) bs
-  where bs = allBools (n-1)
-
-synthesisStep :: Value v => [Var s v] -> [Bool] -> [Bool] -> (OP s v, [Bool] -> [Bool])
+synthesisStep :: Value v =>
+  [Var s v] -> [Bool] -> [Bool] -> (OP s v, [Bool] -> [Bool])
 synthesisStep vars xbools ybools
   | xbools == ybools = (S.empty, id)
   | otherwise = 
@@ -69,8 +69,6 @@ synthesisStep vars xbools ybools
 
 -- Initialize; repeat synthesis; extract circuit
 
-showF f = concat $ map (\b -> printf "%s\n" (show (b,f b))) (allBools 3)
-
 synthesisLoop :: Value v =>
                  [Var s v] -> OP s v -> ([Bool] -> [Bool]) ->
                  [[Bool]] -> OP s v
@@ -96,7 +94,6 @@ instance Value String where
   snot =  undefined
   sxor =  undefined
   sand =  undefined
-
 
 test1 :: IO ()
 test1 = putStrLn $ runST $ do
@@ -128,6 +125,5 @@ test3 = putStrLn $ runST $ do
         f [True,False,True]   = [False,False,True]   -- 1
         f [True,True,False]   = [False,True,True]    -- 3
         f [True,True,True]    = [True,False,True]    -- 5
-
 
 ----------------------------------------------------------------------------------------

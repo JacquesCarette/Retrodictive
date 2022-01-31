@@ -1,4 +1,3 @@
-
 module PEX where
 
 -- partial evaluation of a circuit;
@@ -16,7 +15,10 @@ import System.Random (randomRIO)
 
 import Text.Printf
 
+import Value
 import Circuits
+import PE
+import Synthesis
 
 ----------------------------------------------------------------------------------------
 {--
@@ -146,30 +148,10 @@ instance Value Formula where
   sand = fand
   sxor = fxor
 
--- PE
-
-peG :: GToffoli s Formula -> ST s ()
-peG g@(GToffoli bs cs t) = do
-  msg <- showGToffoli g
-  traceM (printf "Interpreting %s\n" msg) 
-  controls <- mapM readSTRef cs
-  tv <- readSTRef t
-  let funs = map (\b -> if b then id else fnot) bs
-  let r = fxor tv (foldr fand true (zipWith ($) funs controls))
-  traceM (printf "\tWriting %s\n" (show r)) 
-  writeSTRef t r
-  
-
-pe :: OP s Formula -> ST s ()
-pe = foldMap peG
-
-run :: Circuit s Formula -> ST s ()
-run circ = pe $ S.reverse (op circ)
-
 ----------------------------------------------------------------------------------------
--- Tests
+-- Testing
 
--- Retrodictive execution
+-- Retrodictive execution of Shor's algorithm
 
 peExpMod :: Int -> Integer -> Integer -> Integer -> IO ()
 peExpMod n a m r = printResult $ runST $ do
@@ -198,6 +180,42 @@ retroShor m = do
         then putStrLn (printf "Lucky guess %d = %d * %d\n" m gma (m `div` gma))
         else do putStrLn (printf "n=%d; a=%d\n" n a)
                 peExpMod n a m 1
+
+-- Deutsch
+
+deutschId [x,y]  = [x,y /= x]
+deutschNot [x,y] = [x,y /= not x]
+deutsch0 [x,y]   = [x,y]
+deutsch1 [x,y]   = [x,not y]
+
+retroDeutsch :: ([Bool] -> [Bool]) -> IO ()
+retroDeutsch f = printResult $ runST $ do
+  x <- newVar (fromVar "x")
+  y <- newVar false
+  run Circuit { op = synthesis 2 [x,y] f
+              , xs = [x]
+              , ancillaIns = [y]
+              , ancillaOuts = [y]
+              , ancillaVals = undefined
+              }
+  readSTRef y
+  where printResult yv = print yv
+
+{--
+
+*PEZ> retroDeutsch deutschId
+x
+
+*PEZ> retroDeutsch deutschNot
+1 + x
+
+*PEZ> retroDeutsch deutsch0
+0
+
+*PEZ> retroDeutsch deutsch1
+1
+
+--}
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------

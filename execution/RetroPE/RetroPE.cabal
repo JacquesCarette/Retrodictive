@@ -27,11 +27,14 @@ library
   exposed-modules:
       Circuits
       EvalZ
+      Numeric
+      PE
       PEX
       PEY
       PEZ
       Simple
       Synthesis
+      Value
   hs-source-dirs:
       src
   build-depends:

@@ -1,4 +1,3 @@
-
 module EvalZ where
 
 -- evaluate a circuit in the Z basis (the computational basis)
@@ -12,6 +11,8 @@ import Control.Monad.ST
 import Text.Printf
 
 import Circuits
+import Value
+import Numeric
 
 ----------------------------------------------------------------------------------------
 -- Values

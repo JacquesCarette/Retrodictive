@@ -19,10 +19,10 @@ f1 = Formula [ one, x ]
 f2 = Formula [ one, x, y ]
 
 f1xorf2 :: Bool
-f1xorf2 = f1 `sxor` f2 == anf (Formula [ y ])  
+f1xorf2 = f1 `fxor` f2 == anf (Formula [ y ])  
 
 notf2 :: Bool
-notf2 = snot f2 == anf (Formula [ x, y ])
+notf2 = fnot f2 == anf (Formula [ x, y ])
 
 f1andf2 :: Bool 
-f1andf2 = f1 `sand` f2 == anf (Formula [ one, x, y, xy ])
+f1andf2 = f1 `fand` f2 == anf (Formula [ one, x, y, xy ])

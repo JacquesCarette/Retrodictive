@@ -23,66 +23,11 @@ import Test.QuickCheck hiding ((><))
 import Control.Exception.Assert (assert, assertMessage)
 import qualified Debug.Trace as Debug
 
-----------------------------------------------------------------------------------------
--- Simple helpers
-
-debug = False
-
-trace :: String -> a -> a
-trace s a = if debug then Debug.trace s a else a
-
-traceM :: Applicative f => String -> f ()
-traceM s = if debug then Debug.traceM s else pure ()
-
--- Numeric computations
-
-toInt :: [Bool] -> Integer
-toInt = foldr (\ b n -> toInteger (fromEnum b) + 2*n) 0
-
-doublemods :: Integer -> Integer -> [Integer]
-doublemods a m = a : doublemods ((2*a) `mod` m) m
-
-sqmods :: Integer -> Integer -> [Integer]
-sqmods a m = am : sqmods (am * am) m
-  where am = a `mod` m
-
-invmod :: Integer -> Integer -> Integer
-invmod x m = loop x m 0 1
-  where
-    loop 0 1 a _ = a `mod` m
-    loop 0 _ _ _ = error "Panic: Inputs not coprime"
-    loop x b a u = loop (b `mod` x) x u (a - (u * (b `div` x)))
-
-invsqmods :: Integer -> Integer -> [Integer]
-invsqmods a m = invam : invsqmods (am * am) m
-  where am = a `mod` m
-        invam = a `invmod` m 
+import Numeric
+import Value
 
 ----------------------------------------------------------------------------------------
 -- Circuits manipulate locations holding values
-
-class (Show v, Enum v) => Value v where
-  zero :: v
-  one  :: v
-  snot :: v -> v
-  sand :: v -> v -> v
-  sxor :: v -> v -> v
-
-bin :: Value v => Integer -> [v]
-bin 0 = []
-bin n = let (q,r) = quotRem n 2 in toEnum (fromInteger r) : bin q
-
-fromInt :: Value v => Int -> Integer -> [v]
-fromInt len n = bits ++ replicate (len - length bits) zero
-  where bits = bin n
-
-type Var s v = STRef s v
-
-newVar :: Value v => v -> ST s (Var s v)
-newVar = newSTRef
-
-newVars :: Value v => [v] -> ST s [Var s v]
-newVars = mapM newVar
 
 --
 -- A circuit is a sequence of generalized Toffoli gates
@@ -239,7 +184,7 @@ makeExpMod n a m xs ts us = do
                 -------------
  
   ancillaVals 
-    - to initialize ancillaIns in forward evaluation, or
+f    - to initialize ancillaIns in forward evaluation, or
     - to compare with result of retrodictive execution
  
   forward eval: set ancillaIns to ancillaVals; set xs to input; run; check ancillaOuts
