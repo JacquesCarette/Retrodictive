@@ -2,23 +2,20 @@ module PEZ where
 
 -- partial evaluation of a circuit in the Z basis (the computational basis)
 
-import Data.STRef
+import Data.STRef (readSTRef,writeSTRef)
 import Data.List (intercalate,group,sort)
-import Data.Maybe (catMaybes, maybe, fromMaybe, fromJust)
-import qualified Data.Sequence as S
 
-import Control.Monad 
-import Control.Monad.ST
+import Control.Monad.ST (runST)
 
 import System.Random (randomRIO)
 
-import Text.Printf
+import Text.Printf (printf)
 
-import Value
-import Circuits
+import Value (Var, Value(..), newVar, fromInt)
+import Circuits (Circuit(..), showSizes, sizeOP)
 import ArithCirc (expm)
-import PE
-import Synthesis
+import PE (run)
+import Synthesis (synthesis)
 
 ----------------------------------------------------------------------------------------
 -- Values can static or symbolic formulae
