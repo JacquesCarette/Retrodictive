@@ -2,18 +2,15 @@
 
 module Synthesis where
 
-import Data.List
+import Data.List (elemIndices, intersect)
 import qualified Data.Sequence as S
-import Data.Sequence (Seq, singleton, viewl, ViewL(..), (><))
-import Control.Monad.ST
-import Data.STRef
+import Data.Sequence ((><))
+import Control.Monad.ST (runST)
+import Data.STRef (newSTRef)
 
-import Debug.Trace as D
-import Text.Printf
-
-import GToffoli
-import Circuits
-import Value
+import GToffoli (GToffoli(GToffoli))
+import Circuits (OP, showOP)
+import Value (Var)
 
 -- Synthesis algorithm from https://msoeken.github.io/papers/2016_rc_1.pdf
 
@@ -40,8 +37,7 @@ allBools n = map (False :) bs ++ map (True :) bs
 -- Take two bit sequences x and y and return GToffoli gates to convert x to y
 -- without disturbing any bit sequence that is lexicographically smaller than x
 
-synthesisStep :: Value v =>
-  [Var s v] -> [Bool] -> [Bool] -> (OP s v, [Bool] -> [Bool])
+synthesisStep :: [Var s v] -> [Bool] -> [Bool] -> (OP s v, [Bool] -> [Bool])
 synthesisStep vars xbools ybools
   | xbools == ybools = (S.empty, id)
   | otherwise = 
@@ -70,8 +66,7 @@ synthesisStep vars xbools ybools
 
 -- Initialize; repeat synthesis; extract circuit
 
-synthesisLoop :: Value v =>
-                 [Var s v] -> OP s v -> ([Bool] -> [Bool]) ->
+synthesisLoop :: [Var s v] -> OP s v -> ([Bool] -> [Bool]) ->
                  [[Bool]] -> OP s v
 synthesisLoop xs circ f [] = circ
 synthesisLoop xs circ f (xbools : rest) = 
@@ -79,22 +74,11 @@ synthesisLoop xs circ f (xbools : rest) =
       (circg,g) = synthesisStep xs xbools ybools
   in synthesisLoop xs (circg >< circ) (g . f) rest
 
-synthesis :: Value v => Int -> [Var s v] -> ([Bool] -> [Bool]) -> OP s v
+synthesis :: Int -> [Var s v] -> ([Bool] -> [Bool]) -> OP s v
 synthesis n xs f = synthesisLoop xs S.empty f (allBools n)
 
 ----------------------------------------------------------------------------------------
 -- Some test cases
-
-instance Enum String where
-  toEnum = undefined
-  fromEnum = undefined
-
-instance Value String where
-  zero =  undefined
-  one =  undefined
-  snot =  undefined
-  sxor =  undefined
-  sand =  undefined
 
 test1 :: IO ()
 test1 = putStrLn $ runST $ do

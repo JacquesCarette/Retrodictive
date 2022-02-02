@@ -9,7 +9,7 @@ import Control.Monad.ST (ST)
 
 import Text.Printf (printf)
 
-import Value (Var, Value)
+import Value (Var)
 import GToffoli (GToffoli(GToffoli), showGToffoli)
 
 ----------------------------------------------------------------------------------------
@@ -21,7 +21,7 @@ import GToffoli (GToffoli(GToffoli), showGToffoli)
 
 type OP s v = Seq (GToffoli s v)
 
-showOP :: Value v => OP s v -> ST s String
+showOP :: Show v => OP s v -> ST s String
 showOP = foldMap showGToffoli
 
 sizeOP :: OP s v -> [(Int,Int)]

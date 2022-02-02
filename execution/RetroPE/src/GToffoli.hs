@@ -5,7 +5,7 @@ import Data.STRef (readSTRef)
 
 import Text.Printf (printf)
 
-import Value (Var, Value)
+import Value (Var)
 
 ----------------------------------------------------------------------------------------
 -- Generalized Toffoli gates
@@ -15,7 +15,7 @@ import Value (Var, Value)
 data GToffoli s v = GToffoli [Bool] [Var s v] (Var s v)
   deriving Eq
 
-showGToffoli :: Value v => GToffoli s v -> ST s String
+showGToffoli :: Show v => GToffoli s v -> ST s String
 showGToffoli (GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   vt <- readSTRef t
