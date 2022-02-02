@@ -17,5 +17,9 @@ power :: Int -> Int -> Int
 power a n
   | n == 0 = 1
   | n == 1 = a
-  | even n = let r = power a (n `div` 2) in r * r 
-  | otherwise = a * power a (n-1)
+  | even n = 
+     let r = power a (n `div` 2) in 
+     r * r 
+  | otherwise = 
+     let r = power a (n-1) in
+     a * r
