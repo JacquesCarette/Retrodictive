@@ -2,10 +2,8 @@ module Circuits where
 
 -- Circuit defined over abstract values
 
-import Prelude hiding (seq)
-
 import qualified Data.Sequence as S
-import Data.Sequence (Seq, singleton, viewl, ViewL(..), (><))
+import Data.Sequence (Seq)
 
 import Control.Monad.ST (ST)
 

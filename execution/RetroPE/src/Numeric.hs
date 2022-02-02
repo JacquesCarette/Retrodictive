@@ -1,9 +1,5 @@
 module Numeric where
   
-import Prelude hiding (seq)
-
-import qualified Debug.Trace as Debug
-
 ----------------------------------------------------------------------------------------
 -- Numeric computations
 

@@ -1,6 +1,5 @@
 module Value where
 
-import Prelude hiding (seq)
 import Control.Monad.ST (ST)
 import Data.STRef (STRef, newSTRef)
 
