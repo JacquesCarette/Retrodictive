@@ -14,7 +14,7 @@ import Text.Printf
 
 import Value
 import Circuits
-import Numeric
+import Trace (traceM)
 
 ----------------------------------------------------------------------------------------
 -- PE
