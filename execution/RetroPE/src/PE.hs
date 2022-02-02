@@ -13,6 +13,7 @@ import System.Random (randomRIO)
 import Text.Printf
 
 import Value
+import GToffoli
 import Circuits
 import Trace (traceM)
 

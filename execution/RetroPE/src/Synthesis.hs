@@ -11,6 +11,7 @@ import Data.STRef
 import Debug.Trace as D
 import Text.Printf
 
+import GToffoli
 import Circuits
 import Value
 

@@ -25,6 +25,7 @@ import qualified Debug.Trace as Debug
 
 import Numeric
 import Value
+import GToffoli (GToffoli(GToffoli), showGToffoli)
 
 ----------------------------------------------------------------------------------------
 -- Circuits manipulate locations holding values
@@ -34,18 +35,6 @@ import Value
 -- ----------------------------------------------------
 
 type OP s v = Seq (GToffoli s v)
-
-data GToffoli s v = GToffoli [Bool] [Var s v] (Var s v)
-  deriving Eq
-
-showGToffoli :: Value v => GToffoli s v -> ST s String
-showGToffoli (GToffoli bs cs t) = do
-  controls <- mapM readSTRef cs
-  vt <- readSTRef t
-  return $ printf "GToffoli %s %s (%s)\n"
-    (show (map fromEnum bs))
-    (show controls)
-    (show vt)
 
 showOP :: Value v => OP s v -> ST s String
 showOP = foldMap showGToffoli

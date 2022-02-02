@@ -10,6 +10,7 @@ import Control.Monad.ST
 
 import Text.Printf
 
+import GToffoli
 import Circuits
 import Value
 import Numeric
