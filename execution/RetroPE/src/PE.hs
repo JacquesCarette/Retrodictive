@@ -1,4 +1,4 @@
-module PE where
+module PE (run) where
 
 import Data.STRef (readSTRef, writeSTRef)
 import qualified Data.Sequence as S
