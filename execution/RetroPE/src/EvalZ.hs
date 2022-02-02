@@ -2,19 +2,18 @@ module EvalZ where
 
 -- evaluate a circuit in the Z basis (the computational basis)
 
-import Data.STRef
-import Data.Maybe (catMaybes, maybe, fromMaybe, fromJust)
+import Data.STRef (readSTRef, writeSTRef)
 
-import Control.Monad 
-import Control.Monad.ST
+import Control.Monad (when)
+import Control.Monad.ST (ST, runST)
 
-import Text.Printf
+import Text.Printf (printf)
 
-import GToffoli
-import Circuits
+import GToffoli (GToffoli(GToffoli))
+import Circuits (OP, showSizes, sizeOP, Circuit(..))
 import ArithCirc (expm)
-import Value
-import Numeric
+import Value (Value(..), fromInt)
+import Numeric (toInt)
 
 ----------------------------------------------------------------------------------------
 -- Values
