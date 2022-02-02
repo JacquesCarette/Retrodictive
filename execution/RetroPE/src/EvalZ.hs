@@ -12,6 +12,7 @@ import Text.Printf
 
 import GToffoli
 import Circuits
+import ArithCirc (expm)
 import Value
 import Numeric
 

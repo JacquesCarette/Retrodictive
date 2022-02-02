@@ -14,6 +14,7 @@ import Text.Printf
 
 import Value
 import Circuits
+import ArithCirc (expm)
 import PE
 import Synthesis
 
