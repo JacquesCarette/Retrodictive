@@ -1,20 +1,15 @@
 module PE where
 
-import Data.STRef
-import Data.List (intercalate,group,sort)
-import Data.Maybe (catMaybes, maybe, fromMaybe, fromJust)
+import Data.STRef (readSTRef, writeSTRef)
 import qualified Data.Sequence as S
 
-import Control.Monad 
-import Control.Monad.ST
+import Control.Monad.ST (ST)
 
-import System.Random (randomRIO)
+import Text.Printf (printf)
 
-import Text.Printf
-
-import Value
-import GToffoli
-import Circuits
+import Value (Value(..))
+import GToffoli (GToffoli(..), showGToffoli)
+import Circuits (OP, Circuit(op))
 import Trace (traceM)
 
 ----------------------------------------------------------------------------------------
