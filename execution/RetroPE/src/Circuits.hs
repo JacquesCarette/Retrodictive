@@ -4,27 +4,15 @@ module Circuits where
 
 import Prelude hiding (seq)
 
-import Data.Maybe (catMaybes, maybe, fromMaybe, fromJust)
-import Data.List (find,union,intercalate,delete,(\\),intersect,sort,nub)
-
 import qualified Data.Sequence as S
 import Data.Sequence (Seq, singleton, viewl, ViewL(..), (><))
 
-import Control.Lens hiding (op,(:<))
-import Control.Monad 
-import Control.Monad.ST
-import Data.STRef
+import Control.Monad.ST (ST)
 
-import System.Random (randomRIO)
-import GHC.Integer.GMP.Internals (powModInteger)
-  
 import Text.Printf (printf)
-import Test.QuickCheck hiding ((><))
-import Control.Exception.Assert (assert, assertMessage)
-import qualified Debug.Trace as Debug
 
-import Numeric
-import Value
+import Numeric (doublemods, sqmods, invsqmods)
+import Value (Var, Value, newVars, fromInt, newVar, zero)
 import GToffoli (GToffoli(GToffoli), showGToffoli)
 
 ----------------------------------------------------------------------------------------
