@@ -208,5 +208,20 @@ x
 
 --}
 
+retroDeutschJozsa :: Int -> ([Bool] -> [Bool]) -> IO ()
+retroDeutschJozsa n f = printResult $ runST $ do
+  xs <- newVars (fromVars n "x")
+  y <- newVar false
+  run Circuit { op = synthesis (n+1) (xs ++ [y]) f
+              , xs = xs
+              , ancillaIns = [y]
+              , ancillaOuts = [y]
+              , ancillaVals = undefined
+              }
+  readSTRef y
+  where printResult yv = print yv
+
+test n = retroDeutschJozsa n (\ bs -> replicate (n+1) False)
+
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------

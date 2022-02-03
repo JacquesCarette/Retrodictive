@@ -47,7 +47,7 @@ looking backwards.  So you have to trust that the dots will somehow
 connect in your future. Steve Jobs
 \end{quote}
 
-\emph{Retrodictive quantum theory}~\cite{sym13040586},
+\noindent \emph{Retrodictive quantum theory}~\cite{sym13040586},
 retrocausality~\cite{Aharonov2008}, and the time-symmetry of physical
 laws~\cite{RevModPhys.27.179} suggest that partial knowledge about the
 future can be exploited to understand the present. We demonstrate the
@@ -281,6 +281,227 @@ bit $x_0$ (when $a \in \{4,11,14\}$) or the least significant two bits
 $x_0$ and $x_1$ (when $a \in \{2,7,8,13\}$). When the solution is
 $x_0=0$, the period is 2. When the solution is $x_0=0,x_1=0$, the
 period is 4.
+
+It turns that retrodictive symbolic evaluation is powerful enough to
+solve some instances of Deutsch-Jozsa, Bernstein-Vazirnani, and Simon
+problems, as well as some instances of Grover's and Shor's algorithms. 
+
+\subsection{Deutsch-Jozsa}
+
+The problem is to determine if a function $\finset{2} \rightarrow
+\finset{2}$ is constant or balanced. The only relevant part of the circuit is:
+
+\bigskip
+\begin{center}
+\begin{quantikz}\label{eq:deutsch}
+   \lstick{$x$} & \gate[wires=2][1.5cm]{U_f} & \rstick{$x$} \qw \\
+   \lstick{$y$} & \qw        & \rstick{$\ket{0}$} \qw
+\end{quantikz}
+\end{center}
+\medskip 
+
+ We fix the ancillary output to a possible boundary condition, say
+ $\ket{0}$, and perform a retrodictive execution of the circuit. This
+ execution produces a formula for $y$ that depends on the function $f$
+ in the black box. When the function $f$ is a constant function, the
+ formula is the corresponding constant $0$ or $1$. When the function
+ is balanced the resulting formula is $x$ (when the function is the
+ identity) or $1+x$ (when the function is boolean negation).
+
+The problem is a generalization of the previous one: the question is
+to determine if a function $\mathbb{B}^n \rightarrow \mathbb{B}$ is
+constant or balanced. The circuit is identical to above except that
+$x$ is now a collection of qubits:
+
+\begin{quantikz}\label{eq:deutsch-jozsa}
+   \lstick{$x_0$}     & \gate[wires=4][1.5cm]{U_f} & \rstick{$x_0$}     \qw \\
+   \lstick{$x_1$}     & \ghost{U_f}        & \rstick{$x_1$}     \qw \\
+   \lstick{$\ldots$}  & \ghost{U_f}        & \rstick{$\ldots$}  \qw \\
+   \lstick{$x_{{n-1}}$} & \ghost{U_f}        & \rstick{$x_{{n-1}}$} \qw \\
+   \lstick{$y$}       & \ghost{U_f}        & \rstick{$\ket{0}$} \qw
+\end{quantikz}
+\medskip 
+
+Again, we fix the ancillary output to a possible boundary condition,
+say $\ket{0}$, and perform a retrodictive execution of the
+circuit. This execution produces a formula for $y$ that depends on the
+function $f$ in the black box. When the function $f$ is a constant
+function, the formula is the corresponding constant $0$ or $1$. When
+the function is balanced the resulting formula involves at least one
+variable $x_i$.
+
+Running retro in deutsch gives:
+
+\begin{verbatim}
+> retroDeutsch deutschId
+x
+
+> retroDeutsch deutschNot
+1 + x
+
+> retroDeutsch deutsch0
+0
+
+> retroDeutsch deutsch1
+1
+\end{verbatim}
+
+Show experiments for Deutsch Jozsa
+
+
+
+\paragraph*{Bernstein-Vazirani.}
+We are given a function $f : \finset{2^n} \rightarrow \finset{2}$
+that hides a secret number $s \in \finset{2^n}$. We are promised the
+function is defined using the binary representations $\sum_i^{n-1}
+x_i$ and $\sum_i^{n-1} s_i$ of $x$ and $s$ respectively as follows:
+\[
+f(x) = \sum_{i=0}^{n-1} s_ix_i \mod{2}
+\]
+The goal is to determine the secret number $s$. 
+
+Expressing the problem as a pre-image calculation is slightly more
+involved than in the previous two cases. To determine $s$, we make $n$
+queries to the pre-image of a value in the range of the
+function. Query $i$ asks whether $2^i$ is a member of the pre-image
+and the answer determines bit $i$ of the secret $s$. Indeed, by
+definition, $f(2^i) = s_i$ and hence $s_i$ is 1 iff $2^i$ is a member
+of the pre-image of 1.
+
+\begin{figure}[t]
+\begin{center}
+\begin{quantikz}[row sep=0.2cm,column sep=1cm]\label{eq:bernstein-vazirani}
+   \lstick{$\ket{0}$} & \gate{H}\slice{1} & \qw      & \qw      & \qw       & \qw \slice{2}      & \qw\slice{3} & \gate{H} 
+   & \meter{} & \rstick{$\tilde{v_0}$}\cw \\
+   \lstick{$\ket{0}$} & \gate{H} & \ctrl{7} & \qw      & \qw       & \qw       & \qw & \gate{H} 
+   & \meter{} & \rstick{$\tilde{v_1}$}\cw \\
+   \lstick{$\ket{0}$} & \gate{H} & \qw      & \qw      & \qw       & \qw       & \qw & \gate{H} 
+   & \meter{} & \rstick{$\tilde{v_2}$}\cw \\
+   \lstick{$\ket{0}$} & \gate{H} & \qw      & \ctrl{5} & \qw       & \qw       & \qw & \gate{H} 
+   & \meter{} & \rstick{$\tilde{v_3}$}\cw \\
+   \lstick{$\ket{0}$} & \gate{H} & \qw      & \qw      & \ctrl{4}  & \qw       & \qw & \gate{H} 
+   & \meter{} & \rstick{$\tilde{v_4}$}\cw \\
+   \lstick{$\ket{0}$} & \gate{H} & \qw      & \qw      & \qw       & \ctrl{3}  & \qw & \gate{H} 
+   & \meter{} & \rstick{$\tilde{v_5}$}\cw \\
+   \lstick{$\ket{0}$} & \gate{H} & \qw      & \qw      & \qw       & \qw       & \qw & \gate{H} 
+   & \meter{} & \rstick{$\tilde{v_6}$}\cw \\
+   \lstick{$\ket{0}$} & \gate{H} & \qw      & \qw      & \qw       & \qw       & \qw & \gate{H} 
+   & \meter{} & \rstick{$\tilde{v_7}$}\cw \\
+   \lstick{$\ket{1}$}  & \gate{H}  & \targ{}  & \targ{}  & \targ{}   & \targ{}   & \meter{} 
+   & \rstick{$w$}\cw
+\end{quantikz}
+\end{center}
+\caption{\label{fig:bv}Example Circuit for Bernstein-Vazirani Algorithm}
+\end{figure}
+
+The circuit in Fig.~\ref{fig:bv} solves the problem for $n=8$ and a
+hidden number 92 ($= 00111010$ in binary notation). As required, the
+circuit between slice (1) and slice (2), collects the sum of the $x_i$
+at positions that match the occurrences of 1 in the secret string. The
+evolution proceeds as follows. At slice (1), the top 8 qubits are each
+in the state $\ket{+}$ and the bottom qubit is in the state $\ket{-}$,
+i.e., the state is $(1/3)~\ket{++++++++-}$. In the evolution between
+slices (1) and (2), qubits 0, 2, 6, and 7 are untouched and remain in
+the state $\ket{+}$. Each of the other four qubits becomes $\ket{-}$
+as the phase of the target qubit is kicked back to the control qubit
+by the \cx\  operation. The full state at slice (2) is
+$(1/3)~\ket{+-+---++-}$. At this point, we perform a measurement on
+the bottom qubit which returns 0 or 1 with equal probability. This
+measurement causes collapses the top 8 qubits to $\pm
+(1/2\sqrt{2})~\ket{+-+---++}$. After applying all the Hadamard gates,
+the measurement is deterministically $\ket{01011100}$ with the most
+significant bit at the right. This is the secret number. 
+
+Instead of this execution model, we now explore an alternative
+execution that starts from the observation $w$ and proceeds from slice
+(2) back towards slice (1) collecting the information necessary to
+answer the required pre-image query. As explained in the previous
+section, the secret number can be reconstructed once we know, for each
+$i$, whether the number $2^i$ is a member of the pre-image. When
+expressed in terms of bits, this means that we need to know, for each
+bit position $i$, whether the corresponding qubit contributes to the
+definition of the pre-image. We therefore start a backwards execution
+starting with the state $\ket{x_0x_1x_2x_3x_4x_5x_6x_7F()}$ where
+$F()$ expresses that the last qubit has not been shown to depend on
+any qubit so far and the $x_i$ symbols are placeholders for unknown
+values. We trace the execution symbolically:
+\[\begin{array}{rcl}
+\ket{x_0x_1x_2x_3x_4x_5x_6x_7F()} &\leftarrow& \ket{x_0x_1x_2x_3x_4x_5x_6x_7F(x_5)} \\
+&\leftarrow& \ket{x_0x_1x_2x_3x_4x_5x_6x_7F(x_4,x_5)} \\
+&\leftarrow& \ket{x_0x_1x_2x_3x_4x_5x_6x_7F(x_3,x_4,x_5)} \\
+&\leftarrow& \ket{x_0x_1x_2x_3x_4x_5x_6x_7F(x_1,x_3,x_4,x_5)}
+\end{array}\]
+For each operation $\cx(x,v)$, we add $x$ to the list of variables
+on which $v$ depends. At the end of the execution, we conclude that
+$x_1$, $x_3$, $x_4$, and $x_5$ are the relevant qubits, from which we
+infer that the secret string must be $00111010$.
+
+
+
+
+\paragraph*{Simon.}
+We are given a 2-1 function $f : \finset{2^n} \rightarrow
+\finset{2^n}$ with the property that there exists an $a$ such $f(x) =
+f(x \oplus a)$ for all~$x$; the goal is to determine $a$. When
+expressed as a computation of pre-images, the problem statement
+becomes the following. Pick an arbitrary $x$ and compute the pre-image
+of $f(x)$. It must contain exactly two values one of which is $x$. The
+problem then reduces to finding the other value in the pre-image.
+
+We are given a 2-1 function $f : \mathbb{B}^n \rightarrow
+\mathbb{B}^n$ where there exists an $a$ such $f(x) = f(x \oplus a)$
+for all $x$; the goal is to determine $a$.
+
+The circuit below demonstrates the situation when $n=2$ and $a = 3$. 
+
+\bigskip
+\begin{center}
+\begin{quantikz}\label{eq:simon}
+   \lstick{$x_0$} & \ctrl{2} & \ctrl{3} & \qw      & \qw      & \rstick{$x_0$} \qw \\
+   \lstick{$x_1$} & \qw      & \qw      & \ctrl{1} & \ctrl{2} & \rstick{$x_1$} \qw \\
+   \lstick{$a_0$} & \targ{}  & \qw      & \targ{}  & \qw      & \rstick{$a_0$} \qw \\
+   \lstick{$a_1$} & \qw      & \targ{}  & \qw      & \targ{}  & \rstick{$a_1$} \qw 
+\end{quantikz}
+\end{center}
+\medskip 
+
+The circuit implements the black box $U_f (x,a) = (x, f(x) \oplus
+a)$. We first pick a random $x$, say $x = 3$, fix the initial
+condition $a = 0$ and run the circuit forward. This execution
+produces, in the second register, the value of $f(x) = 0$. We now run
+a symbolic retrodictive execution with $a = 0$ at the output
+site. That execution produces information on all values of $a$ that
+are consistent with the observed result. In this case, we get: $a_0 =
+x_0 + x_1$ and $a_1 = x_0 + x_1$. In other words, when $x_0=x_1$, we
+have $a=0$, and when $x_0 \neq x_1$, we have $a=3$ which is indeed the
+desired hidden value.
+
+
+\paragraph*{Deutsch-Jozsa.}
+The conventional statement of the problem is to determine if a
+function $\finset{2} \rightarrow \finset{2}$ is constant or
+balanced. An equivalent statement is to answer a query about the
+cardinality of a pre-image. In this case, if the cardinality of the
+pre-image of any value in the range is even i.e. 0 or 2, the function
+must be constant and if it is odd, i.e., it contains just one element,
+the function must be balanced.
+
+
+The problem is a generalization of the previous one: the question is
+to determine if a function $\finset{2^n} \rightarrow \finset{2}$ for
+some $n$ is constant or balanced. When expressed as a pre-image
+computation, the problem reduces to a query distinguishing the
+following three situations about the pre-image of a value in the range
+of the function: is the cardinality of the pre-image equal to 0,
+$2^n$, or $2^{n-1}$? In the first two cases, the function is constant
+and in the last case, the pre-image contains half the values in the
+domain indicating that the function is balanced.
+
+
+
+
+\newpage
+
 
 A couple of success stories
 then 21 huge
@@ -737,9 +958,6 @@ $x_0 \oplus x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_1x_2x_3x_4 \
 only need number of vars !!!!
 
 solve other problems with just knowing which vars are involved
-
-\printbibliography
-\end{document}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Alternative Introduction}
@@ -1755,12 +1973,6 @@ one pass over circuit BUT complexity of normalizing to ANF not trivial; be caref
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusion}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\printbibliography
-\end{document}
-
 Provide a general introduction to the topic and a brief non-technical
 summary of your main results and their implication.
 
@@ -1796,3 +2008,12 @@ fourier transform classical efficient in some cases
 Ewin Tang papers
 
 kochen specker ??
+
+
+\printbibliography
+\end{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
