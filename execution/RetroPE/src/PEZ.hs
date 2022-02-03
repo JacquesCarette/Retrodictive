@@ -2,18 +2,9 @@ module PEZ where
 
 -- partial evaluation of a circuit in the Z basis (the computational basis)
 
-import Data.STRef (readSTRef,writeSTRef)
 import Data.List (intercalate,group,sort)
 
-import Control.Monad.ST (runST)
-
-import Text.Printf (printf)
-
-import Value (Var, Value(..), newVar, newVars, fromInt)
-import Circuits (Circuit(..), showSizes, sizeOP)
-import ArithCirc (expm)
-import PE (run)
-import Synthesis (synthesis)
+import Value (Value(..))
 import FormulaRepr (FormulaRepr(FR))
 import qualified QAlgos as Q
 
@@ -133,7 +124,7 @@ instance Value Formula where
 
 -- instance as explicit dict
 formRepr :: FormulaRepr Formula
-formRepr = FR fromVar fromVars true false
+formRepr = FR fromVar fromVars
 
 ----------------------------------------------------------------------------------------
 -- Testing
@@ -161,19 +152,9 @@ x
 --}
 
 retroDeutschJozsa :: Int -> ([Bool] -> [Bool]) -> IO ()
-retroDeutschJozsa n f = printResult $ runST $ do
-  xs <- newVars (fromVars n "x")
-  y <- newVar false
-  run Circuit { op = synthesis (n+1) (xs ++ [y]) f
-              , xs = xs
-              , ancillaIns = [y]
-              , ancillaOuts = [y]
-              , ancillaVals = undefined
-              }
-  readSTRef y
-  where printResult yv = print yv
+retroDeutschJozsa = Q.retroDeutschJozsa formRepr
 
-test n = retroDeutschJozsa n (\ bs -> replicate (n+1) False)
+test n = retroDeutschJozsa n (\ _ -> replicate (n+1) False)
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------

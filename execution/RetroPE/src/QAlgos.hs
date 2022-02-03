@@ -9,7 +9,7 @@ import System.Random (randomRIO)
 
 import Text.Printf (printf)
 
-import Value (Var, Value(..), newVar, fromInt)
+import Value (Var, Value(..), newVar, newVars, fromInt)
 import Circuits (Circuit(..), showSizes, sizeOP)
 import ArithCirc (expm)
 import PE (run)
@@ -61,7 +61,7 @@ deutsch1 [x,y]   = [x,not y]
 retroDeutsch :: (Show f, Value f) => FormulaRepr f -> ([Bool] -> [Bool]) -> IO ()
 retroDeutsch fr f = print $ runST $ do
   x <- newVar (fromVar fr "x")
-  y <- newVar (rfalse fr)
+  y <- newVar zero
   run Circuit { op = synthesis 2 [x,y] f
               , xs = [x]
               , ancillaIns = [y]
@@ -85,6 +85,20 @@ x
 1
 
 --}
+
+retroDeutschJozsa :: (Show f, Value f) 
+                   => FormulaRepr f -> Int -> ([Bool] -> [Bool]) -> IO ()
+retroDeutschJozsa fr n f = printResult $ runST $ do
+  xs <- newVars (fromVars fr n "x")
+  y <- newVar zero
+  run Circuit { op = synthesis (n+1) (xs ++ [y]) f
+              , xs = xs
+              , ancillaIns = [y]
+              , ancillaOuts = [y]
+              , ancillaVals = undefined
+              }
+  readSTRef y
+  where printResult yv = print yv
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------

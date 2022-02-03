@@ -12,8 +12,6 @@ import Value (Value)
 data FormulaRepr f = FR 
   { fromVar :: String -> f
   , fromVars :: Int -> String -> [ f ]
-  , rtrue :: f
-  , rfalse :: f
   }
 
 ----------------------------------------------------------------------------------------

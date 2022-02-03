@@ -3,14 +3,9 @@ module PEX where
 -- partial evaluation of a circuit;
 -- here we only care if a variable is used or not
 
-import Data.STRef (readSTRef,writeSTRef)
 import Data.List (intercalate,group,sort)
 
-import Control.Monad.ST (runST)
-
-import Value (Var, Value(..), newVar, newVars, fromInt)
-import Circuits (Circuit(..), showSizes, sizeOP)
-import ArithCirc (expm)
+import Value (Value(..))
 import FormulaRepr (FormulaRepr(FR))
 import qualified QAlgos as Q
 
@@ -144,7 +139,7 @@ instance Value Formula where
 
 -- instance as explicit dict
 formRepr :: FormulaRepr Formula
-formRepr = FR fromVar fromVars true false
+formRepr = FR fromVar fromVars
 
 ----------------------------------------------------------------------------------------
 -- Testing
