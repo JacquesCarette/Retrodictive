@@ -16,6 +16,8 @@ import Circuits (Circuit(..), showSizes, sizeOP)
 import ArithCirc (expm)
 import PE (run)
 import Synthesis (synthesis)
+import FormulaRepr (FormulaRepr(FR))
+import qualified QAlgos as Q
 
 ----------------------------------------------------------------------------------------
 -- Values can static or symbolic formulae
@@ -96,16 +98,11 @@ fromBool :: Bool -> Formula
 fromBool False = false
 fromBool True  = true
 
-toBool :: Formula -> Bool
-toBool f | f == false = False
-         | f == true  = True
-         | otherwise  = error "Internal error: converting a complex formula to bool"
-
 fromVar :: String -> Formula
 fromVar s = Formula [ Ands [s] ]
 
 fromVars :: Int -> String -> [Formula]
-fromVars n s = map fromVar (zipWith (\ s n -> s ++ show n) (replicate n s) [0..(n-1)])
+fromVars n s = map fromVar (map (\ n -> s ++ show n) [0..(n-1)])
 
 --
 
@@ -136,59 +133,19 @@ instance Value Formula where
   sand = fand
   sxor = fxor
 
+-- instance as explicit dict
+formRepr :: FormulaRepr Formula
+formRepr = FR fromVar fromVars true false
+
 ----------------------------------------------------------------------------------------
 -- Testing
 
 -- Retrodictive execution of Shor's algorithm
 
 peExpMod :: Int -> Integer -> Integer -> Integer -> IO ()
-peExpMod n a m r = printResult $ runST $ do
-  circ <- expm n a m
-  mapM_ (uncurry writeSTRef) (zip (ancillaOuts circ) (fromInt (n+1) r))
-  mapM_ (uncurry writeSTRef) (zip (xs circ) (fromVars (n+1) "x"))
-  run circ
-  result <- mapM readSTRef (ancillaIns circ)
-  let eqs = zip result (ancillaVals circ)
-  return (eqs, showSizes (sizeOP (op circ)))
-  where printResult (eqs,size) = do
-          putStrLn size
-          mapM_ (\(r,v) ->
-            let sr = show r
-                sv = show v
-            in if sr == sv then return () else 
-              printf "%s = %s\n" sr sv)
-            eqs
+peExpMod = Q.peExpMod formRepr
 
-retroShor :: Integer -> IO ()
-retroShor m = do
-      a <- randomRIO (2,m-1)
-      let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
-      let gma = gcd m a 
-      if gma /= 1 
-        then putStrLn (printf "Lucky guess %d = %d * %d\n" m gma (m `div` gma))
-        else do putStrLn (printf "n=%d; a=%d\n" n a)
-                peExpMod n a m 1
-
--- Deutsch
-
-deutschId [x,y]  = [x,y /= x]
-deutschNot [x,y] = [x,y /= not x]
-deutsch0 [x,y]   = [x,y]
-deutsch1 [x,y]   = [x,not y]
-
-retroDeutsch :: ([Bool] -> [Bool]) -> IO ()
-retroDeutsch f = printResult $ runST $ do
-  x <- newVar (fromVar "x")
-  y <- newVar false
-  run Circuit { op = synthesis 2 [x,y] f
-              , xs = [x]
-              , ancillaIns = [y]
-              , ancillaOuts = [y]
-              , ancillaVals = undefined
-              }
-  readSTRef y
-  where printResult yv = print yv
-
+retroDeutsch = Q.retroDeutsch formRepr
 {--
 
 *PEZ> retroDeutsch deutschId
