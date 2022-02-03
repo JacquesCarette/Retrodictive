@@ -28,18 +28,36 @@
 \linenumbers
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\title{Retrodictive Execution of Quantum Circuits}
+\title{De-Quantizing Quantum Algorithms by Retrodictive Execution}
 \author{Jacques Carette \qquad Gerardo Ortiz$^{*}$ \qquad Amr Sabry \\
 McMaster University \qquad Indiana University \qquad Indiana University}
 \begin{document}
 \maketitle
 
+%% 200 words
+
 \begin{abstract}
+The quantum circuit model consists of two classes of gates: (i)
+quantum counterparts to classical reversible gates (e.g., Toffoli
+gates), and (ii) genuine quantum gates with no classical counterpart
+(e.g., Hadamard and phase gates). We make the remarkable observation,
+that, for a number of quantum algorithms, judicious reasoning about
+the classical components, ignoring all the quantum gates, is
+sufficient. Put differently, in those cases, the quantum gates serve
+no fundamental purpose and are actually distracting from an underlying
+efficient classical algorithm. The result relies on the ability to
+symbolically execute circuits, especially in a retrodictive fashion,
+i.e., by making partial observations at the output site and proceeding
+backwards to infer the implied initial conditions.
 \end{abstract}
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Introduction}
+\section{Main}
+\begin{refsection}
+%% main text 2500 - 4300 words
+%% 5-6 figures
+
+\paragraph*{Retrodictive Quantum Mechanics meets Partial Evaluation}
 
 \begin{quote}
 You can’t connect the dots looking forward; you can only connect them
@@ -254,8 +272,7 @@ evaluation is powerful enough to solve some instances of
 Deutsch-Jozsa, Bernstein-Vazirnani, and Simon problems, as well as
 some instances of Grover's and Shor's algorithms.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Easy De-quantized Instances}
+\paragraph*{Easy De-quantized Instances.}
 
 The problem is to determine if a function $\finset{2} \rightarrow
 \finset{2}$ is constant or balanced. The only relevant part of the circuit is:
@@ -499,8 +516,7 @@ $x_0$ and $x_1$ (when $a \in \{2,7,8,13\}$). When the solution is
 $x_0=0$, the period is 2. When the solution is $x_0=0,x_1=0$, the
 period is 4.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Pre-images and NP-Complete Problems}
+\paragraph*{Pre-images and NP-Complete Problems.}
 
 we have a couple of success stories
 
@@ -647,15 +663,13 @@ The equations turn out to be trivial when the period is a power of
 primes: 3, 5, 17, 257, 65537, \ldots. The equations generated for some
 of these cases are in Fig.~\ref{fig:shor2-eqs}. 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Retrodictive QFT}
+\paragraph*{Retrodictive QFT.}
 
 only need number of vars !!!!
 
 solve other problems with just knowing which vars are involved
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Conclusion}
+\paragraph*{Conclusion.}
 
 Provide a general introduction to the topic and a brief non-technical
 summary of your main results and their implication.
@@ -693,9 +707,16 @@ Ewin Tang papers
 
 kochen specker ??
 
+\printbibliography[heading=subbibliography]
+\end{refsection}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Methods}
 
+%% 3000 words but could be longer
+
+\begin{refsection}
+  
 The evolution of a quantum system is typically understood as
 proceeding forwards in time --- from the present to the future. As
 shown in Fig.~\ref{fig:templateQC}(a), 
@@ -765,8 +786,9 @@ phases and probability amplitudes in that enormous superposition have
 become biased towards states of interest which are projected to
 produce the final answer.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Discussion}
+\paragraph*{Data Availability.}
+
+\paragraph*{Discussion.}
 
 Possibility that collapse of wave function is information flow back
 from measured future to present unknown initial conditions and then
@@ -910,8 +932,7 @@ way is to generate all equations and solve faster way is generate many
 sets of equations with different weights and sum to get your stats
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Partial Symbolic Evaluation with Algebraic Normal Form (ANF)}
+\paragraph*{Partial Symbolic Evaluation with Algebraic Normal Form (ANF).}
 
 We should use two prototypical examples to illustrate main ideas
 before going to the complex ones. The examples I have in mind are:
@@ -957,16 +978,13 @@ can associate a probability with each variable in a equation: look at
 all solutions and see the contribution of each variable to these
 solutions.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Complexity Analysis}
+\paragraph*{Complexity Analysis.}
 
 one pass over circuit BUT complexity of normalizing to ANF not trivial; be careful
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Additional Data}
+\paragraph*{Supplementary Information.} 
 
-\paragraph*{Equations generated by retrodictive execution of $4^x \mod{21}$ starting from observed result 1 and unknown $x$.}
-The circuit consists of 9 qubits, 36400 \cx-gates, 38200 \ccx-gates,
+Equations generated by retrodictive execution of $4^x \mod{21}$ starting from observed result 1 and unknown $x$. The circuit consists of 9 qubits, 36400 \cx-gates, 38200 \ccx-gates,
 and 4000 \cccx-gates. There are only three equations but each equation
 is exponentially large. 
 
@@ -1386,9 +1404,15 @@ $x_0 \oplus x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_1x_2x_3x_4 \
  x_6x_7 \oplus x_6x_7x_8 \oplus x_6x_7x_8x_9 \oplus x_6x_8x_9 \oplus x_6x_9 \oplus x_7x_8 \oplus x_7x_9 \oplus x_8 \oplus x_8x_9 =
  0$
 
+\paragraph*{Author Contributions.}
 
+\paragraph*{Competing Interests.}
 
-\printbibliography
+\paragraph*{Materials \& Correspondence.}
+
+\printbibliography[heading=subbibliography]
+\end{refsection}
+
 \end{document}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
