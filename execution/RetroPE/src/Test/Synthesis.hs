@@ -3,8 +3,27 @@ module Test.Synthesis where
 import Control.Monad.ST (runST)
 import Data.STRef (newSTRef)
 
+import Value (Var, Value(..), newVar, newVars, fromInt)
+import FormulaRepr (FormulaRepr(..))
 import Circuits (showOP)
 import Synthesis (synthesis)
+
+
+--import Data.STRef (readSTRef,writeSTRef)
+--import Data.List (intercalate,group,sort)
+
+--import System.Random (randomRIO)
+
+--import Text.Printf (printf)
+
+--
+--import Circuits (Circuit(..), showSizes, sizeOP)
+--import ArithCirc (expm)
+--import PE (run)
+
+
+
+
 
 ----------------------------------------------------------------------------------------
 -- Some test cases
@@ -39,5 +58,12 @@ test3 = putStrLn $ runST $ do
         f [True,False,True]   = [False,False,True]   -- 1
         f [True,True,False]   = [False,True,True]    -- 3
         f [True,True,True]    = [True,False,True]    -- 5
+
+test4 :: Int -> IO ()
+test4 n = putStrLn $ runST $ do
+  xs <- mapM newSTRef (map (\i -> "x" ++ show i) [0..(n-1)])
+  y <- newSTRef "y"
+  let op = synthesis (n+1) (xs ++ [y]) id
+  showOP op 
 
 ----------------------------------------------------------------------------------------

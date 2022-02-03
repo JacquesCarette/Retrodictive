@@ -154,7 +154,8 @@ x
 retroDeutschJozsa :: Int -> ([Bool] -> [Bool]) -> IO ()
 retroDeutschJozsa = Q.retroDeutschJozsa formRepr
 
-test n = retroDeutschJozsa n (\ _ -> replicate (n+1) False)
+-- constant False 
+retroDeutschJozsaF n = retroDeutschJozsa n id
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
