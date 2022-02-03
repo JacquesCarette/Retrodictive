@@ -7,11 +7,9 @@ import Data.List (intercalate,group,sort)
 
 import Control.Monad.ST (runST)
 
-import System.Random (randomRIO)
-
 import Text.Printf (printf)
 
-import Value (Var, Value(..), newVar, fromInt)
+import Value (Var, Value(..), newVar, newVars, fromInt)
 import Circuits (Circuit(..), showSizes, sizeOP)
 import ArithCirc (expm)
 import PE (run)

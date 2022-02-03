@@ -3,23 +3,14 @@ module PEX where
 -- partial evaluation of a circuit;
 -- here we only care if a variable is used or not
 
-import Data.STRef
-import Data.List (intercalate,group,sort,nub,intersect,(\\))
-import Data.Maybe (catMaybes, maybe, fromMaybe, fromJust)
-import qualified Data.Sequence as S
+import Data.STRef (readSTRef,writeSTRef)
+import Data.List (intercalate,group,sort)
 
-import Control.Monad 
-import Control.Monad.ST
+import Control.Monad.ST (runST)
 
-import System.Random (randomRIO)
-
-import Text.Printf
-
-import Value
-import Circuits
+import Value (Var, Value(..), newVar, newVars, fromInt)
+import Circuits (Circuit(..), showSizes, sizeOP)
 import ArithCirc (expm)
-import PE
-import Synthesis
 import FormulaRepr (FormulaRepr(FR))
 import qualified QAlgos as Q
 
