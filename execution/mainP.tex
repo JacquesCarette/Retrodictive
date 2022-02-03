@@ -57,15 +57,14 @@ backwards to infer the implied initial conditions.
 %% main text 2500 - 4300 words
 %% 5-6 figures
 
-\paragraph*{Retrodictive Quantum Mechanics meets Partial Evaluation}
-
 \begin{quote}
 You can’t connect the dots looking forward; you can only connect them
 looking backwards.  So you have to trust that the dots will somehow
 connect in your future. Steve Jobs
 \end{quote}
 
-\noindent \emph{Retrodictive quantum theory}~\cite{sym13040586},
+\paragraph*{Retrodictive Quantum Mechanics meets Partial Evaluation.}
+\emph{Retrodictive quantum theory}~\cite{sym13040586},
 retrocausality~\cite{Aharonov2008}, and the time-symmetry of physical
 laws~\cite{RevModPhys.27.179} suggest that partial knowledge about the
 future can be exploited to understand the present. We demonstrate the
@@ -162,6 +161,12 @@ without knowledge of \verb|a|. Just knowing \verb|n| was enough to
 produce a residual program that is much simpler. 
 
 \paragraph*{Quantum Circuit Model.} 
+Many quantum algorithms can be expressed using circuits consisting of
+three stages: preparation, unitary evolution, and measurement. For a
+large number of quantum algorithms, the unitary evolution is a quantum
+oracle $U_f$ that encapsulates a classical function $f$ to be analyzed
+as shown in Fig.~\ref{fig:oracle}.
+
 \begin{wrapfigure}{r}{5cm}
 \begin{quantikz}[row sep=0.7cm,column sep=1cm]
    \qw & 
@@ -174,11 +179,6 @@ produce a residual program that is much simpler.
 \end{quantikz}
 \caption{\label{fig:oracle}Quantum oracle}
 \end{wrapfigure}
-Many quantum algorithms can be expressed using circuits consisting of
-three stages: preparation, unitary evolution, and measurement. For a
-large number of quantum algorithms, the unitary evolution is a quantum
-oracle $U_f$ that encapsulates a classical function $f$ to be analyzed
-as shown in Fig.~\ref{fig:oracle}.
 
 \begin{wrapfigure}{r}{5cm}
 \begin{tikzpicture}[scale=1]
@@ -269,22 +269,87 @@ situations including different algorithms and different circuit sizes,
 we implemented the demand-driven symbolic partial evaluator and ran it
 on a variety of circuits. It turns that retrodictive symbolic
 evaluation is powerful enough to solve some instances of
-Deutsch-Jozsa, Bernstein-Vazirnani, and Simon problems, as well as
+Deutsch-Jozsa, Bernstein-Vazirani, and Simon problems, as well as
 some instances of Grover's and Shor's algorithms.
 
 \paragraph*{Easy De-quantized Instances.}
+Let $\finset{n}$ denote the finite set $\{ 0,1,\ldots,(n-1)\}$. The
+parameter $n$ determines the problem size in all the problems below
+(except Deutsch which is a fixed sized problem). The quantum
+algorithms we explore all have the same template and are
+conventionally executed as shown in Fig.~\ref{fig:templateQC}(a).
+Instead we fix the ancillary output to a possible boundary condition,
+and perform a retrodictive execution of the circuit. 
 
-The problem is to determine if a function $\finset{2} \rightarrow
-\finset{2}$ is constant or balanced. The only relevant part of the circuit is:
+\begin{figure}[t]
+  \begin{subfigure}{0.5\textwidth}
+  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
+    \begin{yquant*}[operators/every barrier/.append style={red, thick},
+        operator/minimum width=7mm,
+        operator/separation=1mm,
+        register/separation=10mm]
+    qubits {$\ket0^{\otimes n}$} a;
+    qubits {$\ket0^{\otimes m}$} b;
+    box {$H^{\otimes n}$} a;
+    ["step 1"]
+    barrier (-);
+    [x radius=7mm]
+    box {$U_f$} (a,b);
+    ["step 2"]
+    barrier (-);
+    measure b;
+    discard b;
+    ["step 3"]
+    barrier (-);
+    box {$\mathit{QFT}$} a;
+    measure a;
+    \end{yquant*}
+    \draw[line width=3pt, ->, blue] (0,-1.2) .. controls (2.5,-0.8) and (6,-1.6) .. (9,-1);
+  \end{tikzpicture}
+  \caption{Conventional Flow}
+  \end{subfigure}
+  \begin{subfigure}{0.5\textwidth}
+  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
+    \begin{yquant*}[operators/every barrier/.append style={red, thick},
+        operator/minimum width=7mm,
+        operator/separation=1mm,
+        register/separation=10mm]
+    qubits {$\ket0^{\otimes n}$} a;
+    qubits {$\ket0^{\otimes m}$} b;
+    box {$H^{\otimes n}$} a;
+    ["step 1"]
+    barrier (-);
+    [x radius=7mm]
+    box {$U_f$} (a,b);
+    ["step 2"]
+    barrier (-);
+    measure b;
+    discard b;
+    ["step 3"]
+    barrier (-);
+    box {$\mathit{QFT}$} a;
+    measure a;
+  \end{yquant*}
+  \draw[line width=3pt, blue] (0,-1.5) .. controls (5,-2) and (11,-1.8) .. (3,-1.2);
+  \draw[line width=3pt, ->, blue] (3,-1.2) .. controls (0.5,-0.8) and (7,-0.2) .. (9,-1);
+  \end{tikzpicture}
+  \caption{Retrodictive Flow}
+  \end{subfigure}
+\caption{\label{fig:templateQC}Template quantum circuit}
+\end{figure}
 
-\bigskip
-\begin{center}
-\begin{quantikz}\label{eq:deutsch}
-   \lstick{$x$} & \gate[wires=2][1.5cm]{U_f} & \rstick{$x$} \qw \\
-   \lstick{$y$} & \qw        & \rstick{$\ket{0}$} \qw
-\end{quantikz}
-\end{center}
-\medskip 
+
+\newpage
+
+This execution
+produces a formula for $y$ that depends on the function $f$ in the
+black box. When the function $f$ is a constant function, the formula
+is the corresponding constant $0$ or $1$. When the function is
+balanced the resulting formula is $x$ (when the function is the
+identity) or $1+x$ (when the function is boolean negation).
+Deutsch's problem is
+to determine if a function $\finset{2} \rightarrow \finset{2}$ is
+constant or balanced.
 
  We fix the ancillary output to a possible boundary condition, say
  $\ket{0}$, and perform a retrodictive execution of the circuit. This
@@ -354,8 +419,7 @@ domain indicating that the function is balanced.
 Show experiments for Deutsch Jozsa
 
 
-\paragraph*{Bernstein-Vazirani}
-
+Bernstein-Vazirani 
 We are given a function $f : \finset{2^n} \rightarrow \finset{2}$
 that hides a secret number $s \in \finset{2^n}$. We are promised the
 function is defined using the binary representations $\sum_i^{n-1}
@@ -441,7 +505,7 @@ on which $v$ depends. At the end of the execution, we conclude that
 $x_1$, $x_3$, $x_4$, and $x_5$ are the relevant qubits, from which we
 infer that the secret string must be $00111010$.
 
-\paragraph*{Simon.}
+Simon 
 We are given a 2-1 function $f : \finset{2^n} \rightarrow
 \finset{2^n}$ with the property that there exists an $a$ such $f(x) =
 f(x \oplus a)$ for all~$x$; the goal is to determine $a$. When
@@ -479,9 +543,9 @@ have $a=0$, and when $x_0 \neq x_1$, we have $a=3$ which is indeed the
 desired hidden value.
 
 
-\paragraph*{Grover.}
+Grover 
 
-\paragraph*{Shor.}
+Shor 
 
 The first experiment generalizes the simple
 example above by using more qubits and circuits that are constructed
@@ -517,7 +581,6 @@ $x_0=0$, the period is 2. When the solution is $x_0=0,x_1=0$, the
 period is 4.
 
 \paragraph*{Pre-images and NP-Complete Problems.}
-
 we have a couple of success stories
 
 then 21 huge
@@ -575,11 +638,8 @@ then pre-image story; np-complete; not even quantum computer can solve it
 luckily we don't actually need to solve it; we need stats about it; explain common algos
 
 
-Let $\finset{n}$ denote the finite set $\{ 0,1,\ldots,(n-1)\}$. The
-parameter $n$ determines the problem size in all the problems below
-(except Deutsch which is a fixed sized problem).
 
-\paragraph*{Deutsch.}
+Deutsch 
 The conventional statement of the problem is to determine if a
 function $\finset{2} \rightarrow \finset{2}$ is constant or
 balanced. An equivalent statement is to answer a query about the
@@ -588,7 +648,7 @@ pre-image of any value in the range is even i.e. 0 or 2, the function
 must be constant and if it is odd, i.e., it contains just one element,
 the function must be balanced.
 
-\paragraph*{Deutsch-Jozsa.}
+Deutsch-Jozsa 
 The problem is a generalization of the previous one: the question is
 to determine if a function $\finset{2^n} \rightarrow \finset{2}$ for
 some $n$ is constant or balanced. When expressed as a pre-image
@@ -599,7 +659,7 @@ $2^n$, or $2^{n-1}$? In the first two cases, the function is constant
 and in the last case, the pre-image contains half the values in the
 domain indicating that the function is balanced.
 
-\paragraph*{Bernstein-Vazirani.}
+Bernstein-Vazirani 
 We are given a function $f : \finset{2^n} \rightarrow \finset{2}$
 that hides a secret number $s \in \finset{2^n}$. We are promised the
 function is defined using the binary representations $\sum_i^{n-1}
@@ -617,7 +677,7 @@ and the answer determines bit $i$ of the secret $s$. Indeed, by
 definition, $f(2^i) = s_i$ and hence $s_i$ is 1 iff $2^i$ is a member
 of the pre-image of 1.
 
-\paragraph*{Simon.}
+Simon 
 We are given a 2-1 function $f : \finset{2^n} \rightarrow
 \finset{2^n}$ with the property that there exists an $a$ such $f(x) =
 f(x \oplus a)$ for all~$x$; the goal is to determine $a$. When
@@ -626,7 +686,7 @@ becomes the following. Pick an arbitrary $x$ and compute the pre-image
 of $f(x)$. It must contain exactly two values one of which is $x$. The
 problem then reduces to finding the other value in the pre-image.
 
-\paragraph*{Shor.}
+Shor 
 The quantum core of the algorithm is the following. We are given a
 periodic function $f(x) = a^x \mod{2^n}$ and the goal is to determine
 the period. As a computation over pre-images, the problem can be
@@ -664,13 +724,11 @@ primes: 3, 5, 17, 257, 65537, \ldots. The equations generated for some
 of these cases are in Fig.~\ref{fig:shor2-eqs}. 
 
 \paragraph*{Retrodictive QFT.}
-
 only need number of vars !!!!
 
 solve other problems with just knowing which vars are involved
 
-\paragraph*{Conclusion.}
-
+\paragraph*{Discussion.}
 Provide a general introduction to the topic and a brief non-technical
 summary of your main results and their implication.
 
@@ -699,7 +757,7 @@ can H be moved past Toffoli?
 universe uses lazy evaluation?
 
 algebra of Toffoli and Hadamard
-ZX calcululs
+ZX calculus
 
 fourier transform classical efficient in some cases
 
@@ -716,67 +774,9 @@ kochen specker ??
 %% 3000 words but could be longer
 
 \begin{refsection}
-  
 The evolution of a quantum system is typically understood as
 proceeding forwards in time --- from the present to the future. As
 shown in Fig.~\ref{fig:templateQC}(a), 
-
-\begin{figure}[t]
-  \begin{subfigure}{0.5\textwidth}
-  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
-    \begin{yquant*}[operators/every barrier/.append style={red, thick},
-        operator/minimum width=7mm,
-        operator/separation=1mm,
-        register/separation=10mm]
-    qubits {$\ket0^{\otimes n}$} a;
-    qubits {$\ket0^{\otimes m}$} b;
-    box {$H^{\otimes n}$} a;
-    ["step 1"]
-    barrier (-);
-    [x radius=7mm]
-    box {$U_f$} (a,b);
-    ["step 2"]
-    barrier (-);
-    measure b;
-    discard b;
-    ["step 3"]
-    barrier (-);
-    box {$\mathit{QFT}$} a;
-    measure a;
-    \end{yquant*}
-    \draw[line width=3pt, ->, blue] (0,-1.2) .. controls (2.5,-0.8) and (6,-1.6) .. (9,-1);
-  \end{tikzpicture}
-  \caption{Conventional Flow}
-  \end{subfigure}
-  \begin{subfigure}{0.5\textwidth}
-  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
-    \begin{yquant*}[operators/every barrier/.append style={red, thick},
-        operator/minimum width=7mm,
-        operator/separation=1mm,
-        register/separation=10mm]
-    qubits {$\ket0^{\otimes n}$} a;
-    qubits {$\ket0^{\otimes m}$} b;
-    box {$H^{\otimes n}$} a;
-    ["step 1"]
-    barrier (-);
-    [x radius=7mm]
-    box {$U_f$} (a,b);
-    ["step 2"]
-    barrier (-);
-    measure b;
-    discard b;
-    ["step 3"]
-    barrier (-);
-    box {$\mathit{QFT}$} a;
-    measure a;
-  \end{yquant*}
-  \draw[line width=3pt, blue] (0,-1.5) .. controls (5,-2) and (11,-1.8) .. (3,-1.2);
-  \draw[line width=3pt, ->, blue] (3,-1.2) .. controls (0.5,-0.8) and (7,-0.2) .. (9,-1);
-  \end{tikzpicture}
-  \caption{Retrodictive Flow}
-  \end{subfigure}
-\caption{\label{fig:templateQC}Template quantum circuit}
-\end{figure}
 
 Since the conventional execution starts with complete ignorance about
 the future, the initial state is prepared as a superposition that
@@ -786,10 +786,9 @@ phases and probability amplitudes in that enormous superposition have
 become biased towards states of interest which are projected to
 produce the final answer.
 
-\paragraph*{Data Availability.}
+\paragraph*{Data Availability.} available 
 
 \paragraph*{Discussion.}
-
 Possibility that collapse of wave function is information flow back
 from measured future to present unknown initial conditions and then
 back to rest of wave that was not measured
@@ -933,10 +932,9 @@ sets of equations with different weights and sum to get your stats
 
 
 \paragraph*{Partial Symbolic Evaluation with Algebraic Normal Form (ANF).}
-
 We should use two prototypical examples to illustrate main ideas
 before going to the complex ones. The examples I have in mind are:
-Deutsch-Josza and Simon (precursor of Shor's). There are prior works
+Deutsch-Jozsa and Simon (precursor of Shor's). There are prior works
 on de-quantization of the first problem and should make contact with
 their resolution. Perhaps we can show that they are as efficient
 classically? That would justify retrodiction alone. The more complex
@@ -979,11 +977,9 @@ all solutions and see the contribution of each variable to these
 solutions.
 
 \paragraph*{Complexity Analysis.}
-
 one pass over circuit BUT complexity of normalizing to ANF not trivial; be careful
 
 \paragraph*{Supplementary Information.} 
-
 Equations generated by retrodictive execution of $4^x \mod{21}$ starting from observed result 1 and unknown $x$. The circuit consists of 9 qubits, 36400 \cx-gates, 38200 \ccx-gates,
 and 4000 \cccx-gates. There are only three equations but each equation
 is exponentially large. 
