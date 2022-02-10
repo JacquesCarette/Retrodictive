@@ -11,7 +11,7 @@ import Control.Monad.ST (ST)
 
 import Text.Printf (printf)
 
-import Numeric (doublemods, sqmods, invsqmods)
+import QNumeric (doublemods, sqmods, invsqmods)
 import Value (Var, Value, newVars, fromInt, newVar, zero)
 import GToffoli (GToffoli(GToffoli), showGToffoli)
 import Circuits (OP, Circuit(..), cx, ccx, ncx, cop, copyOP, ncop, ccop)

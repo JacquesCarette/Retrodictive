@@ -13,7 +13,7 @@ import GToffoli (GToffoli(GToffoli))
 import Circuits (OP, showSizes, sizeOP, Circuit(..))
 import ArithCirc (expm)
 import Value (Value(..), fromInt)
-import Numeric (toInt)
+import QNumeric (toInt)
 
 ----------------------------------------------------------------------------------------
 -- Values

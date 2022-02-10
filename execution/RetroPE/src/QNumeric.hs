@@ -1,4 +1,4 @@
-module Numeric where
+module QNumeric where
   
 ----------------------------------------------------------------------------------------
 -- Numeric computations

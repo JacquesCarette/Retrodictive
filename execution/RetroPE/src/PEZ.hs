@@ -137,25 +137,41 @@ peExpMod = Q.peExpMod formRepr
 retroDeutsch = Q.retroDeutsch formRepr
 {--
 
-*PEZ> retroDeutsch deutschId
-x
-
-*PEZ> retroDeutsch deutschNot
-1 + x
-
-*PEZ> retroDeutsch deutsch0
+*PEZ> retroDeutsch Q.deutsch0
 0
 
-*PEZ> retroDeutsch deutsch1
+*PEZ> retroDeutsch Q.deutsch1
 1
+
+*PEZ> retroDeutsch Q.deutschId
+x
+
+*PEZ> retroDeutsch Q.deutschNot
+1 + x
 
 --}
 
 retroDeutschJozsa :: Int -> ([Bool] -> [Bool]) -> IO ()
 retroDeutschJozsa = Q.retroDeutschJozsa formRepr
 
--- constant False 
-retroDeutschJozsaF n = retroDeutschJozsa n id
+{--
+
+*PEZ> retroDeutschJozsa 5 Q.deutschJozsaConstant0
+0
+
+*PEZ> retroDeutschJozsa 5 Q.deutschJozsaConstant1
+1
+
+*PEZ> retroDeutschJozsa 6 Q.deutschJozsaBal1
+x0
+
+*PEZ> retroDeutschJozsa 6 Q.deutschJozsaBal2
+x0 + x1 + x2 + x3 + x4 + x5
+
+*PEZ> retroDeutschJozsa 6 Q.deutschJozsaBal3
+x0x1x2 + x0x1x2x3x4 + x0x1x2x3x5 + x0x1x2x4 + x0x1x2x4x5 + x0x1x3x4 + x0x1x3x5 + x0x1x4 + x0x1x4x5 + x0x2 + x0x2x3x5 + x0x2x4x5 + x0x3 + x0x3x4x5 + x0x3x5 + x1x2x3x5 + x1x2x4x5 + x1x3x4x5 + x1x3x5 + x1x5 + x2x3x4x5 + x2x3x5 + x2x4 + x3x4x5 + x3x5
+
+--}
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
