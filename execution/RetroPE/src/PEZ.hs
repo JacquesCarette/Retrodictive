@@ -129,12 +129,8 @@ formRepr = FR fromVar fromVars
 ----------------------------------------------------------------------------------------
 -- Testing
 
--- Retrodictive execution of Shor's algorithm
-
-peExpMod :: Int -> Integer -> Integer -> Integer -> IO ()
-peExpMod = Q.peExpMod formRepr
-
 retroDeutsch = Q.retroDeutsch formRepr
+
 {--
 
 *PEZ> retroDeutsch Q.deutsch0
@@ -172,6 +168,11 @@ x0 + x1 + x2 + x3 + x4 + x5
 x0x1x2 + x0x1x2x3x4 + x0x1x2x3x5 + x0x1x2x4 + x0x1x2x4x5 + x0x1x3x4 + x0x1x3x5 + x0x1x4 + x0x1x4x5 + x0x2 + x0x2x3x5 + x0x2x4x5 + x0x3 + x0x3x4x5 + x0x3x5 + x1x2x3x5 + x1x2x4x5 + x1x3x4x5 + x1x3x5 + x1x5 + x2x3x4x5 + x2x3x5 + x2x4 + x3x4x5 + x3x5
 
 --}
+
+-- Shor
+
+peExpMod :: Int -> Integer -> Integer -> Integer -> IO ()
+peExpMod = Q.peExpMod formRepr
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------

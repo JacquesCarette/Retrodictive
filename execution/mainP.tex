@@ -105,21 +105,22 @@ sum is equal to \verb|s|; and \verb|find| that composes the two
 functions: generating all triples, testing the ones that satisfy the
 condition, and returning the first solution. Running this program to
 find numbers in the range $[1..6]$ that sum to 15 immediately produces
-$(4,5,6)$ as expected. But what if the range of interest was
-$[1..10000000]$ ? A na\"\i ve execution of the generate-and-test
-method would be prohibitively expensive as it would spend all its time
-generating an enormous number of triples that are un-needed.
+$(4,5,6)$ as expected.
 
-Lazy demand-driven evaluation as implemented in Haskell succeeds in a
-few seconds with the result $(1,2,12)$, however. The idea is simple:
-instead of eagerly generating all the triples, generate a process
-that, when queried, produces one triple at a time on
-demand. Conceptually the execution starts from the observer side which
-is asking for the first element of a list; this demand is propagated
-to the function \verb|test| which itself propagates the demand to the
-function \verb|generate|. As each triple is generated, it is tested
-until one triple passes the test. This triple is immediately returned
-without having to generate any additional values.
+But what if the range of interest was $[1..10000000]$ ? A na\"\i ve
+execution of the generate-and-test method would be prohibitively
+expensive as it would spend all its time generating an enormous number
+of triples that are un-needed. Lazy demand-driven evaluation as
+implemented in Haskell succeeds in a few seconds with the result
+$(1,2,12)$, however. The idea is simple: instead of eagerly generating
+all the triples, generate a process that, when queried, produces one
+triple at a time on demand. Conceptually the execution starts from the
+observer site which is asking for the first element of a list; this
+demand is propagated to the function \verb|test| which itself
+propagates the demand to the function \verb|generate|. As each triple
+is generated, it is tested until one triple passes the test. This
+triple is immediately returned without having to generate any
+additional values.
 
 \paragraph*{Partial Evaluation.}
 Below is a Haskell program that computes $a^n$ by repeated squaring:
@@ -180,7 +181,7 @@ as shown in Fig.~\ref{fig:oracle}.
 \caption{\label{fig:oracle}Quantum oracle}
 \end{wrapfigure}
 
-\begin{wrapfigure}{r}{5cm}
+\begin{wrapfigure}{r}{6cm}
 \begin{tikzpicture}[scale=1]
     \begin{yquant*}[register/minimum height=1.3cm]
     qubit {$x$} x;
@@ -190,7 +191,7 @@ as shown in Fig.~\ref{fig:oracle}.
     box {$U_f$} (x,y);
     hspace {5mm} -;
     output {$x$} x;
-    output {$\ket{3}$} y;
+    measure y; 
   \end{yquant*}
   \draw[line width=3pt, ->, blue] (3.5,-2.1) .. controls (-0.2,-1.6) and (-0.2,-1.1) .. (3.5,-0.6);
 \end{tikzpicture}
@@ -207,79 +208,6 @@ observed result. Using this knowledge, it is possible to perform a
 demand-driven partial evaluation with a symbolic placeholder for
 $x$. This execution produces information about the necessary initial
 conditions on $x$ that lead to the observed final result..
-
-\begin{figure}[t]
-\begin{center}
-\begin{quantikz}[row sep=0.08cm,column sep=1cm]
-\lstick{$x_2 = \ket{0}$} & \gate{H}\slice{1} & \qw & \qw \slice{2}
-      & \qw\slice{3} & \gate[wires=3][1cm]{QFT} & \meter{} & \rstick{$\tilde{v_2}$}\cw \\
-\lstick{$x_1 = \ket{0}$} & \gate{H} & \qw & \qw       
-      & \qw & & \meter{} & \rstick{$\tilde{v_1}$}\cw \\
-\lstick{$x_0 = \ket{0}$} & \gate{H} & \octrl{3} & \ctrl{1}
-      & \qw & & \meter{} & \rstick{$\tilde{v_0}$}\cw \\
-\lstick{$\ket{0}$} & \qw & \qw & \targ{}
-      & \meter{} & \rstick{$e_2$}\cw \\
-\lstick{$\ket{0}$} & \qw & \qw  & \qw
-      & \meter{} & \rstick{$e_1$}\cw \\
-\lstick{$\ket{0}$} & \qw & \targ{} & \qw 
-      & \meter{} & \rstick{$e_0$}\cw 
-\end{quantikz}
-\end{center}
-\caption{\label{fig:shor15}Finding the period of $4^x \mod{15}$}
-\end{figure}
-
-The circuit in Fig.~\ref{fig:shor15} explains the idea in a simple but
-realistic scenario. The circuit uses a hand-optimized $U_f$ that
-implements the modular exponentiation $4^x \mod{15}$ in order to
-factor 15 using Shor's algorithm. In a conventional setting, the
-execution proceeds as follows. At step (1), we have the initial state
-$(1/2\sqrt{2})\sum_{i=0}^7 \ket{i}\ket{0}$. The state evolves through
-the $U_f$ block between (1) and (2) to become:
-\[
-\frac{1}{2\sqrt{2}} (
-  (\ket{0} + \ket{2} + \ket{4} + \ket{6}) \ket{1} + 
-  (\ket{1} + \ket{3} + \ket{5} + \ket{7}) \ket{4}
-  )
-\]
-At this point, the second register is measured. The result of the
-measurement can be either $\ket{1}$ or $\ket{4}$. In either case, the
-top register snaps to a state of the form $\sum_{r=0}^3 \ket{a+2r}$
-whose QFT has peaks at $\ket{0}$ or $\ket{4}$. If we measure $\ket{0}$
-we repeat the experiment; otherwise we infer that the period is 2. 
-
-Instead of this forward execution, we can reason as follows. Since
-$x^0 = 1$ for all $x$, we know that $\ket{1}$ is a possible
-measurement of the second register. We can therefore proceed in a
-retrodictive fashion with the state $\ket{x_2x_1x_0}\ket{001}$ at step
-2 and computing backwards. In this symbolic execution, the first
-\cx-gate changes the state to $\ket{x_2x_1x_0}\ket{x_001}$ and the
-second \cx-gate produces $\ket{x_2x_1x_0}\ket{x_00x_0}$. At that
-point, we reconcile the retrodictive result of the second register
-$\ket{x_00x_0}$ with the initial condition $\ket{000}$ to conclude
-that $x_0=0$. In other the first register must be in a superposition
-of basis states of the form $\ket{??0}$ where the least significant
-bit must be 0 and the other two bits are unconstrained. Expanding the
-possibilities, the first register need to be in a superposition of the
-states $\ket{000}, \ket{010}, \ket{100}$ or $\ket{110}$. We have just
-inferred, using purely classical but retrodictive reasoning, that the
-period is 2.
-
-In order to assess whether this idea works for a broader class of
-situations including different algorithms and different circuit sizes,
-we implemented the demand-driven symbolic partial evaluator and ran it
-on a variety of circuits. It turns that retrodictive symbolic
-evaluation is powerful enough to solve some instances of
-Deutsch-Jozsa, Bernstein-Vazirani, and Simon problems, as well as
-some instances of Grover's and Shor's algorithms.
-
-\paragraph*{Easy De-quantized Instances.}
-Let $\finset{n}$ denote the finite set $\{ 0,1,\ldots,(n-1)\}$. The
-parameter $n$ determines the problem size in all the problems below
-(except Deutsch which is a fixed sized problem). The quantum
-algorithms we explore all have the same template and are
-conventionally executed as shown in Fig.~\ref{fig:templateQC}(a).
-Instead we fix the ancillary output to a possible boundary condition,
-and perform a retrodictive execution of the circuit. 
 
 \begin{figure}[t]
   \begin{subfigure}{0.5\textwidth}
@@ -338,64 +266,77 @@ and perform a retrodictive execution of the circuit.
 \caption{\label{fig:templateQC}Template quantum circuit}
 \end{figure}
 
+\paragraph*{Easy to De-Quantize Instances.}
+Let $\finset{n}$ denote the finite set $\{ 0,1,\ldots,(n-1)\}$. The
+parameter $n$ determines the problem size in all the problems below
+(except Deutsch which is a fixed sized problem). The quantum
+algorithms we explore all have the same template and are
+conventionally executed as shown in Fig.~\ref{fig:templateQC}(a).
+Instead we fix the ancillary output to a possible boundary condition,
+and perform a retrodictive execution of the circuit as shown in part
+(b).
+
+\paragraph*{Deutsch.} The problem is to determine if a
+given function $\finset{2} \rightarrow \finset{2}$ is constant or
+balanced. It is assumed that the function is realized using a quantum
+circuit $U_f$, typically composed of $\x$ and $\cx$ gate, and the goal
+is to use $U_f$ just once. The quantum algorithm prepares a quantum
+superposition that propagates through the quantum oracle $U_f$ in the
+conventional forward execution and then performs a measurement that
+deterministically solves the problem. Instead, we fix the ancilla
+output to a possible boundary condition, say $\ket{0}$, and perform a
+retrodictive execution of the circuit realizing the quantum
+oracle. The execution starts from the output side with the partially
+symbolic state $\ket{x}\ket{0}$ and produces one of the following four
+outputs depending on the function $f$:
+\[
+\ket{x}\ket{0} \qquad\qquad
+\ket{x}\ket{1} \qquad\qquad
+\ket{x}\ket{x} \qquad\qquad
+\ket{x}\ket{1+x}
+\]
+Each result specifies how the observed result, $\ket{0}$ in this case,
+depends on the symbolic input $x$. In the first two cases, there is no
+dependency and the function is evidently constant. In the last two
+cases, the output depends on the input and the function must be either
+the identify function or the boolean negation, i.e., the function must
+be balanced.
+
+\paragraph*{Deutsch-Jozsa.} 
+The problem is a generalization of the previous one: we are given a
+function $\mathbb{B}^n \rightarrow \mathbb{B}$ that is promised to be
+constant or balanced and we need to decide distinguish the two
+cases. Again, we fix the ancillary output to a possible boundary
+condition, say $\ket{0}$, and perform a retrodictive execution of the
+circuit. For the two constant functions, the result was $\ket{0}$ and
+$\ket{1}$ indicating that the function depends on no symbolic
+variables. For three examples of balanced functions with $n=6$, the
+result was:
+\begin{itemize}
+\item $\ket{x_0}$
+\item $\ket{x_0 + x_1 + x_2 + x_3 + x_4 + x_5}$
+  \item $|x_0x_1x_2 + x_0x_1x_2x_3x_4 + x_0x_1x_2x_3x_5 + x_0x_1x_2x_4 + x_0x_1x_2x_4x_5
+    + x_0x_1x_3x_4 + x_0x_1x_3x_5 + x_0x_1x_4 + x_0x_1x_4x_5 + x_0x_2 + x_0x_2x_3x_5 +
+    x_0x_2x_4x_5 + x_0x_3 + x_0x_3x_4x_5 + x_0x_3x_5 + x_1x_2x_3x_5 + x_1x_2x_4x_5 +
+    x_1x_3x_4x_5 + x_1x_3x_5 + x_1x_5 + x_2x_3x_4x_5 + x_2x_3x_5 + x_2x_4 + x_3x_4x_5 +
+    x_3x_5\rangle$
+\end{itemize}
+In the first case, the function is balanced because its output depends
+on just one variable (which is 0 half the time); in the second case
+the output of the function is the exclusive-or of all the input
+variables. The last case is a cryptographically strong balanced
+balanced function whose output pattern is, by design, difficult to
+discern~\cite{quteprints21763}. Since we are promised the function is
+either constant or balanced, then any output that depends on at least
+one symbolic variable is incompatible with a constant function.
 
 \newpage
 
-This execution
-produces a formula for $y$ that depends on the function $f$ in the
-black box. When the function $f$ is a constant function, the formula
-is the corresponding constant $0$ or $1$. When the function is
-balanced the resulting formula is $x$ (when the function is the
-identity) or $1+x$ (when the function is boolean negation).
-Deutsch's problem is
-to determine if a function $\finset{2} \rightarrow \finset{2}$ is
-constant or balanced.
-
- We fix the ancillary output to a possible boundary condition, say
- $\ket{0}$, and perform a retrodictive execution of the circuit. This
- execution produces a formula for $y$ that depends on the function $f$
- in the black box. When the function $f$ is a constant function, the
- formula is the corresponding constant $0$ or $1$. When the function
- is balanced the resulting formula is $x$ (when the function is the
- identity) or $1+x$ (when the function is boolean negation).
-
-Running retro in deutsch gives:
-
-\begin{verbatim}
-> retroDeutsch deutschId
-x
-
-> retroDeutsch deutschNot
-1 + x
-
-> retroDeutsch deutsch0
-0
-
-> retroDeutsch deutsch1
-1
-\end{verbatim}
-
-The problem is a generalization of the previous one: the question is
-to determine if a function $\mathbb{B}^n \rightarrow \mathbb{B}$ is
-constant or balanced. The circuit is identical to above except that
-$x$ is now a collection of qubits:
-
-\begin{quantikz}\label{eq:deutsch-jozsa}
-   \lstick{$x_0$}     & \gate[wires=4][1.5cm]{U_f} & \rstick{$x_0$}     \qw \\
-   \lstick{$x_1$}     & \ghost{U_f}        & \rstick{$x_1$}     \qw \\
-   \lstick{$\ldots$}  & \ghost{U_f}        & \rstick{$\ldots$}  \qw \\
-   \lstick{$x_{{n-1}}$} & \ghost{U_f}        & \rstick{$x_{{n-1}}$} \qw \\
-   \lstick{$y$}       & \ghost{U_f}        & \rstick{$\ket{0}$} \qw
-\end{quantikz}
-\medskip 
-
-Again, we fix the ancillary output to a possible boundary condition,
-say $\ket{0}$, and perform a retrodictive execution of the
-circuit. This execution produces a formula for $y$ that depends on the
-function $f$ in the black box. When the function $f$ is a constant
-function, the formula is the corresponding constant $0$ or $1$. When
-the function is balanced the resulting formula involves at least one
-variable $x_i$.
+This execution produces a formula for $y$
+that depends on the function $f$ in the black box. When the function
+$f$ is a constant function, the formula is the corresponding constant
+$0$ or $1$. When the function is balanced the resulting formula
+involves at least one variable $x_i$.
 
 The conventional statement of the problem is to determine if a
 function $\finset{2} \rightarrow \finset{2}$ is constant or
@@ -417,6 +358,91 @@ and in the last case, the pre-image contains half the values in the
 domain indicating that the function is balanced.
 
 Show experiments for Deutsch Jozsa
+
+Deutsch-Jozsa 
+The problem is a generalization of the previous one: the question is
+to determine if a function $\finset{2^n} \rightarrow \finset{2}$ for
+some $n$ is constant or balanced. When expressed as a pre-image
+computation, the problem reduces to a query distinguishing the
+following three situations about the pre-image of a value in the range
+of the function: is the cardinality of the pre-image equal to 0,
+$2^n$, or $2^{n-1}$? In the first two cases, the function is constant
+and in the last case, the pre-image contains half the values in the
+domain indicating that the function is balanced.
+
+
+
+
+
+
+
+
+
+
+
+\begin{figure}[t]
+\begin{center}
+\begin{quantikz}[row sep=0.08cm,column sep=1cm]
+\lstick{$x_2 = \ket{0}$} & \gate{H}\slice{1} & \qw & \qw \slice{2}
+      & \qw\slice{3} & \gate[wires=3][1cm]{QFT} & \meter{} & \rstick{$\tilde{v_2}$}\cw \\
+\lstick{$x_1 = \ket{0}$} & \gate{H} & \qw & \qw       
+      & \qw & & \meter{} & \rstick{$\tilde{v_1}$}\cw \\
+\lstick{$x_0 = \ket{0}$} & \gate{H} & \octrl{3} & \ctrl{1}
+      & \qw & & \meter{} & \rstick{$\tilde{v_0}$}\cw \\
+\lstick{$\ket{0}$} & \qw & \qw & \targ{}
+      & \meter{} & \rstick{$e_2$}\cw \\
+\lstick{$\ket{0}$} & \qw & \qw  & \qw
+      & \meter{} & \rstick{$e_1$}\cw \\
+\lstick{$\ket{0}$} & \qw & \targ{} & \qw 
+      & \meter{} & \rstick{$e_0$}\cw 
+\end{quantikz}
+\end{center}
+\caption{\label{fig:shor15}Finding the period of $4^x \mod{15}$}
+\end{figure}
+
+The circuit in Fig.~\ref{fig:shor15} explains the idea in a simple but
+realistic scenario. The circuit uses a hand-optimized $U_f$ that
+implements the modular exponentiation $4^x \mod{15}$ in order to
+factor 15 using Shor's algorithm. In a conventional setting, the
+execution proceeds as follows. At step (1), we have the initial state
+$(1/2\sqrt{2})\sum_{i=0}^7 \ket{i}\ket{0}$. The state evolves through
+the $U_f$ block between (1) and (2) to become:
+\[
+\frac{1}{2\sqrt{2}} (
+  (\ket{0} + \ket{2} + \ket{4} + \ket{6}) \ket{1} + 
+  (\ket{1} + \ket{3} + \ket{5} + \ket{7}) \ket{4}
+  )
+\]
+At this point, the second register is measured. The result of the
+measurement can be either $\ket{1}$ or $\ket{4}$. In either case, the
+top register snaps to a state of the form $\sum_{r=0}^3 \ket{a+2r}$
+whose QFT has peaks at $\ket{0}$ or $\ket{4}$. If we measure $\ket{0}$
+we repeat the experiment; otherwise we infer that the period is 2. 
+
+Instead of this forward execution, we can reason as follows. Since
+$x^0 = 1$ for all $x$, we know that $\ket{1}$ is a possible
+measurement of the second register. We can therefore proceed in a
+retrodictive fashion with the state $\ket{x_2x_1x_0}\ket{001}$ at step
+2 and computing backwards. In this symbolic execution, the first
+\cx-gate changes the state to $\ket{x_2x_1x_0}\ket{x_001}$ and the
+second \cx-gate produces $\ket{x_2x_1x_0}\ket{x_00x_0}$. At that
+point, we reconcile the retrodictive result of the second register
+$\ket{x_00x_0}$ with the initial condition $\ket{000}$ to conclude
+that $x_0=0$. In other the first register must be in a superposition
+of basis states of the form $\ket{??0}$ where the least significant
+bit must be 0 and the other two bits are unconstrained. Expanding the
+possibilities, the first register need to be in a superposition of the
+states $\ket{000}, \ket{010}, \ket{100}$ or $\ket{110}$. We have just
+inferred, using purely classical but retrodictive reasoning, that the
+period is 2.
+
+
+
+
+
+
+
+
 
 
 Bernstein-Vazirani 
@@ -580,6 +606,18 @@ $x_0$ and $x_1$ (when $a \in \{2,7,8,13\}$). When the solution is
 $x_0=0$, the period is 2. When the solution is $x_0=0,x_1=0$, the
 period is 4.
 
+
+
+In order to assess whether this idea works for a broader class of
+situations including different algorithms and different circuit sizes,
+we implemented the demand-driven symbolic partial evaluator and ran it
+on a variety of circuits. It turns that retrodictive symbolic
+evaluation is powerful enough to solve some instances of
+Deutsch-Jozsa, Bernstein-Vazirani, and Simon problems, as well as
+some instances of Grover's and Shor's algorithms.
+
+
+
 \paragraph*{Pre-images and NP-Complete Problems.}
 we have a couple of success stories
 
@@ -647,6 +685,41 @@ cardinality of a pre-image. In this case, if the cardinality of the
 pre-image of any value in the range is even i.e. 0 or 2, the function
 must be constant and if it is odd, i.e., it contains just one element,
 the function must be balanced.
+
+The problem is a generalization of the previous one: the question is
+to determine if a function $\mathbb{B}^n \rightarrow \mathbb{B}$ is
+constant or balanced. The circuit is identical to above except that
+$x$ is now a collection of qubits:
+
+
+Again, we fix the ancillary output to a possible boundary condition,
+say $\ket{0}$, and perform a retrodictive execution of the
+circuit. This execution produces a formula for $y$ that depends on the
+function $f$ in the black box. When the function $f$ is a constant
+function, the formula is the corresponding constant $0$ or $1$. When
+the function is balanced the resulting formula involves at least one
+variable $x_i$.
+
+The conventional statement of the problem is to determine if a
+function $\finset{2} \rightarrow \finset{2}$ is constant or
+balanced. An equivalent statement is to answer a query about the
+cardinality of a pre-image. In this case, if the cardinality of the
+pre-image of any value in the range is even i.e. 0 or 2, the function
+must be constant and if it is odd, i.e., it contains just one element,
+the function must be balanced.
+
+
+The problem is a generalization of the previous one: the question is
+to determine if a function $\finset{2^n} \rightarrow \finset{2}$ for
+some $n$ is constant or balanced. When expressed as a pre-image
+computation, the problem reduces to a query distinguishing the
+following three situations about the pre-image of a value in the range
+of the function: is the cardinality of the pre-image equal to 0,
+$2^n$, or $2^{n-1}$? In the first two cases, the function is constant
+and in the last case, the pre-image contains half the values in the
+domain indicating that the function is balanced.
+
+Show experiments for Deutsch Jozsa
 
 Deutsch-Jozsa 
 The problem is a generalization of the previous one: the question is

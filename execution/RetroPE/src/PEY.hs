@@ -146,25 +146,51 @@ formRepr = FR fromVar fromVars
 -- Testing
 
 
-peExpMod :: Int -> Integer -> Integer -> Integer -> IO ()
-peExpMod = Q.peExpMod formRepr
-
 retroDeutsch = Q.retroDeutsch formRepr
+
 {--
 
-*PEZ> retroDeutsch deutschId
+*PEY> retroDeutsch Q.deutschId
 x
 
-*PEZ> retroDeutsch deutschNot
+*PEY> retroDeutsch Q.deutschNot
 1 + x
 
-*PEZ> retroDeutsch deutsch0
+*PEY> retroDeutsch Q.deutsch0
 0
 
-*PEZ> retroDeutsch deutsch1
+*PEY> retroDeutsch Q.deutsch1
 1
 
 --}
+
+retroDeutschJozsa :: Int -> ([Bool] -> [Bool]) -> IO ()
+retroDeutschJozsa = Q.retroDeutschJozsa formRepr
+
+{--
+
+*PEY> retroDeutschJozsa 5 Q.deutschJozsaConstant0
+0
+
+*PEY> retroDeutschJozsa 5 Q.deutschJozsaConstant1
+1
+
+*PEY> retroDeutschJozsa 5 Q.deutschJozsaBal1
+x0
+
+*PEY> retroDeutschJozsa 5 Q.deutschJozsaBal2
+x0 + x1 + x2 + x3 + x4
+
+*PEY> retroDeutschJozsa 5 Q.deutschJozsaBal3
+x0x2 + x0x3 + x1x2 + x1x4
+
+--}
+
+-- Shor
+
+peExpMod :: Int -> Integer -> Integer -> Integer -> IO ()
+peExpMod = Q.peExpMod formRepr
+
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
