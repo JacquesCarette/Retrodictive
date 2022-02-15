@@ -23,12 +23,20 @@ import FormulaRepr (FormulaRepr(..))
 import QNumeric (toInt)
 
 ----------------------------------------------------------------------------------------
--- Some quantum algorithms
+-- Generic quantum oracle construction
+
+viewL :: [a] -> ([a],a)
+viewL xs = (init xs, last xs)
+
+uf :: ([Bool] -> Bool) -> ([Bool] -> [Bool])
+uf f (viewL -> (xs,y)) = xs ++ [f xs /= y]
+
+-- Quantum algorithms
 
 -- Shor
 
-peExpMod :: (Show f, Value f) 
-         => FormulaRepr f -> Int -> Integer -> Integer -> Integer -> IO ()
+peExpMod :: (Show f, Value f) =>
+            FormulaRepr f -> Int -> Integer -> Integer -> Integer -> IO ()
 peExpMod fr n a m r = printResult $ runST $ do
   circ <- expm n a m
   mapM_ (uncurry writeSTRef) (zip (ancillaOuts circ) (fromInt (n+1) r))
@@ -78,12 +86,6 @@ retroDeutsch fr f = print $ runST $ do
 
 -- Deutsch Jozsa
 
-viewL :: [a] -> ([a],a)
-viewL xs = (init xs, last xs)
-
-uf :: ([Bool] -> Bool) -> ([Bool] -> [Bool])
-uf f (viewL -> (xs,y)) = xs ++ [f xs /= y]
-
 deutschJozsaConstant0, deutschJozsaConstant1 :: [Bool] -> [Bool]
 deutschJozsaBal1, deutschJozsaBal2, deutschJozsaBal3 :: [Bool] -> [Bool]
 -- f(x) = 0
@@ -103,11 +105,11 @@ deutschJozsaBal3 = uf f
         h2Str :: Char -> String
         h2Str c = printf "%04b" (h2Int c)
         sbin :: [Bool]
-        sbin = map (\c -> if c == '0' then False else True) $ concatMap h2Str shex
+        sbin = map (== '0') $ concatMap h2Str shex
         f xs = sbin !! fromInteger (toInt xs)
 
-retroDeutschJozsa :: (Show f, Value f) 
-                   => FormulaRepr f -> Int -> ([Bool] -> [Bool]) -> IO ()
+retroDeutschJozsa :: (Show f, Value f) =>
+                     FormulaRepr f -> Int -> ([Bool] -> [Bool]) -> IO ()
 retroDeutschJozsa fr n f = print $ runST $ do
   xs <- newVars (fromVars fr n "x")
   y <- newVar zero
@@ -156,6 +158,23 @@ retroSimon fr = print $ runST $ do
               , ancillaVals = undefined
               }
   mapM readSTRef as
+
+-- Grover
+
+retroGrover :: (Show f, Value f) =>
+               FormulaRepr f -> Int -> Integer -> IO ()
+retroGrover fr n w = print $ runST $ do
+  xs <- newVars (fromVars fr n "x")
+  y <- newVar zero
+  run Circuit { op = synthesis (n+1) (xs ++ [y]) (groverOracle n w)
+              , xs = xs
+              , ancillaIns = [y]
+              , ancillaOuts = [y]
+              , ancillaVals = undefined
+              }
+  readSTRef y
+  where
+    groverOracle n w = uf (== xw) where xw = fromInt n w
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------

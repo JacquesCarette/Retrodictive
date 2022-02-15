@@ -218,5 +218,64 @@ retroBernsteinVazirani = Q.retroBernsteinVazirani formRepr
 retroSimon :: IO ()
 retroSimon = Q.retroSimon formRepr
 
+--
+
+retroGrover :: Int -> Integer -> IO ()
+retroGrover = Q.retroGrover formRepr
+
+{--
+
+*PEZ> mapM (retroGrover 4) [0..15]
+
+-- w=0
+1 + x0 + x0x1 + x0x1x2 + x0x1x2x3 + x0x1x3 + x0x2 + x0x2x3 + x0x3 + x1 + x1x2 + x1x2x3 + x1x3 + x2 + x2x3 + x3
+
+-- w=1
+x0 + x0x1 + x0x1x2 + x0x1x2x3 + x0x1x3 + x0x2 + x0x2x3 + x0x3
+
+-- w=2
+x0x1 + x0x1x2 + x0x1x2x3 + x0x1x3 + x1 + x1x2 + x1x2x3 + x1x3
+
+-- w=3
+x0x1 + x0x1x2 + x0x1x2x3 + x0x1x3
+
+-- w=4
+x0x1x2 + x0x1x2x3 + x0x2 + x0x2x3 + x1x2 + x1x2x3 + x2 + x2x3
+
+-- w=5
+x0x1x2 + x0x1x2x3 + x0x2 + x0x2x3
+
+-- w=6
+x0x1x2 + x0x1x2x3 + x1x2 + x1x2x3
+
+-- w=7
+x0x1x2 + x0x1x2x3
+
+-- w=8
+x0x1x2x3 + x0x1x3 + x0x2x3 + x0x3 + x1x2x3 + x1x3 + x2x3 + x3
+
+-- w=9
+x0x1x2x3 + x0x1x3 + x0x2x3 + x0x3
+
+-- w=10
+x0x1x2x3 + x0x1x3 + x1x2x3 + x1x3
+
+-- w=11
+x0x1x2x3 + x0x1x3
+
+-- w=12
+x0x1x2x3 + x0x2x3 + x1x2x3 + x2x3
+
+-- w=13
+x0x1x2x3 + x0x2x3
+
+-- w=14
+x0x1x2x3 + x1x2x3
+
+-- w=15
+x0x1x2x3
+
+--}
+
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------

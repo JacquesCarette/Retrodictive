@@ -13,6 +13,13 @@ class (Show v, Enum v) => Value v where
   sand :: v -> v -> v
   sxor :: v -> v -> v
 
+instance Value Bool where
+  zero = False
+  one  = True
+  snot = not
+  sand = (&&)
+  sxor = (/=)
+
 bin :: Value v => Integer -> [v]
 bin n | n < 0 = error "Panic: (bin) Integer is negative!"
 bin 0 = []
