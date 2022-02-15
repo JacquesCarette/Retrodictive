@@ -558,12 +558,38 @@ so we just need to keep track of which vars are used
 
 run experiments with PEX and PEY
 
-\newpage
 
 
 
 
+2. Hadamard basis: Tofffoli + Hadamard is universal so we “just” need to understand how to run in X basis. 
 
+   Get rid of all quantum gates and run just the reversible classical part but with different taint analyses
+
+   Essentially we have two colors and we do taint analysis
+
+   Blue and Red; when blue interacts with red it gets tainted
+
+   We have two operations +red (add red) -red (remove red)
+
+   Remember cx(+,-) = (-,-) 
+
+   Some interactions (Toffoli) want to create more refined operations +/-(1/2)(red) +/-(red)
+   The more you do these operations the more precise it wants to be +/-(1/4)(red) +/-(1/2) red +/-(red)
+
+   And so on
+
+   You can truncate at the desired level of accuracy
+
+   The taint analysis groups variables in “waves” (superpositions) of things that have the same color so the values we
+
+     propagate are “red: phase=p; frequency=f; involved variables={x1,x2,…}”
+
+   Seems that naive taint analysis is just keep track of which variable is used
+
+
+
+------------
 
 run again; refined pe; var used; if used twice then disappears
 
@@ -585,11 +611,31 @@ normal eval; control ancilla; system unknown; so throw in complete superposition
 eval forward
 
 \paragraph*{Retrodictive QFT.}
+
 only need number of vars !!!!
 
 solve other problems with just knowing which vars are involved
 
 \paragraph*{Discussion.}
+
+   Normal quantum evolution: from present to future
+
+   Now what if I had partial knowledge about the future; what can you
+   say about the present?  (And then about the rest of the unknown
+   future)
+
+   Can this help flow of information, complexity, etc?  
+
+   In some cases, partial knowledge about the future is enough to
+   predict the present accurately enough
+
+   to then predict everything about the future; in some cases it is not enough
+
+   Possibility that collapse of wave function is information flow back
+   from measured future to present unknown initial conditions and then
+   back to rest of wave that was not measured
+
+
 Provide a general introduction to the topic and a brief non-technical
 summary of your main results and their implication.
 

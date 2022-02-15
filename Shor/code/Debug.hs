@@ -5,7 +5,7 @@ import qualified Debug.Trace as D
 ----------------------------------------------------------------------------------------
 -- Debug Helpers
 
-debug = False
+debug = True
 
 trace :: String -> a -> a
 trace s a = if debug then D.trace s a else a

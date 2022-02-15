@@ -156,6 +156,15 @@ x1 = 0
 x0 = 0
 x0 + x1 = 0
 
+-- Exact equations from PEZ have solution: x0=0, x1=0
+-- Approximate equations below has the same solultion
+
+1 + x0 = 1
+x0 + x1 = 0
+x1 = 0
+
+-- Not enough information to get exact solution
+
 *PEX> retroShor 21
 n=9; a=17
 
@@ -170,14 +179,46 @@ retroDeutsch = Q.retroDeutsch formRepr
 retroDeutschJozsa :: Int -> ([Bool] -> [Bool]) -> IO ()
 retroDeutschJozsa = Q.retroDeutschJozsa formRepr
 
+{--
+
+*PEX> retroDeutschJozsa 3 Q.deutschJozsaBal3
+1
+
+--}
+
 retroBernsteinVazirani :: IO ()
 retroBernsteinVazirani = Q.retroBernsteinVazirani formRepr
+
+{--
+
+Same as PEZ
+
+*PEX> retroBernsteinVazirani 
+x1 + x3 + x4 + x5
+
+--}
 
 retroSimon :: IO ()
 retroSimon = Q.retroSimon formRepr
 
+{--
+
+Same as PEZ
+
+*PEX> retroSimon 
+[x0 + x1,x0 + x1]
+
+--}
+
 retroGrover :: Int -> Integer -> IO ()
 retroGrover = Q.retroGrover formRepr
+
+{--
+
+*PEX> retroGrover 4 15
+x3
+
+--}
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
