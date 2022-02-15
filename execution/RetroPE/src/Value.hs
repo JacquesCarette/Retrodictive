@@ -23,7 +23,7 @@ bin n = let (q,r) = quotRem n 2 in toEnum (fromInteger r) : bin q
 fromInt :: Value v => Int -> Integer -> [v]
 fromInt len n = 
   if len < 0 then error "Panic: (fromInt) trying to truncate?"
-  else if l <= 0 then error "Panic: (fromInt) asking for negative number of bits"
+  else if l < 0 then error "Panic: (fromInt) asking for negative number of bits"
   else bits ++ replicate (len - length bits) zero
   where bits = bin n
         l = len - length bits

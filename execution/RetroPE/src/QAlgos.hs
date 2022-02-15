@@ -4,6 +4,7 @@ module QAlgos where
 
 import Data.STRef (readSTRef,writeSTRef)
 import Data.List (intercalate,group,sort)
+import Data.Sequence (fromList)
 
 import Control.Monad.ST (runST)
 
@@ -14,7 +15,7 @@ import GHC.Show (intToDigit)
 import Text.Printf (printf)
 
 import Value (Var, Value(..), newVar, newVars, fromInt)
-import Circuits (Circuit(..), showSizes, sizeOP)
+import Circuits (Circuit(..), cx, showSizes, sizeOP)
 import ArithCirc (expm)
 import PE (run)
 import Synthesis (synthesis)
@@ -23,6 +24,37 @@ import QNumeric (toInt)
 
 ----------------------------------------------------------------------------------------
 -- Some quantum algorithms
+
+-- Shor
+
+peExpMod :: (Show f, Value f) 
+         => FormulaRepr f -> Int -> Integer -> Integer -> Integer -> IO ()
+peExpMod fr n a m r = printResult $ runST $ do
+  circ <- expm n a m
+  mapM_ (uncurry writeSTRef) (zip (ancillaOuts circ) (fromInt (n+1) r))
+  mapM_ (uncurry writeSTRef) (zip (xs circ) (fromVars fr (n+1) "x"))
+  run circ
+  result <- mapM readSTRef (ancillaIns circ)
+  let eqs = zip result (ancillaVals circ)
+  return (eqs, showSizes (sizeOP (op circ)))
+  where printResult (eqs,size) = do
+          putStrLn size
+          mapM_ (\(r,v) ->
+            let sr = show r
+                sv = show v
+            in if sr == sv then return () else 
+              printf "%s = %s\n" sr sv)
+            eqs
+
+retroShor :: (Show f, Value f) => FormulaRepr f -> Integer -> IO ()
+retroShor fr m = do
+      a <- randomRIO (2,m-1)
+      let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
+      let gma = gcd m a 
+      if gma /= 1 
+        then putStrLn (printf "Lucky guess %d = %d * %d\n" m gma (m `div` gma))
+        else do putStrLn (printf "n=%d; a=%d\n" n a)
+                peExpMod fr n a m 1
 
 -- Deutsch
 
@@ -87,36 +119,43 @@ retroDeutschJozsa fr n f = print $ runST $ do
               }
   readSTRef y
 
--- Shor
+-- Bernstein-Vazirani
+-- n=8, hidden=92 [00111010]
 
-peExpMod :: (Show f, Value f) 
-         => FormulaRepr f -> Int -> Integer -> Integer -> Integer -> IO ()
-peExpMod fr n a m r = printResult $ runST $ do
-  circ <- expm n a m
-  mapM_ (uncurry writeSTRef) (zip (ancillaOuts circ) (fromInt (n+1) r))
-  mapM_ (uncurry writeSTRef) (zip (xs circ) (fromVars fr (n+1) "x"))
-  run circ
-  result <- mapM readSTRef (ancillaIns circ)
-  let eqs = zip result (ancillaVals circ)
-  return (eqs, showSizes (sizeOP (op circ)))
-  where printResult (eqs,size) = do
-          putStrLn size
-          mapM_ (\(r,v) ->
-            let sr = show r
-                sv = show v
-            in if sr == sv then return () else 
-              printf "%s = %s\n" sr sv)
-            eqs
+retroBernsteinVazirani fr = print $ runST $ do
+  xs <- newVars (fromVars fr 8 "x")
+  y <- newVar zero
+  let op = fromList [ cx (xs !! 1) y
+                    , cx (xs !! 3) y
+                    , cx (xs !! 4) y
+                    , cx (xs !! 5) y
+                    ]
+  run Circuit { op = op
+              , xs = xs
+              , ancillaIns = [y]
+              , ancillaOuts = [y]
+              , ancillaVals = undefined
+              }
+  readSTRef y
 
-retroShor :: (Show f, Value f) => FormulaRepr f -> Integer -> IO ()
-retroShor fr m = do
-      a <- randomRIO (2,m-1)
-      let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
-      let gma = gcd m a 
-      if gma /= 1 
-        then putStrLn (printf "Lucky guess %d = %d * %d\n" m gma (m `div` gma))
-        else do putStrLn (printf "n=%d; a=%d\n" n a)
-                peExpMod fr n a m 1
+-- Simon
+-- n=2, a=3
+
+retroSimon fr = print $ runST $ do
+  xs <- newVars (fromVars fr 2 "x")
+  as <- newVars (fromInt 2 0)
+  let op = fromList [ cx (xs !! 0) (as !! 0)
+                    , cx (xs !! 0) (as !! 1)
+                    , cx (xs !! 1) (as !! 0)
+                    , cx (xs !! 1) (as !! 1)
+                    ]
+  run Circuit { op = op
+              , xs = xs
+              , ancillaIns = as
+              , ancillaOuts = as
+              , ancillaVals = undefined
+              }
+  mapM readSTRef as
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
