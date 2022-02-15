@@ -458,28 +458,7 @@ is a power of 2 and hence trivial to represent by equations of binary
 numbers, the period of 21 is not easily representable as a system of
 equations over binary numbers. See Sec.~\ref{par:shor21}.
 
-\newpage
-
-
-\paragraph*{Retrodictive Executions, Function Pre-images, and NP-Complete Problems.}
-
-we have some success stories
-
-but Shor 21 huge
-
-let's understand pre-image NP etc.
-
-need stats only
-
-PEX , PEY ...
-
-Given finite sets $A$ and $B$, a function $f : A \rightarrow B$ and an
-element $y \in B$, we define $\preim{f}{y}$, the pre-image of $y$
-under $f$, as the set $\{ x \in A ~|~ f(x) = y \}$. For example, let
-$A = B = \{0,1,\ldots,15\}$ and let $f(x) = 7^x \mod 15$, then the
-collection of values that $f$ maps to 4, $\preim{f}{4}$, is the set
-$\{ 2, 6, 10, 14 \}$.
-
+\begin{figure}[h]
 \begin{center}
 \begin{tikzpicture}
 \draw (0,0) ellipse (1cm and 2cm);
@@ -498,77 +477,72 @@ $\{ 2, 6, 10, 14 \}$.
 \draw[->] (d) -- (t);
 \end{tikzpicture}
 \end{center}
+\caption{\label{fig:preimage}The pre-image of 4 under $f(x) = 7^x \mod 15$.}
+\end{figure}
 
-Finding the pre-image of a function is a mathematical question that
-subsumes several practical computational problems such as pre-image
-attacks on hash functions~\cite{10.1007/978-3-540-25937-4_24},
-predicting environmental conditions that allow certain reactions to
-take place in computational
-biology~\cite{Klotz2013,akutsu2009analyses}, and finding the pre-image
-of feature vectors in the space induced by a kernel in neural
-networks~\cite{1353287}.
+\paragraph*{Retrodictive Executions, Function Pre-images, and NP-Complete Problems.}
+We now express the computational problems above uniformly as queries
+over function pre-images. Given finite sets $A$ and $B$, a function $f
+: A \rightarrow B$ and an element $y \in B$, we define $\preim{f}{y}$,
+the pre-image of $y$ under $f$, as the set $\{ x \in A ~|~ f(x) = y
+\}$. For example, let $A = B = \{0,1,\ldots,15\}$ and let $f(x) = 7^x
+\mod 15$, then the collection of values that $f$ maps to 4,
+$\preim{f}{4}$, is the set $\{ 2, 6, 10, 14 \}$.
 
-To appreciate the difficulty of computing pre-images in general, note
-that SAT is a boolean function over the input variables and that
-solving a SAT problem is asking for the pre-image of
-\textsf{true}. Indeed, based on the conjectured existence of one-way
-functions which itself implies $\mathit{P} \neq \mathit{NP}$, all
-these pre-images calculations are believed to be computationally
-intractable in their most general setting. What is however intriguing
-is that many computational problems that have efficient quantum
-algorithms are essentially queries over pre-images. We illustrate this
-connection briefly in the remainder of this section and analyze it
-further in the remainder of the paper.
+Referring back to Fig.~\ref{fig:templateQC}, we observe that the
+quantum algorithm can be decomposed into: (a) the computation up to
+step (3) which just computes the pre-image of the ancilla measurement
+under $f$, and (b) a module performing Hadamard of QFT to analyze this
+pre-image. For example, the pre-image of 4 under $f(x) = 7^x \mod 15$
+displayed in Fig.~\ref{fig:preimage} would be represented as the
+superposition $\ket{\psi} = 1/2 (\ket{2} + \ket{6} + \ket{10} +
+\ket{14})$ at step (3) of Shor's algorithm. What is crucial is that
+although the quantum state $\ket{\psi}$ is not directly observable,
+this is of no concern. Shor's algorithm does not actually care about
+the full description of the pre-image, only about a global property of
+the pre-image: its period. Indeed, in the quantum algorithms we
+discussed, the full calculation of pre-image is never needed: each
+algorithm computes a particular global property of the corresponding
+pre-image. The Deutsch and Deutsch-Jozsa algorithms only need to
+distinguish whether the pre-image of either 1 or 0 is empty, contains
+half the elements, or the entire set. The Bernstein-Vazirani algorithm
+only needs $n$ queries over the pre-image of either 1 or 0: query $i$
+asks whether $2^i$ is a member of the pre-image and the answer
+determines bit $i$ of the secret $s$. Indeed, by definition, $f(2^i) =
+s_i$ and hence $s_i$ is 1 iff $2^i$ is a member of the pre-image of
+1. In the case of the Simon problem, we calculate $f(x) = w$ for some
+$x$ and query the pre-image of $w$ to get the other value in the
+pre-image.
 
-then pre-image story; np-complete; not even quantum computer can solve it
-luckily we don't actually need to solve it; we need stats about it; explain common algos
+To summarize, quantum algorithms compute ``simple queries'' over
+pre-images, and in fact, unless $P=NP$, such simple queries are the
+only possibility since the full calculation of a pre-image is an
+NP-complete problem, and it is believed that even full fledged quantum
+computers cannot solve NP-complete problems. To appreciate the
+difficulty of computing pre-images in general, note that finding the
+pre-image of a function is subsumes several challenging computational
+problems such as pre-image attacks on hash
+functions~\cite{10.1007/978-3-540-25937-4_24}, predicting
+environmental conditions that allow certain reactions to take place in
+computational biology~\cite{Klotz2013,akutsu2009analyses}, and finding
+the pre-image of feature vectors in the space induced by a kernel in
+neural networks~\cite{1353287}. More to the point, the boolean
+satisfiability problem SAT is expressible as a boolean function over
+the input variables and solving a SAT problem is asking for the
+pre-image of \textsf{true}. Indeed, based on the conjectured existence
+of one-way functions which itself implies $\mathit{P} \neq
+\mathit{NP}$, all these pre-images calculations are believed to be
+computationally intractable in their most general setting.
 
-Deutsch. The conventional statement of the problem is to determine if
-a function $\finset{2} \rightarrow \finset{2}$ is constant or
-balanced. An equivalent statement is to answer a query about the
-cardinality of a pre-image. In this case, if the cardinality of the
-pre-image of any value in the range is even i.e. 0 or 2, the function
-must be constant and if it is odd, i.e., it contains just one element,
-the function must be balanced.
+The obvious question to ask now is whether the retrodictive execution
+can be tuned to only produce the required statistics instead producing
+the full description of pre-images. 
 
-DJ. The problem is a generalization of the previous one: the question is
-to determine if a function $\finset{2^n} \rightarrow \finset{2}$ for
-some $n$ is constant or balanced. When expressed as a pre-image
-computation, the problem reduces to a query distinguishing the
-following three situations about the pre-image of a value in the range
-of the function: is the cardinality of the pre-image equal to 0,
-$2^n$, or $2^{n-1}$? In the first two cases, the function is constant
-and in the last case, the pre-image contains half the values in the
-domain indicating that the function is balanced.
-
-BV. Expressing the problem as a pre-image calculation is slightly more
-involved than in the previous two cases. To determine $s$, we make $n$
-queries to the pre-image of a value in the range of the
-function. Query $i$ asks whether $2^i$ is a member of the pre-image
-and the answer determines bit $i$ of the secret $s$. Indeed, by
-definition, $f(2^i) = s_i$ and hence $s_i$ is 1 iff $2^i$ is a member
-of the pre-image of 1.
-
-Simon.  We are given a 2-1 function $f : \finset{2^n} \rightarrow
-\finset{2^n}$ with the property that there exists an $a$ such $f(x) =
-f(x \oplus a)$ for all~$x$; the goal is to determine $a$. When
-expressed as a computation of pre-images, the problem statement
-becomes the following. Pick an arbitrary $x$ and compute the pre-image
-of $f(x)$. It must contain exactly two values one of which is $x$. The
-problem then reduces to finding the other value in the pre-image.
-
-Shor. The quantum core of the algorithm is the following. We are given
-a periodic function $f(x) = a^x \mod{2^n}$ and the goal is to
-determine the period. As a computation over pre-images, the problem
-can be recast as follows. For an arbitrary $x$, compute the pre-image
-of $f(x)$ and query it to determine the period.
+\newpage
 
 
-core of many quantum algos is quantum oracle uf
-two inputs; two outputs
-system; ancilla;
-normal eval; control ancilla; system unknown; so throw in complete superposition and
-eval forward
+
+
 
 insight 1: qft does not care about 0+2+4.... vs 1+3+5....
 
@@ -582,6 +556,15 @@ equiv no matter what ? is
 others not used
 so we just need to keep track of which vars are used
 
+run experiments with PEX and PEY
+
+\newpage
+
+
+
+
+
+
 run again; refined pe; var used; if used twice then disappears
 
 go back to that stupid paper about logic programming and xor 
@@ -590,6 +573,16 @@ The equations turn out to be trivial when the period is a power of
 2. This occurs when the number to factor is a product of Fermat
 primes: 3, 5, 17, 257, 65537, \ldots. The equations generated for some
 of these cases are in Fig.~\ref{fig:shor2-eqs}. 
+
+
+need stats only
+PEX , PEY ...
+
+core of many quantum algos is quantum oracle uf
+two inputs; two outputs
+system; ancilla;
+normal eval; control ancilla; system unknown; so throw in complete superposition and
+eval forward
 
 \paragraph*{Retrodictive QFT.}
 only need number of vars !!!!

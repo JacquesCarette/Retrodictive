@@ -14,8 +14,9 @@ import PE
 ----------------------------------------------------------------------------------------
 -- Eventual entry point
 
--- Products of primes of the form 2^k+1 seem to work best:
+-- Products of primes of the form 2^k+1 are easy:
 -- first few are 3, 5, 17, 257, and 65537
+
 factor :: Integer -> IO ()
 factor m = do
 

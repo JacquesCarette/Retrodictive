@@ -36,7 +36,7 @@ import qualified Data.Sequence as S
 import Data.Sequence (Seq, singleton, viewl, ViewL(..), (><))
 
 import Control.Lens hiding (op,(:<))
-import Control.Monad 
+import Control.Monad hiding (ap)
 import Control.Monad.ST
 import Data.STRef
 
@@ -96,12 +96,38 @@ invsqmods a m = invam : invsqmods (am * am) m
 -- Locations where values are stored
 -- ---------------------------------<
 
-type Var s = STRef s Bool
+data Value =
+    Zero -- zero turns out of two possible turns
+  | One  -- one turn out of two possible turns
+  | Minus Value
+  | Times Value Value
+  deriving (Eq,Show)
 
-newVar :: Bool -> ST s (Var s)
-newVar = newSTRef 
+data Superposition = Wave [Value]
+  deriving (Eq,Show)
 
-newVars :: [Bool] -> ST s [Var s]
+-- False,True in the Haadamard basis
+
+fromBool :: Bool -> Superposition
+fromBool False = Wave [Zero,One]
+fromBool True = Wave [Zero,Minus One]
+
+fromBools = map fromBool
+
+{--
+
+Want
+
+--}
+
+--
+
+type Var s = STRef s Superposition
+
+newVar :: Superposition -> ST s (Var s)
+newVar = newSTRef
+
+newVars :: [Superposition] -> ST s [Var s]
 newVars = mapM newVar
 
 --
@@ -161,7 +187,7 @@ copyOP as bs = S.fromList (zipWith cx as bs)
 
 makeAdder :: Int -> [ Var s ] -> [ Var s ] -> ST s (OP s)
 makeAdder n as bs = do
-  cs <- newVars (fromInt n 0)
+  cs <- newVars (fromBools $ fromInt n 0)
   return (loop as bs cs)
     where loop [a,_] [b,b'] [c] =
             (carryOP c a b b') ><
@@ -175,9 +201,9 @@ makeAdder n as bs = do
 
 makeAdderMod :: Int -> Integer -> [ Var s ] -> [ Var s ] -> ST s (OP s)
 makeAdderMod n m as bs = do
-  ms <- newVars (fromInt (n+1) m)
-  ms' <- newVars (fromInt (n+1) m)
-  t <- newVar False
+  ms <- newVars (fromBools $ fromInt (n+1) m)
+  ms' <- newVars (fromBools $ fromInt (n+1) m)
+  t <- newVar (fromBool False)
   adderab <- makeAdder n as bs
   addermb <- makeAdder n ms bs
   return $
@@ -194,9 +220,9 @@ makeAdderMod n m as bs = do
 makeCMulMod :: Int -> Integer -> Integer ->
                Var s -> [ Var s ] -> [ Var s ] -> ST s (OP s)
 makeCMulMod n a m c xs ts = do
-  ps <- newVars (fromInt (n+1) 0)
+  ps <- newVars (fromBools $ fromInt (n+1) 0)
   as <- mapM
-          (\a -> newVars (fromInt (n+1) a))
+          (\a -> newVars (fromBools $ fromInt (n+1) a))
           (take (n+1) (doublemods a m))
   adderPT <- makeAdderMod n m ps ts
   return (loop adderPT as xs ps)
@@ -238,20 +264,38 @@ makeExpMod n a m xs ts us = do
 ----------------------------------------------------------------------------------------
 -- Standard evaluation
 
--- checking whether controls are active
--- returns yes/no/unknown as Just True, Just False, Nothing
+ap :: (Value -> Value) -> Superposition -> Superposition
+ap f (Wave vs) = Wave $ map f vs
 
+ret :: Value -> Superposition
+ret v = Wave [v]
+
+notH :: Value -> Superposition
+notH Zero = ret Zero
+notH One = ret $ Minus One
+notH (Minus v) =  Minus `ap` (notH v)
+notH (Times v1 v2) = error "Panic: not gate does not expect a pair"
+
+cnotH :: (Value,Value) -> Superposition
+cnotH (v1,v2) = undefined
+
+{--
 controlsActive :: [Bool] -> [Bool] -> Bool
 controlsActive bs cs = and (zipWith (==) bs cs)
+--}
 
 interpGT :: GToffoli s -> ST s ()
-interpGT (GToffoli bs cs t) = do
+interpGT (GToffoli [] [] t) = undefined  
+interpGT (GToffoli bs cs t) = undefined {--do
   controls <- mapM readSTRef cs
   tv <- readSTRef t
   when (controlsActive bs controls) $ writeSTRef t (not tv)
+--}
 
 interpOP :: OP s -> ST s ()
 interpOP = foldMap interpGT
+
+{--
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
@@ -315,3 +359,4 @@ goR p@(Params { numberOfBits = n, base = a, toFactor = m}) = do
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
 
+--}

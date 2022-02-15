@@ -144,51 +144,40 @@ formRepr = FR fromVar fromVars
 ----------------------------------------------------------------------------------------
 -- Testing
 
-retroDeutsch = Q.retroDeutsch formRepr
+retroShor :: Integer -> IO ()
+retroShor = Q.retroShor formRepr
 
 {--
 
-*PEX> retroDeutsch Q.deutschId
-x
+*PEX> retroShor 15
+n=8; a=7
 
-*PEX> retroDeutsch Q.deutschNot
-1 + x
+x1 = 0
+x0 = 0
+x0 + x1 = 0
 
-*PEX> retroDeutsch Q.deutsch0
-0
+*PEX> retroShor 21
+n=9; a=17
 
-*PEX> retroDeutsch Q.deutsch1
-1
+1 + x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 = 1
+x0 = 0
+x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 = 0
 
 --}
+
+retroDeutsch = Q.retroDeutsch formRepr
 
 retroDeutschJozsa :: Int -> ([Bool] -> [Bool]) -> IO ()
 retroDeutschJozsa = Q.retroDeutschJozsa formRepr
 
-{--
+retroBernsteinVazirani :: IO ()
+retroBernsteinVazirani = Q.retroBernsteinVazirani formRepr
 
-*PEX> retroDeutschJozsa 5 Q.deutschJozsaConstant0
-0
+retroSimon :: IO ()
+retroSimon = Q.retroSimon formRepr
 
-*PEX> retroDeutschJozsa 5 Q.deutschJozsaConstant1
-1
-
-*PEX> retroDeutschJozsa 5 Q.deutschJozsaBal1
-x0
-
-*PEX> retroDeutschJozsa 5 Q.deutschJozsaBal2
-x0 + x1 + x2 + x3 + x4
-
-*PEX> retroDeutschJozsa 5 Q.deutschJozsaBal3
-x3 + x4
-
---}
-
--- Shor
-
-peExpMod :: Int -> Integer -> Integer -> Integer -> IO ()
-peExpMod = Q.peExpMod formRepr
-
+retroGrover :: Int -> Integer -> IO ()
+retroGrover = Q.retroGrover formRepr
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------

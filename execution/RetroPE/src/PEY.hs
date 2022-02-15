@@ -145,52 +145,39 @@ formRepr = FR fromVar fromVars
 ----------------------------------------------------------------------------------------
 -- Testing
 
-
-retroDeutsch = Q.retroDeutsch formRepr
+retroShor :: Integer -> IO ()
+retroShor = Q.retroShor formRepr
 
 {--
+*PEY> retroShor 21
+n=9; a=11
 
-*PEY> retroDeutsch Q.deutschId
-x
+1 + x0 + x0x1 + x0x3 + x0x5 + x0x7 + x0x9 + x1 + x1x2 + x1x3 + x1x4 + x1x5 + x1x6 + x1x7 + x1x8 + x1x9 + x2 + x2x3 + x2x4 + x2x5 + x2x6 + x2x7 + x2x8 + x2x9 + x3 + x3x4 + x3x5 + x3x6 + x3x7 + x3x8 + x3x9 + x4 + x4x5 + x4x6 + x4x7 + x4x8 + x4x9 + x5 + x5x6 + x5x7 + x5x8 + x5x9 + x6 + x6x7 + x6x8 + x6x9 + x7 + x7x8 + x7x9 + x8 + x8x9 + x9 = 1
 
-*PEY> retroDeutsch Q.deutschNot
-1 + x
+x0 + x0x1 + x0x3 + x0x5 + x0x7 + x0x9 + x1x2 + x1x4 + x1x6 + x1x8 + x2x4 + x2x6 + x2x8 + x3x4 + x3x6 + x3x8 + x4x6 + x4x8 + x5x6 + x5x8 + x6x8 + x7x8 = 0
 
-*PEY> retroDeutsch Q.deutsch0
-0
+x0x1 + x0x2 + x0x3 + x0x4 + x0x5 + x0x6 + x0x7 + x0x8 + x0x9 + x1 + x1x2 + x1x4 + x1x6 + x1x8 + x2x4 + x2x6 + x2x8 + x3 + x3x4 + x3x6 + x3x8 + x4x6 + x4x8 + x5 + x5x6 + x5x8 + x6x8 + x7 + x7x8 + x9 = 0
 
-*PEY> retroDeutsch Q.deutsch1
-1
+x0x1 + x0x2 + x0x3 + x0x4 + x0x5 + x0x6 + x0x7 + x0x8 + x0x9 + x1x3 + x1x5 + x1x7 + x1x9 + x2x3 + x2x5 + x2x7 + x2x9 + x3x5 + x3x7 + x3x9 + x4x5 + x4x7 + x4x9 + x5x7 + x5x9 + x6x7 + x6x9 + x7x9 + x8x9 = 0
+
+x0x2 + x0x4 + x0x6 + x0x8 + x1x3 + x1x5 + x1x7 + x1x9 + x2 + x2x3 + x2x5 + x2x7 + x2x9 + x3x5 + x3x7 + x3x9 + x4 + x4x5 + x4x7 + x4x9 + x5x7 + x5x9 + x6 + x6x7 + x6x9 + x7x9 + x8 + x8x9 = 0
+
 
 --}
+
+retroDeutsch = Q.retroDeutsch formRepr
 
 retroDeutschJozsa :: Int -> ([Bool] -> [Bool]) -> IO ()
 retroDeutschJozsa = Q.retroDeutschJozsa formRepr
 
-{--
+retroBernsteinVazirani :: IO ()
+retroBernsteinVazirani = Q.retroBernsteinVazirani formRepr
 
-*PEY> retroDeutschJozsa 5 Q.deutschJozsaConstant0
-0
+retroSimon :: IO ()
+retroSimon = Q.retroSimon formRepr
 
-*PEY> retroDeutschJozsa 5 Q.deutschJozsaConstant1
-1
-
-*PEY> retroDeutschJozsa 5 Q.deutschJozsaBal1
-x0
-
-*PEY> retroDeutschJozsa 5 Q.deutschJozsaBal2
-x0 + x1 + x2 + x3 + x4
-
-*PEY> retroDeutschJozsa 5 Q.deutschJozsaBal3
-x0x2 + x0x3 + x1x2 + x1x4
-
---}
-
--- Shor
-
-peExpMod :: Int -> Integer -> Integer -> Integer -> IO ()
-peExpMod = Q.peExpMod formRepr
-
+retroGrover :: Int -> Integer -> IO ()
+retroGrover = Q.retroGrover formRepr
 
 ----------------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------------
