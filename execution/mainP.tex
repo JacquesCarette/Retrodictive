@@ -1,4 +1,4 @@
-f\documentclass{article}
+\documentclass{article}
 
 \usepackage{fullpage}
 \usepackage{lineno}
@@ -10,7 +10,7 @@ f\documentclass{article}
 \usepackage{physics}
 \usepackage{yquant}
 \usepackage{tikz}
-\usetikzlibrary{quantikz,fit,svg.path}
+\usetikzlibrary{quantikz,fit,quotes,svg.path}
 \usepackage[backend=biber,citestyle=numeric-comp]{biblatex}
 \addbibresource{cites.bib}
 \ExecuteBibliographyOptions{sorting=nyt,maxbibnames=100,doi=false,isbn=false,url=false}
@@ -28,18 +28,294 @@ f\documentclass{article}
 \linenumbers
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\title{De-Quantizing Quantum Algorithms by Retrodictive Execution}
-\author{Jacques Carette \qquad Gerardo Ortiz$^{*}$ \qquad Amr Sabry \\
+\title{Classical Symbolic Retrodictive Execution of Quantum Circuits}
+\author{Jacques Carette \qquad\qquad Gerardo Ortiz$^{*}$ \qquad\qquad Amr Sabry \\
 McMaster University \qquad Indiana University \qquad Indiana University}
 \begin{document}
 \maketitle
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Retrodictive quantum theory~\cite{sym13040586},
+retrocausality~\cite{Aharonov2008}, and the time-symmetry of physical
+laws~\cite{RevModPhys.27.179} suggest that partial knowledge about the
+future can be exploited to understand the present. We demonstrate the
+even stronger proposition that, in concert with the computational
+concepts of \emph{demand-driven lazy evaluation}~\cite{lazyevaluator}
+and \emph{symbolic partial evaluation}~\cite{futamura}, retrodictive
+reasoning can be used as a computational resource to de-quantize some
+quantum algorithms, i.e., to provide efficient classical algorithms
+inspired by their quantum counterparts.
+
+\paragraph*{Symbolic Execution of Classical Programs Applied to Quantum Oracles.}
+A well-established technique to simultaneously explore multiple paths
+that a classical program could take under different inputs is
+\emph{symbolic
+  execution}~\cite{10.1145/390016.808445,10.1145/360248.360252,howden,10.1145/800191.805647,10.1145/3182657}. In
+this execution scheme, concrete values are replaced by symbols which are
+initially unconstrained. As the execution proceeds, the symbols
+interact with the program constructs and this typically introduces
+constraints on the possible values that the symbols represent. At the
+end of the execution, these constraints can be solved to infer
+properties of the program under consideration. The idea is also
+applicable to quantum circuits as the following example illustrates.
+
+\begin{figure}[t]
+\begin{center}
+\begin{tikzpicture}[scale=0.8,every label/.style={rotate=40, anchor=south west}]
+\begin{yquant*}[operators/every barrier/.append style={red, thick}]
+
+    qubit {$\ket0$} a0;
+    qubit {$\ket0$} a1;
+    qubit {$\ket0$} b0;
+    qubit {$\ket0$} b1;
+    
+    box {$H$} a0;
+    box {$H$} a1;
+    
+    ["barrier (1)"]
+    barrier (-);
+
+    cnot b0 | a0;
+    cnot b1 | a0;
+    cnot b0 | a1;
+    cnot b1 | a1;
+
+    ["barrier (2)"]
+    barrier (-);
+
+    measure b0;
+    measure b1;
+    discard b0;
+    discard b1;
+
+    ["barrier (3)"]
+    barrier (-);
+
+    box {$H$} a0;
+    box {$H$} a1;
+    measure a0;
+    measure a1;
+
+\end{yquant*}
+\end{tikzpicture}
+\end{center}
+\caption{\label{fig:Simon}Circuit for Simon's Algorithm $n=2$ and $a=3$}
+\end{figure}
+
+Let $\finset{n}$ denote the finite set $\{ 0,1,\ldots,(n-1)\}$. In
+Simon's problem, we are given a 2-1 (classical) function $f :
+\finset{2^n} \rightarrow \finset{2^n}$ with the property that there
+exists an $a$ such $f(x) = f(x \oplus a)$ for all~$x$; the goal is to
+determine~$a$. The circuit in Fig.~\ref{fig:Simon} implements the
+quantum algorithm when $n=2$ and $a = 3$. In the circuit, the gates
+between barrier (1) and barrier (2) implement the quantum oracle
+$U_f(x,0) = (x,f(x))$ that encapsulates the function $f$ of
+interest. A direct classical simulation of the quantum circuit would
+need to execute the $U_f$ block four times, once for each possible value
+$\ket{00}$, $\ket{01}$, $\ket{10}$, and~$\ket{11}$ for the top two
+wires. Instead, let us introduce two symbols $x_0$ representing the
+top wire and~$x_1$ representing the wire below it, and let's proceed
+with the execution symbolically. The state at barrier (1) is initially
+$\ket{x_0x_100}$. At the first \cx-gate, we symbolically calculate the
+result of the target wire as $x_0 \oplus 0 = x_0$ evolving the state
+to $\ket{x_0x_1x_00}$. Going through the next three \cx-gates, the
+state evolves as $\ket{x_0x_1x_0x_0}$, $\ket{x_0x_1(x_0\oplus
+  x_1)x_0}$, and $\ket{x_0x_1(x_0\oplus x_1)(x_0\oplus x_1)}$ at
+barrier~(2). At that point, we have established that the bottom two
+wires are equal; the result of their measurement can only be $00$ or
+$11$. Since the function is promised to be 2-1 for all inputs, it is
+sufficient to analyze one case, say when the measurement at barrier
+(3) produces $00$. This measurement collapses the top wires to
+$\ket{x_0x_1}$ subject to the constraint that $x_0\oplus x_1 = 0$ or
+equivalently that $x_0 = x_1$.  We have thus inferred that both
+$x_0=x_1=0$ and $x_0=x_1=1$ produce the same measurement result at
+barrier (3) and hence that $f(00) = f(11) = f(00 \oplus 11)$ which
+reveals that $a$ is $11$ in binary notation.
+
+Since the quantum circuit between barriers (1) and (2) is reversible,
+we can perform a mixed predictive and retrodictive symbolic execution
+to make the flow of information conceptually clearer. We start a
+forward classical simulation with one arbitrary state at barrier (1),
+say $\ket{0100}$.  This state evolves to $\ket{0100}$, then
+$\ket{0100}$ again, then $\ket{0110}$, and finally $\ket{0111}$. In
+this case, the result of measuring the bottom two wires is
+$11$. Having produced a possible measurement at barrier (3), we start
+a retrodictive execution to find out what other input states might be
+compatible with this future measurement. To that end, we execute the
+circuit backwards with the symbolic state $\ket{x_0x_111}$; that
+execution evolves to $\ket{x_0x_11(1\oplus x_1)}$, then
+$\ket{x_0x_1(1\oplus x_1)(1\oplus x_1)}$, then $\ket{x_0x_1(1\oplus
+  x_1)(1\oplus x_0 \oplus x_1)}$, and finally $\ket{x_0x_1(1\oplus x_0
+  \oplus x_1)(1\oplus x_0 \oplus x_1)}$. At this point, we must
+reconcile the constraints with the initial condition of the bottom two
+wires which are both $\ket{0}$. We conclude that $1 \oplus x_0 \oplus
+x_1 = 0$ or equivalently that $x_0 \neq x_1$. We have discovered that
+the measurement at barrier (3) is consistent with not just the state
+$\ket{01}$ we started with but also with the state $\ket{10}$. In
+other words, we have $f(01) = f(10) = f(01 \oplus 11)$ and the hidden
+value of $a$ is revealed to be $11$.
+
+
+\begin{figure}[t]
+  \begin{subfigure}{0.5\textwidth}
+  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
+    \begin{yquant*}[operators/every barrier/.append style={red, thick},
+        operator/minimum width=7mm,
+        operator/separation=1mm,
+        register/separation=10mm]
+    qubits {$\ket0^{\otimes n}$} a;
+    qubits {$\ket0^{\otimes m}$} b;
+    box {$H^{\otimes n}$} a;
+    ["step 1"]
+    barrier (-);
+    [x radius=7mm]
+    box {$U_f$} (a,b);
+    ["step 2"]
+    barrier (-);
+    measure b;
+    discard b;
+    ["step 3"]
+    barrier (-);
+    box {$\mathit{QFT}$} a;
+    measure a;
+    \end{yquant*}
+    \draw[line width=3pt, ->, blue] (0,-1.1) .. controls (2.5,-0.1) and (6,-1.6) .. (9,-1);
+  \end{tikzpicture}
+  \caption{Conventional Flow}
+  \end{subfigure}
+  \begin{subfigure}{0.5\textwidth}
+  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
+    \begin{yquant*}[operators/every barrier/.append style={red, thick},
+        operator/minimum width=7mm,
+        operator/separation=1mm,
+        register/separation=10mm]
+    qubits {$\ket0^{\otimes n}$} a;
+    qubits {$\ket0^{\otimes m}$} b;
+    box {$H^{\otimes n}$} a;
+    ["step 1"]
+    barrier (-);
+    [x radius=7mm]
+    box {$U_f$} (a,b);
+    ["step 2"]
+    barrier (-);
+    measure b;
+    discard b;
+    ["step 3"]
+    barrier (-);
+    box {$\mathit{QFT}$} a;
+    measure a;
+  \end{yquant*}
+  \draw[line width=3pt, blue] (0,-1.6) .. controls (5,-1.8) and (11,-1.5) .. (2,-1.3);
+  \draw[line width=3pt, ->, blue] (2,-1.3) .. controls (0.5,-0.8) and (7,-0.2) .. (9,-1);
+  \end{tikzpicture}
+  \caption{Retrodictive Flow}
+  \end{subfigure}
+\caption{\label{fig:templateQC}Template quantum circuit}
+\end{figure}
+
+The example generalizes to many quantum algorithms that are expressed
+using circuits consisting of three stages: preparation, unitary
+evolution, and measurement in the Hadamard / Fourier basis as shown in
+Fig.~\ref{fig:templateQC}(a). In the conventional execution model of
+quantum circuits, which is the conventional way to use quantum
+mechanics as a predictive theory, the $U_f$ block receives both inputs
+and evolves in the forward direction to produce the
+outputs. Retrodictive reasoning suggests more creative ways to execute
+the $U_f$ block as shown in Fig.~\ref{fig:templateQC}(b). In this
+model, a forward classical execution is performed to determine a
+possible measurement result for the bottom register; using this
+information, a retrodictive classical execution is performed to
+determine the initial states of the first register that are consistent
+with this measurement. These states are then propagated forward to the
+final group of Hadamard / Fourier block. 
+
+\begin{wrapfigure}{r}{4cm}
+\begin{center}
+\begin{tikzpicture}[scale=1]
+   \begin{yquant*}[register/minimum height=1.3cm]
+   qubit {$\ket0$} x;
+   qubit {$\ket0$} y;
+   box {$H$} x;
+   cnot y | x;
+  \end{yquant*}
+\end{tikzpicture}
+\end{center}
+\caption{\label{fig:bell}Bell State}
+\end{wrapfigure}
+\paragraph*{Representing Wavefunctions Symbolically.}
+In the quantum circuit for the Simon problem instance in
+Fig.~\ref{fig:Simon}, the Hadamard gates are only applied to control
+wires of \cx-gates, never to wires that serve as targets of control
+gates. This property is actually common in many quantum algorithms and
+allows a rather simple symbolic representation of the wave
+function. An initial state $\ket{0}$ followed by Hadamard will be
+represented by a symbol $x$ represented as unknown boolean value
+(instead of the superposition
+$(1/\sqrt{2})(\ket{0}+\ket{1})$). Fig.~\ref{fig:bell} shows a circuit
+to generate the Bell state $(1/\sqrt{2}) (\ket{00} + \ket{11})$. By using
+the symbol $x$ for the value of the top wire after the Hadamard gate,
+the input to the \cx-gate is $\ket{x0}$ which evolves to
+$\ket{xx}$. The latter state, by sharing the same symbol in two
+positions, accurately represents the entangled Bell state.
+
+we have enough to analyze many quantum algorithms; say we have an
+implementation and show result of running on many circuits
+
+do communication protocols too ??
+
+then get to $\ket{-}$ 
+
+now to Bell, GHZ, and other entangled states
+
+graph state: H,H,CZ
+
+00   00
+01   01
+10   10
+11 -11
+
+H control +/- distinction not important so use one class of vars
+H target +/- distinction important; use two classes of vars
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\printbibliography
+\end{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 200 words
 
 \begin{abstract}
   just run forward symbolically
   retrodictive is not fundamental here
   
+  symbolic exec
+  H introduces uncertainty; forget +/- distinction for now; use variable
+  safe is H wires are used as control wires but not targets
+  run symbolically; can represent entanglement; e.g. bell state xx
+  check if H commutes with x and cx
+  so we only need H at beginning and end
+  introduce vars at beginning and run symbolically
+  if only x and cx then symbolic execution is efficient; no need for last batch of H
+  can solve problem classically
+  connect with Gottsman-Knill
+
+  What is have ccx
+  sometimes fine; shor 15 example; still fine
+  sometimes we get very complicated representation of wavefunction
+  but if we are following up with QFT; QFT insensitive to offset, don't care variables
+  no need to keep track of values of vars; only need to know if they are constant or not
+
+  what is H wires are used as targets; need two flavors of variables; +vars and -vars;
+  -vars infect +vars in control gates; taint analysis with increasing precisions (more
+  and more colors)
+
+  retrodictive? Kochen-Specker; interactive QM; observer free will; choice backtracks
+
+  values going at different speeds; intervals ideas; path types
+
   
 The quantum circuit model consists of two classes of gates: (i)
 quantum counterparts to classical reversible gates (e.g., Toffoli
@@ -54,6 +330,8 @@ ability to symbolically execute circuits, especially in a retrodictive
 fashion, i.e., by making partial observations at the output site and
 proceeding backwards to infer the implied initial conditions.
 \end{abstract}
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Main}
@@ -97,90 +375,6 @@ connect in your future. \emph{Steve Jobs}
 %% \caption{\label{fig:flow}Retrodictive execution flow}
 %% \end{wrapfigure}
 
-Retrodictive quantum theory~\cite{sym13040586},
-retrocausality~\cite{Aharonov2008}, and the time-symmetry of physical
-laws~\cite{RevModPhys.27.179} suggest that partial knowledge about the
-future can be exploited to understand the present. We demonstrate the
-even stronger proposition that, in concert with the computational
-concepts of \emph{demand-driven lazy evaluation}~\cite{lazyevaluator}
-and \emph{symbolic partial evaluation}~\cite{futamura}, retrodictive
-reasoning can be used as a computational resource to de-quantize some
-quantum algorithms, i.e., to provide efficient classical algorithms
-inspired by their quantum counterparts.
-
-\begin{figure}[ht]
-  \begin{subfigure}{0.5\textwidth}
-  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
-    \begin{yquant*}[operators/every barrier/.append style={red, thick},
-        operator/minimum width=7mm,
-        operator/separation=1mm,
-        register/separation=10mm]
-    qubits {$\ket0^{\otimes n}$} a;
-    qubits {$\ket0^{\otimes m}$} b;
-    box {$H^{\otimes n}$} a;
-    ["step 1"]
-    barrier (-);
-    [x radius=7mm]
-    box {$U_f$} (a,b);
-    ["step 2"]
-    barrier (-);
-    measure b;
-    discard b;
-    ["step 3"]
-    barrier (-);
-    box {$\mathit{QFT}$} a;
-    measure a;
-    \end{yquant*}
-    \draw[line width=3pt, ->, blue] (0,-1.2) .. controls (2.5,-0.8) and (6,-1.6) .. (9,-1);
-  \end{tikzpicture}
-  \caption{Conventional Flow}
-  \end{subfigure}
-  \begin{subfigure}{0.5\textwidth}
-  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
-    \begin{yquant*}[operators/every barrier/.append style={red, thick},
-        operator/minimum width=7mm,
-        operator/separation=1mm,
-        register/separation=10mm]
-    qubits {$\ket0^{\otimes n}$} a;
-    qubits {$\ket0^{\otimes m}$} b;
-    box {$H^{\otimes n}$} a;
-    ["step 1"]
-    barrier (-);
-    [x radius=7mm]
-    box {$U_f$} (a,b);
-    ["step 2"]
-    barrier (-);
-    measure b;
-    discard b;
-    ["step 3"]
-    barrier (-);
-    box {$\mathit{QFT}$} a;
-    measure a;
-  \end{yquant*}
-  \draw[line width=3pt, blue] (0,-1.5) .. controls (5,-2) and (11,-1.8) .. (3,-1.2);
-  \draw[line width=3pt, ->, blue] (3,-1.2) .. controls (0.5,-0.8) and (7,-0.2) .. (9,-1);
-  \end{tikzpicture}
-  \caption{Retrodictive Flow}
-  \end{subfigure}
-\caption{\label{fig:templateQC}Template quantum circuit}
-\end{figure}
-
-Many quantum algorithms can be expressed using circuits consisting of
-three stages: preparation, unitary evolution, and measurement in the
-Hadamard / Fourier basis as shown in Fig.~\ref{fig:templateQC}(a). The
-unitary evolution block is typically a quantum oracle $U_f$ that
-encapsulates a classical function $f$ to be analyzed. In the
-conventional execution model of quantum circuits, which is the
-conventional way to use quantum mechanics as a predictive theory, the
-$U_f$ block receives both inputs and evolves in the forward direction
-to produce the outputs. Retrodictive reasoning suggests more creative
-ways to execute the $U_f$ block as shown in
-Fig.~\ref{fig:templateQC}(b). In this model, a forward execution is
-performed to determine a possible measurement result for the bottom
-register; using this information, a retrodictive execution is
-performed to determine the initial states of the first register that
-are consistent with this measurement. These states are then propagated
-forward to the measurement process.
 
 In order to assess whether this idea works for a broad class of
 situations including different algorithms and different circuit sizes,

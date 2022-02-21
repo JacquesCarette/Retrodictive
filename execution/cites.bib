@@ -168,3 +168,105 @@ author = {Natalia Tokareva},
 keywords = {Boolean function, Vectorial function, Algebraic normal form, Boolean cube, Hamming distance, Extended affine equivalence, Walsh-Hadamard transform, Finite field, Polynomial form, Trace form, Monomial function},
 abstract = {In this chapter, we start with basic definitions related to Boolean functions. We consider the algebraic normal form of a Boolean function and the representation of a Boolean function over the Boolean cube. Extended affinely equivalent Boolean functions are defined as is the Walsh-Hadamard transform of a Boolean function. The finite field over F2 and its automorphisms are considered. It is shown how to associate Boolean functions in n variables with functions over the field F2n. We discuss polynomial representations of Boolean and vectorial Boolean functions. Representations of a Boolean function in the trace form and in the reduced trace form are given. Some details on the degree of a Boolean function in the trace form and on monomial functions are presented. The notions introduced in this chapter will be useful throughout the book.}
 }
+
+@inproceedings{10.1145/800027.808445,
+author = {Boyer, Robert S. and Elspas, Bernard and Levitt, Karl N.},
+title = {SELECT—a Formal System for Testing and Debugging Programs by Symbolic Execution},
+year = {1975},
+isbn = {9781450373852},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/800027.808445},
+doi = {10.1145/800027.808445},
+abstract = {SELECT is an experimental system for assisting in the formal systematic debugging of programs. It is intended to be a compromise between an automated program proving system and the current ad hoc debugging practice, and is similar to a system being developed by King et al. of IBM. SELECT systematically handles the paths of programs written in a LISP subset that includes arrays. For each execution path SELECT returns simplified conditions on input variables that cause the path to be executed, and simplified symbolic values for program variables at the path output. For conditions which form a system of linear equalities and inequalities SELECT will return input variable values that can serve as sample test data. The user can insert constraint conditions, at any point in the program including the output, in the form of symbolically executable assertions. These conditions can induce the system to select test data in user-specified regions. SELECT can also determine if the path is correct with respect to an output assertion. We present four examples demonstrating the various modes of system operation and their effectiveness in finding bugs. In some examples, SELECT was successful in automatically finding useful test data. In others, user interaction was required in the form of output assertions. SELECT appears to be a useful tool for rapidly revealing program errors, but for the future there is a need to expand its expressive and deductive power.},
+booktitle = {Proceedings of the International Conference on Reliable Software},
+pages = {234–245},
+numpages = {12},
+keywords = {Solution of systems of inequalities, Program debugging, Symbolic execution, Program testing, Program verification, Test data generation},
+location = {Los Angeles, California}
+}
+
+@article{10.1145/390016.808445,
+author = {Boyer, Robert S. and Elspas, Bernard and Levitt, Karl N.},
+title = {SELECT—a Formal System for Testing and Debugging Programs by Symbolic Execution},
+year = {1975},
+issue_date = {June 1975},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {10},
+number = {6},
+issn = {0362-1340},
+url = {https://doi.org/10.1145/390016.808445},
+doi = {10.1145/390016.808445},
+abstract = {SELECT is an experimental system for assisting in the formal systematic debugging of programs. It is intended to be a compromise between an automated program proving system and the current ad hoc debugging practice, and is similar to a system being developed by King et al. of IBM. SELECT systematically handles the paths of programs written in a LISP subset that includes arrays. For each execution path SELECT returns simplified conditions on input variables that cause the path to be executed, and simplified symbolic values for program variables at the path output. For conditions which form a system of linear equalities and inequalities SELECT will return input variable values that can serve as sample test data. The user can insert constraint conditions, at any point in the program including the output, in the form of symbolically executable assertions. These conditions can induce the system to select test data in user-specified regions. SELECT can also determine if the path is correct with respect to an output assertion. We present four examples demonstrating the various modes of system operation and their effectiveness in finding bugs. In some examples, SELECT was successful in automatically finding useful test data. In others, user interaction was required in the form of output assertions. SELECT appears to be a useful tool for rapidly revealing program errors, but for the future there is a need to expand its expressive and deductive power.},
+journal = {SIGPLAN Not.},
+month = {apr},
+pages = {234–245},
+numpages = {12},
+keywords = {Program debugging, Program verification, Test data generation, Symbolic execution, Program testing, Solution of systems of inequalities}
+}
+
+
+@article{10.1145/360248.360252,
+author = {King, James C.},
+title = {Symbolic Execution and Program Testing},
+year = {1976},
+issue_date = {July 1976},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {19},
+number = {7},
+issn = {0001-0782},
+url = {https://doi.org/10.1145/360248.360252},
+doi = {10.1145/360248.360252},
+abstract = {This paper describes the symbolic execution of programs. Instead of supplying the normal inputs to a program (e.g. numbers) one supplies symbols representing arbitrary values. The execution proceeds as in a normal execution except that values may be symbolic formulas over the input symbols. The difficult, yet interesting issues arise during the symbolic execution of conditional branch type statements. A particular system called EFFIGY which provides symbolic execution for program testing and debugging is also described. It interpretively executes programs written in a simple PL/I style programming language. It includes many standard debugging features, the ability to manage and to prove things about symbolic expressions, a simple program testing manager, and a program verifier. A brief discussion of the relationship between symbolic execution and program proving is also included.},
+journal = {Commun. ACM},
+month = {jul},
+pages = {385–394},
+numpages = {10},
+keywords = {symbolic execution, program proving, symbolic interpretation, program verification, program testing, program debugging}
+}
+
+@InProceedings{howden,
+  author = 	 {William E. Howden},
+  title = 	 {Experiments with a symbolic evaluation system},
+  booktitle = {Proceedings of the National Computer Conference},
+  year = 	 1976}
+
+@inproceedings{10.1145/800191.805647,
+author = {Clarke, Lori A.},
+title = {A Program Testing System},
+year = {1976},
+isbn = {9781450374897},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/800191.805647},
+doi = {10.1145/800191.805647},
+abstract = {A system that aids in testing programs is described. This system symbolically executes program paths and creates symbolic representations of the output variables that aid in verifying a path's computations. The conditional statements that affect the flow of control are also symbolically represented by a set of inequalities. The inequalities are then evaluated to determine input data that would cause execution of the path. The system also does extensive error checking by simulating possible data dependent errors and then attempting to detect data sets that would cause execution errors.},
+booktitle = {Proceedings of the 1976 Annual Conference},
+pages = {488–491},
+numpages = {4},
+location = {Houston, Texas, USA},
+series = {ACM '76}
+}
+
+@article{10.1145/3182657,
+author = {Baldoni, Roberto and Coppa, Emilio and D’elia, Daniele Cono and Demetrescu, Camil and Finocchi, Irene},
+title = {A Survey of Symbolic Execution Techniques},
+year = {2018},
+issue_date = {May 2019},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {51},
+number = {3},
+issn = {0360-0300},
+url = {https://doi.org/10.1145/3182657},
+doi = {10.1145/3182657},
+abstract = {Many security and software testing applications require checking whether certain properties of a program hold for any possible usage scenario. For instance, a tool for identifying software vulnerabilities may need to rule out the existence of any backdoor to bypass a program’s authentication. One approach would be to test the program using different, possibly random inputs. As the backdoor may only be hit for very specific program workloads, automated exploration of the space of possible inputs is of the essence. Symbolic execution provides an elegant solution to the problem, by systematically exploring many possible execution paths at the same time without necessarily requiring concrete inputs. Rather than taking on fully specified input values, the technique abstractly represents them as symbols, resorting to constraint solvers to construct actual instances that would cause property violations. Symbolic execution has been incubated in dozens of tools developed over the past four decades, leading to major practical breakthroughs in a number of prominent software reliability applications. The goal of this survey is to provide an overview of the main ideas, challenges, and solutions developed in the area, distilling them for a broad audience.},
+journal = {ACM Comput. Surv.},
+month = {may},
+articleno = {50},
+numpages = {39},
+keywords = {static analysis, software testing, Symbolic execution, concolic execution}
+}
+
