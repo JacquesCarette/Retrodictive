@@ -74,3 +74,30 @@ synthesis :: Int -> [Var s v] -> ([Bool] -> [Bool]) -> OP s v
 synthesis n xs f = synthesisLoop xs S.empty f (allBools n)
 
 ----------------------------------------------------------------------------------------
+-- Generate all balanced function (2^n -> 2)
+
+subsets :: [a] -> [[a]]
+subsets [] = [[]]
+subsets (a:as) = map (a :) ss ++ ss
+  where ss = subsets as
+
+allFuns :: Int -> [[Bool] -> Bool]
+allFuns n = [(\bs -> bs `elem` ts) | ts <- maptoT ]
+  where maptoT = subsets (allBools n)
+
+allBalancedFuns :: Int -> [[Bool] -> Bool]
+allBalancedFuns n = [(\bs -> bs `elem` ts) | ts <- maptoT, length ts == bigN `div` 2 ]
+  where bigN = 2 ^ n
+        maptoT = subsets (allBools n)
+
+{--
+number of balanced functions
+
+n=0     1
+n=1     2
+n=2     6
+n=3    70
+n=4 12870
+
+--}
+----------------------------------------------------------------------------------------

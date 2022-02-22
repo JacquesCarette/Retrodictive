@@ -35,6 +35,7 @@ McMaster University \qquad Indiana University \qquad Indiana University}
 \maketitle
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{refsection}
 
 Retrodictive quantum theory~\cite{sym13040586},
 retrocausality~\cite{Aharonov2008}, and the time-symmetry of physical
@@ -156,6 +157,47 @@ $\ket{01}$ we started with but also with the state $\ket{10}$. In
 other words, we have $f(01) = f(10) = f(01 \oplus 11)$ and the hidden
 value of $a$ is revealed to be $11$.
 
+\begin{wrapfigure}{r}{3cm}
+\begin{center}
+\begin{tikzpicture}[scale=0.6]
+   \begin{yquant*}[register/minimum height=1.3cm]
+   qubit {$\ket0$} x;
+   qubit {$\ket0$} y;
+   box {$H$} x;
+   cnot y | x;
+  \end{yquant*}
+\end{tikzpicture}
+\begin{tikzpicture}[scale=0.6]
+   \begin{yquant*}[register/minimum height=1.3cm]
+   qubit {$\ket0$} x;
+   qubit {$\ket0$} y;
+   qubit {$\ket0$} z;
+   box {$H$} x;
+   cnot y | x;
+   cnot z | y;
+  \end{yquant*}
+\end{tikzpicture}
+\end{center}
+\caption{\label{fig:bell}Bell and GHZ States}
+\end{wrapfigure}
+\paragraph*{Representing Wavefunctions Symbolically.}
+In the quantum circuit for the Simon problem instance in
+Fig.~\ref{fig:Simon}, the Hadamard gates are only applied to control
+wires of \cx-gates, never to wires that serve as targets of control
+gates. This property is actually common in many quantum algorithms and
+allows a rather simple symbolic representation of the wave
+function. An initial state $\ket{0}$ followed by Hadamard will be
+represented by a symbol $x$ represented as unknown boolean value
+(instead of the superposition
+$(1/\sqrt{2})(\ket{0}+\ket{1})$). Fig.~\ref{fig:bell} shows a circuit
+to generate the Bell state $(1/\sqrt{2}) (\ket{00} + \ket{11})$. By
+using the symbol $x$ for the value of the top wire after the Hadamard
+gate, the input to the \cx-gate is $\ket{x0}$ which evolves to
+$\ket{xx}$. The latter state, by sharing the same symbol in two
+positions, accurately represents the entangled Bell state. Similarly,
+for the second circuit, the state after the Hadamard gate is
+$\ket{x00}$ which evolves to $\ket{xx0}$ and then to $\ket{xxx}$ again
+accurately capturing the entanglement correlations.
 
 \begin{figure}[t]
   \begin{subfigure}{0.5\textwidth}
@@ -213,181 +255,26 @@ value of $a$ is revealed to be $11$.
   \end{subfigure}
 \caption{\label{fig:templateQC}Template quantum circuit}
 \end{figure}
-
-The example generalizes to many quantum algorithms that are expressed
-using circuits consisting of three stages: preparation, unitary
-evolution, and measurement in the Hadamard / Fourier basis as shown in
-Fig.~\ref{fig:templateQC}(a). In the conventional execution model of
-quantum circuits, which is the conventional way to use quantum
-mechanics as a predictive theory, the $U_f$ block receives both inputs
-and evolves in the forward direction to produce the
-outputs. Retrodictive reasoning suggests more creative ways to execute
-the $U_f$ block as shown in Fig.~\ref{fig:templateQC}(b). In this
-model, a forward classical execution is performed to determine a
-possible measurement result for the bottom register; using this
-information, a retrodictive classical execution is performed to
-determine the initial states of the first register that are consistent
-with this measurement. These states are then propagated forward to the
-final group of Hadamard / Fourier block. 
-
-\begin{wrapfigure}{r}{4cm}
-\begin{center}
-\begin{tikzpicture}[scale=1]
-   \begin{yquant*}[register/minimum height=1.3cm]
-   qubit {$\ket0$} x;
-   qubit {$\ket0$} y;
-   box {$H$} x;
-   cnot y | x;
-  \end{yquant*}
-\end{tikzpicture}
-\end{center}
-\caption{\label{fig:bell}Bell State}
-\end{wrapfigure}
-\paragraph*{Representing Wavefunctions Symbolically.}
-In the quantum circuit for the Simon problem instance in
-Fig.~\ref{fig:Simon}, the Hadamard gates are only applied to control
-wires of \cx-gates, never to wires that serve as targets of control
-gates. This property is actually common in many quantum algorithms and
-allows a rather simple symbolic representation of the wave
-function. An initial state $\ket{0}$ followed by Hadamard will be
-represented by a symbol $x$ represented as unknown boolean value
-(instead of the superposition
-$(1/\sqrt{2})(\ket{0}+\ket{1})$). Fig.~\ref{fig:bell} shows a circuit
-to generate the Bell state $(1/\sqrt{2}) (\ket{00} + \ket{11})$. By using
-the symbol $x$ for the value of the top wire after the Hadamard gate,
-the input to the \cx-gate is $\ket{x0}$ which evolves to
-$\ket{xx}$. The latter state, by sharing the same symbol in two
-positions, accurately represents the entangled Bell state.
-
-we have enough to analyze many quantum algorithms; say we have an
-implementation and show result of running on many circuits
-
-do communication protocols too ??
-
-then get to $\ket{-}$ 
-
-now to Bell, GHZ, and other entangled states
-
-graph state: H,H,CZ
-
-00   00
-01   01
-10   10
-11 -11
-
-H control +/- distinction not important so use one class of vars
-H target +/- distinction important; use two classes of vars
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\printbibliography
-\end{document}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 200 words
-
-\begin{abstract}
-  just run forward symbolically
-  retrodictive is not fundamental here
-  
-  symbolic exec
-  H introduces uncertainty; forget +/- distinction for now; use variable
-  safe is H wires are used as control wires but not targets
-  run symbolically; can represent entanglement; e.g. bell state xx
-  check if H commutes with x and cx
-  so we only need H at beginning and end
-  introduce vars at beginning and run symbolically
-  if only x and cx then symbolic execution is efficient; no need for last batch of H
-  can solve problem classically
-  connect with Gottsman-Knill
-
-  What is have ccx
-  sometimes fine; shor 15 example; still fine
-  sometimes we get very complicated representation of wavefunction
-  but if we are following up with QFT; QFT insensitive to offset, don't care variables
-  no need to keep track of values of vars; only need to know if they are constant or not
-
-  what is H wires are used as targets; need two flavors of variables; +vars and -vars;
-  -vars infect +vars in control gates; taint analysis with increasing precisions (more
-  and more colors)
-
-  retrodictive? Kochen-Specker; interactive QM; observer free will; choice backtracks
-
-  values going at different speeds; intervals ideas; path types
-
-  
-The quantum circuit model consists of two classes of gates: (i)
-quantum counterparts to classical reversible gates (e.g., Toffoli
-gates), and (ii) genuine quantum gates with no classical counterpart
-(e.g., Hadamard and phase gates). We make the remarkable observation,
-that, for a number of well-established quantum algorithms, judicious
-reasoning about the classical components, ignoring all the quantum
-gates, is sufficient. Put differently, in those cases, the quantum
-gates serve no fundamental purpose and are actually distracting from
-an underlying efficient classical algorithm. The result relies on the
-ability to symbolically execute circuits, especially in a retrodictive
-fashion, i.e., by making partial observations at the output site and
-proceeding backwards to infer the implied initial conditions.
-\end{abstract}
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Main}
-\begin{refsection}
-%% main text 2500 - 4300 words
-%% 5-6 figures
-
-\begin{quote}
-You can’t connect the dots looking forward; you can only connect them
-looking backwards.  So you have to trust that the dots will somehow
-connect in your future. \emph{Steve Jobs}
-\end{quote}
-
-%% \begin{wrapfigure}{r}{5cm}
-%% \begin{quantikz}[row sep=0.7cm,column sep=1cm]
-%%    \qw & 
-%%    \gate[wires=2][2.5cm]{U_f}\gateinput{$x$}\gateoutput{$x$} &
-%%    \qw
-%%    \\
-%%    \qw &
-%%    \gateinput{$y$}\gateoutput{$f(x)\oplus y$} &
-%%    \qw
-%% \end{quantikz}
-%% \caption{\label{fig:oracle}Quantum oracle}
-%% \end{wrapfigure}
-
-%% \begin{wrapfigure}{r}{6cm}
-%% \begin{tikzpicture}[scale=1]
-%%     \begin{yquant*}[register/minimum height=1.3cm]
-%%     qubit {$x$} x;
-%%     qubit {$\ket{0}$} y;
-%%     hspace {5mm} -;
-%%     [x radius=1.3cm]
-%%     box {$U_f$} (x,y);
-%%     hspace {5mm} -;
-%%     output {$x$} x;
-%%     measure y; 
-%%   \end{yquant*}
-%%   \draw[line width=3pt, ->, blue] (3.5,-2.1) .. controls (-0.2,-1.6) and (-0.2,-1.1) .. (3.5,-0.6);
-%% \end{tikzpicture}
-%% \caption{\label{fig:flow}Retrodictive execution flow}
-%% \end{wrapfigure}
-
-
+\paragraph*{A First Collection of Quantum Algorithms.}
 In order to assess whether this idea works for a broad class of
 situations including different algorithms and different circuit sizes,
-we implemented the demand-driven symbolic partial evaluator and ran it
-on a variety of circuits. As we demonstrate below, it turns that
-retrodictive symbolic evaluation provides additional \emph{classical}
-computational resources that are powerful enough to solve instances of
-Deutsch-Jozsa, Bernstein-Vazirani, and Simon problems, as well as some
-instances of Grover's and Shor's algorithms. In all the problems
-below, let $\finset{n}$ denote the finite set $\{
-0,1,\ldots,(n-1)\}$. The parameter $n$ determines the problem size and
-the goal is to solve the problem using resources that do not grow
-exponentially in $n$.
+we implemented a collection of software tools that perform
+retrodictive symbolic evaluation for circuits matching the template
+shown in Fig.~\ref{fig:templateQC}. Each circuit consists of three
+stages: preparation, unitary evolution, and measurement in the
+Hadamard / Fourier basis. Our execution replaces the conventional flow
+of information in Fig.~\ref{fig:templateQC}(a) with the novel flow in
+Fig.~\ref{fig:templateQC}(b). In the latter model, a forward classical
+execution is performed to determine a possible measurement result for
+the bottom register; using this information, a retrodictive classical
+execution is performed to determine the initial states of the first
+register that are consistent with this measurement. These states are
+then analyzed depending on the algorithm in question. As we
+demonstrate below, retrodictive symbolic evaluation provides
+additional \emph{classical} computational resources that are powerful
+enough to solve instances of Deutsch-Jozsa, Bernstein-Vazirani, and
+Simon problems, as well as some instances of Grover's and Shor's
+algorithms. 
 
 \begin{wrapfigure}{r}{7cm}
 \begin{center}
@@ -496,7 +383,7 @@ cases. Again, we fix the ancillary output to a possible boundary
 condition, say $\ket{0}$, and perform a retrodictive execution of the
 circuit to calculate a symbolic expression. Running the experiment for
 the two constant functions, the result is 0 or 1 indicating no
-dependency of the ancilla on the input. For three examples of balanced
+dependency of the ancilla on the input. As small examples of balanced
 functions with $n=6$, the resulting expression was $x_0$ in one case,
 $x_0 \oplus x_1 \oplus x_2 \oplus x_3 \oplus x_4 \oplus x_5$ in
 another, and $x_0x_1x_2 \oplus x_0x_1x_2x_3x_4 \oplus x_0x_1x_2x_3x_5
@@ -515,7 +402,10 @@ pattern is, by design, difficult to
 discern~\cite{quteprints21763}. Since we are promised the function is
 either constant or balanced, then any output that depends on at least
 one symbolic variable is incompatible with a constant function; the
-details of the dependency are not relevant.
+details of the dependency are not relevant. We confirmed this
+observation by running the experiment on all 12870 balanced function
+from $\finset{2^4} \rightarrow \finset{2}$. 
+
 
 \begin{figure}[t]
 \begin{center}
@@ -561,35 +451,6 @@ upon termination the last qubit has the symbolic value $x_1 \oplus x_3
 positions in which the secret string has a 1.
 
 \begin{figure}
-\begin{center}
-\begin{quantikz}\label{eq:simon}
-   \lstick{$x_0$} & \ctrl{2} & \ctrl{3} & \qw      & \qw      & \rstick{$x_0$} \qw \\
-   \lstick{$x_1$} & \qw      & \qw      & \ctrl{1} & \ctrl{2} & \rstick{$x_1$} \qw \\
-   \lstick{$a_0$} & \targ{}  & \qw      & \targ{}  & \qw      & \rstick{$a_0$} \qw \\
-   \lstick{$a_1$} & \qw      & \targ{}  & \qw      & \targ{}  & \rstick{$a_1$} \qw 
-\end{quantikz}
-\end{center}
-\caption{\label{fig:Simon}Example of Quantum Oracle for Simon's Algorithm}
-\end{figure}
-
-\paragraph*{Simon.} 
-We are given a 2-1 function $f : \finset{2^n} \rightarrow
-\finset{2^n}$ with the property that there exists an $a$ such $f(x) =
-f(x \oplus a)$ for all~$x$; the goal is to determine $a$. The circuit
-in Fig.~\ref{fig:Simon} demonstrates the situation when $n=2$ and
-$a=3$. In order to perform retrodictive execution, we need a possible
-final value for $a_1a_0$ with which to initiate the backwards
-execution. For that we simply \emph{classically} execute the circuit
-once in the forward direction with a random choice of $x_1x_0$ (say
-$x_1x_0=11$) and an initial condition $a_1a_0=00$. This execution
-results in $a_1a_0 = 00$ giving us a possible future observation. The
-goal now is to find the other possible value for $x_1x_0$ that
-produces this observation and for that we simply run backwards with the
-symbolic state $\ket{x_0x_100}$. The result is the equation $x_0
-\oplus x_1 = 0$ whose only two solutions are $x_1x_0 = 00$ or
-$x_1x_0 = 11$.
-
-\begin{figure}
 \begin{tabular}{ll}
 $w=0$ & 
 $1 \oplus x_0 \oplus x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_2 \oplus x_0x_2x_3 \oplus x_0x_3 \oplus x_1 \oplus x_1x_2 \oplus$ \\
@@ -625,7 +486,7 @@ $x_0x_1x_2x_3 \oplus x_1x_2x_3$ \\
 $w=15$ &
 $x_0x_1x_2x_3$
 \end{tabular}
-\caption{\label{fig;Grover}Result of retrodictive execution for the Grover oracle ($n=4$, $w$ in the range $\{0..15\}$).}
+\caption{\label{fig:Grover}Result of retrodictive execution for the Grover oracle ($n=4$, $w$ in the range $\{0..15\}$).}
 \end{figure}
 
 
@@ -656,7 +517,7 @@ is a power of 2 and hence trivial to represent by equations of binary
 numbers, the period of 21 is not easily representable as a system of
 equations over binary numbers. See Sec.~\ref{par:shor21}.
 
-\begin{figure}[h]
+\begin{figure}[t]
 \begin{center}
 \begin{tikzpicture}
 \draw (0,0) ellipse (1cm and 2cm);
@@ -677,7 +538,6 @@ equations over binary numbers. See Sec.~\ref{par:shor21}.
 \end{center}
 \caption{\label{fig:preimage}The pre-image of 4 under $f(x) = 7^x \mod 15$.}
 \end{figure}
-
 \paragraph*{Retrodictive Executions, Function Pre-images, and NP-Complete Problems.}
 We now express the computational problems above uniformly as queries
 over function pre-images. Given finite sets $A$ and $B$, a function $f
@@ -732,15 +592,123 @@ of one-way functions which itself implies $\mathit{P} \neq
 \mathit{NP}$, all these pre-images calculations are believed to be
 computationally intractable in their most general setting.
 
-The obvious question to ask now is whether the retrodictive execution
-can be tuned to only produce the required statistics instead producing
-the full description of pre-images. 
-
 \newpage
 
 
 
 
+
+
+
+
+
+
+
+
+we have enough to analyze many quantum algorithms; say we have an
+implementation and show result of running on many circuits
+
+do communication protocols too ??
+
+then get to $\ket{-}$ 
+
+
+
+graph state: H,H,CZ
+
+00   00
+01   01
+10   10
+11 -11
+
+H control +/- distinction not important so use one class of vars
+H target +/- distinction important; use two classes of vars
+
+
+
+
+  just run forward symbolically
+  retrodictive is not fundamental here
+  
+  symbolic exec
+  H introduces uncertainty; forget +/- distinction for now; use variable
+  safe is H wires are used as control wires but not targets
+  run symbolically; can represent entanglement; e.g. bell state xx
+  check if H commutes with x and cx
+  so we only need H at beginning and end
+  introduce vars at beginning and run symbolically
+  if only x and cx then symbolic execution is efficient; no need for last batch of H
+  can solve problem classically
+  connect with Gottsman-Knill
+
+  What is have ccx
+  sometimes fine; shor 15 example; still fine
+  sometimes we get very complicated representation of wavefunction
+  but if we are following up with QFT; QFT insensitive to offset, don't care variables
+  no need to keep track of values of vars; only need to know if they are constant or not
+
+  what is H wires are used as targets; need two flavors of variables; +vars and -vars;
+  -vars infect +vars in control gates; taint analysis with increasing precisions (more
+  and more colors)
+
+  retrodictive? Kochen-Specker; interactive QM; observer free will; choice backtracks
+
+  values going at different speeds; intervals ideas; path types
+
+  
+The quantum circuit model consists of two classes of gates: (i)
+quantum counterparts to classical reversible gates (e.g., Toffoli
+gates), and (ii) genuine quantum gates with no classical counterpart
+(e.g., Hadamard and phase gates). We make the remarkable observation,
+that, for a number of well-established quantum algorithms, judicious
+reasoning about the classical components, ignoring all the quantum
+gates, is sufficient. Put differently, in those cases, the quantum
+gates serve no fundamental purpose and are actually distracting from
+an underlying efficient classical algorithm. The result relies on the
+ability to symbolically execute circuits, especially in a retrodictive
+fashion, i.e., by making partial observations at the output site and
+proceeding backwards to infer the implied initial conditions.
+
+
+\begin{quote}
+You can’t connect the dots looking forward; you can only connect them
+looking backwards.  So you have to trust that the dots will somehow
+connect in your future. \emph{Steve Jobs}
+\end{quote}
+
+%% \begin{wrapfigure}{r}{5cm}
+%% \begin{quantikz}[row sep=0.7cm,column sep=1cm]
+%%    \qw & 
+%%    \gate[wires=2][2.5cm]{U_f}\gateinput{$x$}\gateoutput{$x$} &
+%%    \qw
+%%    \\
+%%    \qw &
+%%    \gateinput{$y$}\gateoutput{$f(x)\oplus y$} &
+%%    \qw
+%% \end{quantikz}
+%% \caption{\label{fig:oracle}Quantum oracle}
+%% \end{wrapfigure}
+
+%% \begin{wrapfigure}{r}{6cm}
+%% \begin{tikzpicture}[scale=1]
+%%     \begin{yquant*}[register/minimum height=1.3cm]
+%%     qubit {$x$} x;
+%%     qubit {$\ket{0}$} y;
+%%     hspace {5mm} -;
+%%     [x radius=1.3cm]
+%%     box {$U_f$} (x,y);
+%%     hspace {5mm} -;
+%%     output {$x$} x;
+%%     measure y; 
+%%   \end{yquant*}
+%%   \draw[line width=3pt, ->, blue] (3.5,-2.1) .. controls (-0.2,-1.6) and (-0.2,-1.1) .. (3.5,-0.6);
+%% \end{tikzpicture}
+%% \caption{\label{fig:flow}Retrodictive execution flow}
+%% \end{wrapfigure}
+
+The obvious question to ask now is whether the retrodictive execution
+can be tuned to only produce the required statistics instead producing
+the full description of pre-images. 
 
 insight 1: qft does not care about 0+2+4.... vs 1+3+5....
 
@@ -796,7 +764,7 @@ go back to that stupid paper about logic programming and xor
 The equations turn out to be trivial when the period is a power of
 2. This occurs when the number to factor is a product of Fermat
 primes: 3, 5, 17, 257, 65537, \ldots. The equations generated for some
-of these cases are in Fig.~\ref{fig:shor2-eqs}. 
+of these cases are in \ldots
 
 
 need stats only
@@ -874,11 +842,9 @@ kochen specker ??
 \end{refsection}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Methods}
-
-%% 3000 words but could be longer
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{refsection}
+\section{Methods}
 
 \paragraph*{Lazy Evaluation.}
 Consider a program that searches for three different numbers $x$, $y$,
@@ -961,11 +927,6 @@ to evaluate \verb|power| with symbolic input \verb|a| and actual input
 All of this evaluation, simplification, and specialization happens
 without knowledge of \verb|a|. Just knowing \verb|n| was enough to
 produce a residual program that is much simpler. 
-
-
-
-
-
 
 The evolution of a quantum system is typically understood as
 proceeding forwards in time --- from the present to the future. As
@@ -1615,5 +1576,5 @@ $x_0 \oplus x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_1x_2x_3x_4 \
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
