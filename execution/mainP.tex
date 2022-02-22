@@ -55,7 +55,7 @@ that a classical program could take under different inputs is
   execution}~\cite{10.1145/390016.808445,10.1145/360248.360252,howden,10.1145/800191.805647,10.1145/3182657}. In
 this execution scheme, concrete values are replaced by symbols which are
 initially unconstrained. As the execution proceeds, the symbols
-interact with the program constructs and this typically introduces
+interact with program constructs and this typically introduces
 constraints on the possible values that the symbols represent. At the
 end of the execution, these constraints can be solved to infer
 properties of the program under consideration. The idea is also
@@ -110,7 +110,7 @@ Simon's problem, we are given a 2-1 (classical) function $f :
 exists an $a$ such $f(x) = f(x \oplus a)$ for all~$x$; the goal is to
 determine~$a$. The circuit in Fig.~\ref{fig:Simon} implements the
 quantum algorithm when $n=2$ and $a = 3$. In the circuit, the gates
-between barrier (1) and barrier (2) implement the quantum oracle
+between barrier (1) and barrier (2) implement a quantum oracle
 $U_f(x,0) = (x,f(x))$ that encapsulates the function $f$ of
 interest. A direct classical simulation of the quantum circuit would
 need to execute the $U_f$ block four times, once for each possible value
@@ -135,28 +135,84 @@ barrier (3) and hence that $f(00) = f(11) = f(00 \oplus 11)$ which
 reveals that $a$ is $11$ in binary notation.
 
 Since the quantum circuit between barriers (1) and (2) is reversible,
-we can perform a mixed predictive and retrodictive symbolic execution
-to make the flow of information conceptually clearer. We start a
-forward classical simulation with one arbitrary state at barrier (1),
-say $\ket{0100}$.  This state evolves to $\ket{0100}$, then
-$\ket{0100}$ again, then $\ket{0110}$, and finally $\ket{0111}$. In
-this case, the result of measuring the bottom two wires is
-$11$. Having produced a possible measurement at barrier (3), we start
-a retrodictive execution to find out what other input states might be
-compatible with this future measurement. To that end, we execute the
-circuit backwards with the symbolic state $\ket{x_0x_111}$; that
-execution evolves to $\ket{x_0x_11(1\oplus x_1)}$, then
-$\ket{x_0x_1(1\oplus x_1)(1\oplus x_1)}$, then $\ket{x_0x_1(1\oplus
-  x_1)(1\oplus x_0 \oplus x_1)}$, and finally $\ket{x_0x_1(1\oplus x_0
-  \oplus x_1)(1\oplus x_0 \oplus x_1)}$. At this point, we must
-reconcile the constraints with the initial condition of the bottom two
-wires which are both $\ket{0}$. We conclude that $1 \oplus x_0 \oplus
-x_1 = 0$ or equivalently that $x_0 \neq x_1$. We have discovered that
-the measurement at barrier (3) is consistent with not just the state
-$\ket{01}$ we started with but also with the state $\ket{10}$. In
-other words, we have $f(01) = f(10) = f(01 \oplus 11)$ and the hidden
-value of $a$ is revealed to be $11$.
+we can perform the analysis above in a mixed predictive and
+retrodictive symbolic execution to make the flow of information
+conceptually clearer. We start a forward classical simulation with one
+arbitrary state at barrier (1), say $\ket{0100}$.  This state evolves
+to $\ket{0100}$, then $\ket{0100}$ again, then $\ket{0110}$, and
+finally $\ket{0111}$. In this case, the result of measuring the bottom
+two wires is $11$. Having produced a possible measurement at barrier
+(3), we start a retrodictive execution to find out what other input
+states might be compatible with this future measurement. To that end,
+we execute the circuit backwards with the symbolic state
+$\ket{x_0x_111}$; that execution evolves to $\ket{x_0x_11(1\oplus
+  x_1)}$, then $\ket{x_0x_1(1\oplus x_1)(1\oplus x_1)}$, then
+$\ket{x_0x_1(1\oplus x_1)(1\oplus x_0 \oplus x_1)}$, and finally
+$\ket{x_0x_1(1\oplus x_0 \oplus x_1)(1\oplus x_0 \oplus x_1)}$. Having
+reached the initial conditions on the bottom two wires, we reconcile
+them with the collected constraints to conclude that $1 \oplus x_0
+\oplus x_1 = 0$ or equivalently that $x_0 \neq x_1$. The measurement
+of 11 at barrier (3) is consistent with not just the state $\ket{01}$
+we started with but also with the state $\ket{10}$. In other words, we
+have $f(01) = f(10) = f(01 \oplus 11)$ and the hidden value of $a$ is
+revealed to be $11$.
 
+\begin{figure}[t]
+  \begin{subfigure}{0.5\textwidth}
+  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
+    \begin{yquant*}[operators/every barrier/.append style={red, thick},
+        operator/minimum width=7mm,
+        operator/separation=1mm,
+        register/separation=10mm]
+    qubits {$\ket0^{\otimes n}$} a;
+    qubits {$\ket{\psi}_m$} b;
+    box {$H^{\otimes n}$} a;
+    ["step 1"]
+    barrier (-);
+    [x radius=7mm, y radius=7mm]
+    box {$U_f$} (a,b);
+    ["step 2"]
+    barrier (-);
+    measure b;
+    discard b;
+    ["step 3"]
+    barrier (-);
+    box {$\mathit{QFT}$} a;
+    measure a;
+    \end{yquant*}
+    \draw[line width=3pt, ->, blue] (0,-1.1) .. controls (2.5,-0.1) and (6,-1.6) .. (9,-1);
+  \end{tikzpicture}
+  \caption{Conventional Flow}
+  \end{subfigure}
+  \begin{subfigure}{0.5\textwidth}
+  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
+    \begin{yquant*}[operators/every barrier/.append style={red, thick},
+        operator/minimum width=7mm,
+        operator/separation=1mm,
+        register/separation=10mm]
+    qubits {$\ket0^{\otimes n}$} a;
+    qubits {$\ket{\psi}_m$} b;
+    box {$H^{\otimes n}$} a;
+    ["step 1"]
+    barrier (-);
+    [x radius=7mm, y radius=7mm]
+    box {$U_f$} (a,b);
+    ["step 2"]
+    barrier (-);
+    measure b;
+    discard b;
+    ["step 3"]
+    barrier (-);
+    box {$\mathit{QFT}$} a;
+    measure a;
+  \end{yquant*}
+  \draw[line width=3pt, blue] (0,-1.6) .. controls (5.5,-2) and (11,-1.6) .. (2,-1.2);
+  \draw[line width=3pt, ->, blue] (2,-1.2) .. controls (0.5,-0.8) and (7,-0.2) .. (9,-1.2);
+  \end{tikzpicture}
+  \caption{Retrodictive Flow}
+  \end{subfigure}
+\caption{\label{fig:templateQC}Template quantum circuit}
+\end{figure}
 \begin{wrapfigure}{r}{3cm}
 \begin{center}
 \begin{tikzpicture}[scale=0.6]
@@ -181,80 +237,33 @@ value of $a$ is revealed to be $11$.
 \caption{\label{fig:bell}Bell and GHZ States}
 \end{wrapfigure}
 \paragraph*{Representing Wavefunctions Symbolically.}
-In the quantum circuit for the Simon problem instance in
-Fig.~\ref{fig:Simon}, the Hadamard gates are only applied to control
-wires of \cx-gates, never to wires that serve as targets of control
-gates. This property is actually common in many quantum algorithms and
-allows a rather simple symbolic representation of the wave
-function. An initial state $\ket{0}$ followed by Hadamard will be
-represented by a symbol $x$ represented as unknown boolean value
-(instead of the superposition
-$(1/\sqrt{2})(\ket{0}+\ket{1})$). Fig.~\ref{fig:bell} shows a circuit
-to generate the Bell state $(1/\sqrt{2}) (\ket{00} + \ket{11})$. By
-using the symbol $x$ for the value of the top wire after the Hadamard
-gate, the input to the \cx-gate is $\ket{x0}$ which evolves to
-$\ket{xx}$. The latter state, by sharing the same symbol in two
-positions, accurately represents the entangled Bell state. Similarly,
-for the second circuit, the state after the Hadamard gate is
+A symbolic variable represents an boolean value that can be 0 or 1;
+this is similar to a qubit in a superposition $(1/\sqrt{2}) (\ket{0}
+\pm \ket{1})$. Thus, it appear possible in any circuit to represent
+$H(\ket{0})$ by a symbol $x$. Surprisingly, this idea scales to even
+represent maximally entangled states. Fig.~\ref{fig:bell}(left) shows
+a circuit to generate the Bell state $(1/\sqrt{2}) (\ket{00} +
+\ket{11})$. By using the symbol $x$ for $H(\ket{0})$, the input to the
+\cx-gate is $\ket{x0}$ which evolves to $\ket{xx}$. By sharing the
+same symbol in two positions, the symbolic state accurately represents
+the entangled Bell state. Similarly, for the circuit in
+Fig.~\ref{fig:bell}(right), the state after the Hadamard gate is
 $\ket{x00}$ which evolves to $\ket{xx0}$ and then to $\ket{xxx}$ again
 accurately capturing the entanglement correlations.
 
-\begin{figure}[t]
-  \begin{subfigure}{0.5\textwidth}
-  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
-    \begin{yquant*}[operators/every barrier/.append style={red, thick},
-        operator/minimum width=7mm,
-        operator/separation=1mm,
-        register/separation=10mm]
-    qubits {$\ket0^{\otimes n}$} a;
-    qubits {$\ket0^{\otimes m}$} b;
-    box {$H^{\otimes n}$} a;
-    ["step 1"]
-    barrier (-);
-    [x radius=7mm]
-    box {$U_f$} (a,b);
-    ["step 2"]
-    barrier (-);
-    measure b;
-    discard b;
-    ["step 3"]
-    barrier (-);
-    box {$\mathit{QFT}$} a;
-    measure a;
-    \end{yquant*}
-    \draw[line width=3pt, ->, blue] (0,-1.1) .. controls (2.5,-0.1) and (6,-1.6) .. (9,-1);
-  \end{tikzpicture}
-  \caption{Conventional Flow}
-  \end{subfigure}
-  \begin{subfigure}{0.5\textwidth}
-  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
-    \begin{yquant*}[operators/every barrier/.append style={red, thick},
-        operator/minimum width=7mm,
-        operator/separation=1mm,
-        register/separation=10mm]
-    qubits {$\ket0^{\otimes n}$} a;
-    qubits {$\ket0^{\otimes m}$} b;
-    box {$H^{\otimes n}$} a;
-    ["step 1"]
-    barrier (-);
-    [x radius=7mm]
-    box {$U_f$} (a,b);
-    ["step 2"]
-    barrier (-);
-    measure b;
-    discard b;
-    ["step 3"]
-    barrier (-);
-    box {$\mathit{QFT}$} a;
-    measure a;
-  \end{yquant*}
-  \draw[line width=3pt, blue] (0,-1.6) .. controls (5,-1.8) and (11,-1.5) .. (2,-1.3);
-  \draw[line width=3pt, ->, blue] (2,-1.3) .. controls (0.5,-0.8) and (7,-0.2) .. (9,-1);
-  \end{tikzpicture}
-  \caption{Retrodictive Flow}
-  \end{subfigure}
-\caption{\label{fig:templateQC}Template quantum circuit}
-\end{figure}
+This insight allows us to symbolically execute the many quantum
+algorithms that match the template in Fig.~\ref{fig:templateQC}
+(including Deutsch, Deutsch-Jozsa, Bernstein-Vazirani, Simon, Grover,
+and Shor's algorithms). Specifically, in all these algorithms, the top
+collection of wires (which we will call the computational register) is
+prepared in a uniform superposition which can be represented using
+symbolic variables. Below, we report on the results of such symbolic
+executions. In each case, instead of the conventional execution flow
+depicted in Fig.~\ref{fig:templateQC}(a), we find a possible
+measurement outcome $w$ at barrier (3) and perform a retrodictive
+execution with a state $\ket{x}\ket{w}$ going backwards to collect the
+constraints on $x$ that enable us to solve the problem in question.
+
 \paragraph*{A First Collection of Quantum Algorithms.}
 In order to assess whether this idea works for a broad class of
 situations including different algorithms and different circuit sizes,
@@ -706,6 +715,8 @@ connect in your future. \emph{Steve Jobs}
 %% \caption{\label{fig:flow}Retrodictive execution flow}
 %% \end{wrapfigure}
 
+extract vars; all we need for some algos
+
 The obvious question to ask now is whether the retrodictive execution
 can be tuned to only produce the required statistics instead producing
 the full description of pre-images. 
@@ -728,7 +739,7 @@ run experiments with PEX and PEY
 
 
 
-2. Hadamard basis: Tofffoli + Hadamard is universal so we “just” need to understand how to run in X basis. 
+2. Hadamard basis: Toffoli + Hadamard is universal so we “just” need to understand how to run in X basis. 
 
    Get rid of all quantum gates and run just the reversible classical part but with different taint analyses
 
