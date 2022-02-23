@@ -61,9 +61,8 @@ end of the execution, these constraints can be solved to infer
 properties of the program under consideration. The idea is also
 applicable to quantum circuits as the following example illustrates.
 
-\begin{figure}[t]
-\begin{center}
-\begin{tikzpicture}[scale=0.8,every label/.style={rotate=40, anchor=south west}]
+\begin{wrapfigure}{r}{9cm}
+\begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
 \begin{yquant*}[operators/every barrier/.append style={red, thick}]
 
     qubit {$\ket0$} a0;
@@ -97,13 +96,10 @@ applicable to quantum circuits as the following example illustrates.
     box {$H$} a1;
     measure a0;
     measure a1;
-
 \end{yquant*}
 \end{tikzpicture}
-\end{center}
 \caption{\label{fig:Simon}Circuit for Simon's Algorithm $n=2$ and $a=3$}
-\end{figure}
-
+\end{wrapfigure}
 Let $\finset{n}$ denote the finite set $\{ 0,1,\ldots,(n-1)\}$. In
 Simon's problem, we are given a 2-1 (classical) function $f :
 \finset{2^n} \rightarrow \finset{2^n}$ with the property that there
@@ -135,16 +131,16 @@ barrier (3) and hence that $f(00) = f(11) = f(00 \oplus 11)$ which
 reveals that $a$ is $11$ in binary notation.
 
 Since the quantum circuit between barriers (1) and (2) is reversible,
-we can perform the analysis above in a mixed predictive and
-retrodictive symbolic execution to make the flow of information
-conceptually clearer. We start a forward classical simulation with one
-arbitrary state at barrier (1), say $\ket{0100}$.  This state evolves
-to $\ket{0100}$, then $\ket{0100}$ again, then $\ket{0110}$, and
-finally $\ket{0111}$. In this case, the result of measuring the bottom
-two wires is $11$. Having produced a possible measurement at barrier
-(3), we start a retrodictive execution to find out what other input
-states might be compatible with this future measurement. To that end,
-we execute the circuit backwards with the symbolic state
+we can perform the analysis above in a mixed predictive and symbolic
+retrodictive execution to make the flow of information conceptually
+clearer. We start a forward classical simulation with one arbitrary
+state at barrier (1), say $\ket{0100}$.  This state evolves to
+$\ket{0100}$, then $\ket{0100}$ again, then $\ket{0110}$, and finally
+$\ket{0111}$. In this case, the result of measuring the bottom two
+wires is $11$. Having produced a possible measurement at barrier (3),
+we start a retrodictive execution to find out what other input states
+might be compatible with this future measurement. To that end, we
+execute the circuit backwards with the symbolic state
 $\ket{x_0x_111}$; that execution evolves to $\ket{x_0x_11(1\oplus
   x_1)}$, then $\ket{x_0x_1(1\oplus x_1)(1\oplus x_1)}$, then
 $\ket{x_0x_1(1\oplus x_1)(1\oplus x_0 \oplus x_1)}$, and finally
@@ -261,49 +257,245 @@ symbolic variables. Below, we report on the results of such symbolic
 executions. In each case, instead of the conventional execution flow
 depicted in Fig.~\ref{fig:templateQC}(a), we find a possible
 measurement outcome $w$ at barrier (3) and perform a retrodictive
-execution with a state $\ket{x}\ket{w}$ going backwards to collect the
+execution with a state $\ket{xw}$ going backwards to collect the
 constraints on $x$ that enable us to solve the problem in question.
 
 \paragraph*{A First Collection of Quantum Algorithms.}
-In order to assess whether this idea works for a broad class of
-situations including different algorithms and different circuit sizes,
-we implemented a collection of software tools that perform
-retrodictive symbolic evaluation for circuits matching the template
-shown in Fig.~\ref{fig:templateQC}. Each circuit consists of three
-stages: preparation, unitary evolution, and measurement in the
-Hadamard / Fourier basis. Our execution replaces the conventional flow
-of information in Fig.~\ref{fig:templateQC}(a) with the novel flow in
-Fig.~\ref{fig:templateQC}(b). In the latter model, a forward classical
-execution is performed to determine a possible measurement result for
-the bottom register; using this information, a retrodictive classical
-execution is performed to determine the initial states of the first
-register that are consistent with this measurement. These states are
-then analyzed depending on the algorithm in question. As we
-demonstrate below, retrodictive symbolic evaluation provides
-additional \emph{classical} computational resources that are powerful
-enough to solve instances of Deutsch-Jozsa, Bernstein-Vazirani, and
-Simon problems, as well as some instances of Grover's and Shor's
-algorithms. 
+To demonstrate that symbolic retrodictive execution is applicable to a
+broad class of situations including different algorithms and different
+circuit sizes, we implemented a collection of software tools that
+perform symbolic retrodictive evaluation for circuits matching the
+template shown in Fig.~\ref{fig:templateQC}. 
+
+\begin{wrapfigure}{r}{4cm}
+\begin{tikzpicture}[scale=0.8]
+   \begin{yquant*}
+   qubit {$\ket0$} x;
+   qubit {$\ket1$} y;
+   box {$H$} x;
+   box {$H$} y;
+   box {$U_f$} (x,y);
+   measure y;
+   box {$H$} x;
+   measure x;
+  \end{yquant*}
+\end{tikzpicture}
+\caption{\label{fig:deutsch}Deutsch}
+\end{wrapfigure}
+\paragraph*{Deutsch.} The quantum circuit in Fig.~\ref{fig:deutsch} determines
+if the function $\finset{2} \rightarrow \finset{2}$ encapsulated in
+the quantum oracle $U_f$ is constant or balanced. Since 0 is always a
+possible measurement of the ancilla register, we start a retrodictive
+execution of the $U_f$ block with state $\ket{x0}$. This execution
+terminates with a state $\ket{xr}$ where $r$ is a formula expressing
+the dependencies of the ancilla on $x$. Running the experiment with
+different choices for $f$, the resulting formula always perfectly
+describes $f$. Specifically when $f$ is the constant function that
+returns 0, we have $r=0$; when $f$ is the constant function that
+returns 1, we have $r=0$; when $f$ is the balanced function that
+returns its input, we have $r=x$; and when $f$ is the balanced function that
+returns the negation of its input, we have $r=1+x$.
+
+\paragraph*{Deutsch-Jozsa.} 
+The problem is a generalization of the previous one. We are given a
+function $\finset{n} \rightarrow \finset{2}$ that is promised to be
+constant or balanced and we need to decide distinguish the two
+cases. The quantum circuit generalizes the one in
+Fig.~\ref{fig:deutsch} to use $n$-wires for the computational
+register. Similarly to before, we perform a retrodictive execution of
+the $U_f$ block with the state $\ket{x_{n-1}\cdots x_1x_00}$ and
+observe the resulting formula $r$. Like before when the function is
+constant, the formula $r$ is the corresponding constant and then the
+function is balanced, the formula $r$ completely describes how the
+result is computed from the symbols $x_{n-1},\cdots,x_1,x_0$. For
+example, for $n=6$, the resulting formulae for three balanced
+functions were: $x_0$, $x_0 \oplus x_1 \oplus x_2 \oplus x_3 \oplus
+x_4 \oplus x_5$, and $x_0x_1x_2 \oplus x_0x_1x_2x_3x_4 \oplus
+x_0x_1x_2x_3x_5 \oplus x_0x_1x_2x_4 \oplus x_0x_1x_2x_4x_5 \oplus
+x_0x_1x_3x_4 \oplus x_0x_1x_3x_5 \oplus x_0x_1x_4 \oplus x_0x_1x_4x_5
+\oplus x_0x_2 \oplus x_0x_2x_3x_5 \oplus x_0x_2x_4x_5 \oplus x_0x_3
+\oplus x_0x_3x_4x_5 \oplus x_0x_3x_5 \oplus x_1x_2x_3x_5 \oplus
+x_1x_2x_4x_5 \oplus x_1x_3x_4x_5 \oplus x_1x_3x_5 \oplus x_1x_5 \oplus
+x_2x_3x_4x_5 \oplus x_2x_3x_5 \oplus x_2x_4 \oplus x_3x_4x_5 \oplus
+x_3x_5$. In the first case, the function is balanced because its
+output depends on just one variable (which is 0 in half the possible
+inputs); in the second case the output of the function is the
+exclusive-or of all the input variables which is an easy instance of a
+balanced function. The last case is a cryptographically strong
+balanced function whose output pattern is, by design, difficult to
+discern~\cite{quteprints21763}. An important insight in the case of
+the Deutsch-Jozsa problem is that, since we are promised the function
+is either constant or balanced, then any formula that refers to at
+least one variable must indicate a balanced function. In other words,
+the outcome of the algorithm can be immediately decided if the formula
+is anything other than 0 or 1. We confirmed this observation by
+running the experiment on all 12870 balanced functions from
+$\finset{2^4} \rightarrow \finset{2}$ and correctly identifying them
+as such. This is significant as some of these functions produce
+complicated entangled patterns during quantum evolution and could not
+be de-quantized using previous approaches~\cite{djdeq}. The catch is
+that symbolic retrodictive execution operates in time proportional to
+the depth of the quantum oracle and the size of the formula.
+
+
+\begin{wrapfigure}{r}{10cm}
+\begin{center}
+\begin{quantikz}[row sep=0.02cm]\label{eq:bernstein-vazirani}
+   \lstick{$\ket{0}$} & \gate{H} & \qw      & \qw      & \qw       & \qw       & \qw & \gate{H} 
+   & \meter{} & \cw \\
+   \lstick{$\ket{0}$} & \gate{H} & \ctrl{7} & \qw      & \qw       & \qw       & \qw & \gate{H} 
+   & \meter{} & \cw \\
+   \lstick{$\ket{0}$} & \gate{H} & \qw      & \qw      & \qw       & \qw       & \qw & \gate{H} 
+   & \meter{} & \cw \\
+   \lstick{$\ket{0}$} & \gate{H} & \qw      & \ctrl{5} & \qw       & \qw       & \qw & \gate{H} 
+   & \meter{} & \cw \\
+   \lstick{$\ket{0}$} & \gate{H} & \qw      & \qw      & \ctrl{4}  & \qw       & \qw & \gate{H} 
+   & \meter{} & \cw \\
+   \lstick{$\ket{0}$} & \gate{H} & \qw      & \qw      & \qw       & \ctrl{3}  & \qw & \gate{H} 
+   & \meter{} & \cw \\
+   \lstick{$\ket{0}$} & \gate{H} & \qw      & \qw      & \qw       & \qw       & \qw & \gate{H} 
+   & \meter{} & \cw \\
+   \lstick{$\ket{0}$} & \gate{H} & \qw      & \qw      & \qw       & \qw       & \qw & \gate{H} 
+   & \meter{} & \cw \\
+   \lstick{$\ket{1}$}  & \gate{H}  & \targ{}  & \targ{}  & \targ{}   & \targ{}   & \meter{} 
+   & \cw
+\end{quantikz}
+\end{center}
+\caption{\label{fig:bv}Circuit for Bernstein-Vazirani
+  Algorithm ($n=8$, $s=92$, least significant bit is the top wire)}
+\end{wrapfigure}
+\paragraph*{Bernstein-Vazirani.} 
+We are given a function $f : \finset{2^n} \rightarrow \finset{2}$ that
+hides a secret number $s \in \finset{2^n}$. We are promised the
+function is defined using the binary representations $\sum_i^{n-1}
+x_i$ and $\sum_i^{n-1} s_i$ of $x$ and $s$ respectively as $f(x) =
+\sum_{i=0}^{n-1} s_ix_i \mod{2}$.  The goal is to determine the secret
+number $s$. The circuit in Fig.~\ref{fig:bv} solves the problem for
+$n=8$ and a hidden number 92 ($= 00111010$ in binary notation with the
+rightmost bit at index 0). Retrodictive execution starting with the
+state $\ket{x_0x_1x_2x_3x_4x_5x_6x_70}$ terminates with the formula
+$x_1 \oplus x_3 \oplus x_4 \oplus x_5$. The secret string can be
+immediately read from the formula as the indices $\{ 1,3,4,5 \}$ of
+the symbols are exactly the positions at which the secret string has a
+1.
+
+\begin{figure}
+\begin{tabular}{ll}
+$u=0$ & 
+$1 \oplus x_0 \oplus x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_2 \oplus x_0x_2x_3 \oplus x_0x_3 \oplus x_1 \oplus x_1x_2 \oplus$ \\
+  & \quad$x_1x_2x_3 \oplus x_1x_3 \oplus x_2 \oplus x_2x_3 \oplus x_3$ \\
+$u=1$ & 
+$x_0 \oplus x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_2 \oplus x_0x_2x_3 \oplus x_0x_3 $ \\
+$u=2$ &
+$x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_1 \oplus x_1x_2 \oplus x_1x_2x_3 \oplus x_1x_3$ \\
+$u=3$ &
+$x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_1x_3$ \\
+$u=4$ &
+$x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_2 \oplus x_0x_2x_3 \oplus x_1x_2 \oplus x_1x_2x_3 \oplus x_2 \oplus x_2x_3$ \\
+$u=5$ &
+$x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_2 \oplus x_0x_2x_3$ \\
+$u=6$ &
+$x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_1x_2 \oplus x_1x_2x_3$ \\
+$u=7$ &
+$x_0x_1x_2 \oplus x_0x_1x_2x_3$ \\
+$u=8$ &
+$x_0x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_2x_3 \oplus x_0x_3 \oplus x_1x_2x_3 \oplus x_1x_3 \oplus x_2x_3 \oplus x_3$ \\
+$u=9$ &
+$x_0x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_2x_3 \oplus x_0x_3$ \\
+$u=10$ &
+$x_0x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_1x_2x_3 \oplus x_1x_3$ \\
+$u=11$ &
+$x_0x_1x_2x_3 \oplus x_0x_1x_3$ \\
+$u=12$ &
+$x_0x_1x_2x_3 \oplus x_0x_2x_3 \oplus x_1x_2x_3 \oplus x_2x_3$ \\
+$u=13$ &
+$x_0x_1x_2x_3 \oplus x_0x_2x_3$ \\
+$u=14$ &
+$x_0x_1x_2x_3 \oplus x_1x_2x_3$ \\
+$u=15$ &
+$x_0x_1x_2x_3$
+\end{tabular}
+\caption{\label{fig:Grover}Result of retrodictive execution for the Grover oracle ($n=4$, $w$ in the range $\{0..15\}$).}
+\end{figure}
+
+
+\paragraph*{Grover.}  We are given a function $f : \finset{2^n}
+\rightarrow \finset{2}$ with the property that there exists only one
+input $u$ such $f(u) = 1$. The goal is to find $u$. The conventional
+presentation of the quantum algorithm does not fit the template of
+Fig.~\ref{fig:templateQC}. But it is still possible to construct a
+quantum oracle $U_f$ from the given $f$ and perform retrodictive
+execution starting from an ancilla measurement of 1 corresponding to
+the input pattern we are interested in. The resulting equations for
+$n=4$ and $u$ in the range $\{0..15\}$ are in
+Fig.~\ref{fig:Grover}. In some cases (e.g. $u=15$) the equations
+immediately reveal $u$; in others, retrodictive executive provides no
+advantage since solving arbitrary equations over boolean variables is,
+in general, an $\mathit{NP}$-complete problem.
 
 \begin{wrapfigure}{r}{7cm}
 \begin{center}
 \begin{quantikz}[row sep=0.005cm,column sep=0.22cm]
-\lstick{$x_2 = \ket{0}$} & \gate{H}\slice{1} & \qw & \qw \slice{2}
-      & \qw\slice{3} & \gate[wires=3][0.5cm]{QFT} & \meter{} & \rstick{$\tilde{v_2}$}\cw \\
+\lstick{$x_2 = \ket{0}$} & \gate{H}& \qw & \qw 
+      & \qw & \gate[wires=3][0.5cm]{QFT} & \meter{} & \cw \\
 \lstick{$x_1 = \ket{0}$} & \gate{H} & \qw & \qw       
-      & \qw & & \meter{} & \rstick{$\tilde{v_1}$}\cw \\
+      & \qw & & \meter{} & \cw \\
 \lstick{$x_0 = \ket{0}$} & \gate{H} & \octrl{3} & \ctrl{1}
-      & \qw & & \meter{} & \rstick{$\tilde{v_0}$}\cw \\
+      & \qw & & \meter{} & \cw \\
 \lstick{$\ket{0}$} & \qw & \qw & \targ{}
-      & \meter{} & \rstick{$e_2$}\cw \\
+      & \meter{} & \cw \\
 \lstick{$\ket{0}$} & \qw & \qw  & \qw
-      & \meter{} & \rstick{$e_1$}\cw \\
+      & \meter{} & \cw \\
 \lstick{$\ket{0}$} & \qw & \targ{} & \qw 
-      & \meter{} & \rstick{$e_0$}\cw 
+      & \meter{} & \cw
 \end{quantikz}
 \end{center}
 \caption{\label{fig:shor15}Finding the period of $4^x \mod{15}$}
 \end{wrapfigure}
+\paragraph*{Shor 15.} 
+The circuit in Fig.~\ref{fig:shor15} uses a hand-optimized
+implementation of the modular exponentiation $4^x \mod{15}$ to factor
+15 using Shor's algorithm. In a conventional forward execution, the
+state before the QFT block is:
+\[
+\frac{1}{2\sqrt{2}} (
+  (\ket{0} + \ket{2} + \ket{4} + \ket{6}) \ket{1} + 
+  (\ket{1} + \ket{3} + \ket{5} + \ket{7}) \ket{4}
+  )
+\]
+At this point, the ancilla register is measured to either $\ket{1}$ or
+$\ket{4}$. In either case, the computational register snaps to a state
+of the form $\sum_{r=0}^3 \ket{a+2r}$ whose QFT has peaks at $\ket{0}$
+or $\ket{4}$ making them the most likely outcomes of measurements of
+the computational register. If we measure $\ket{0}$, we repeat the
+experiment; otherwise we infer that the period is 2.
+
+In the retrodictive execution, we can start with the state
+$\ket{x_2x_1x_0}\ket{001}$ since 1 is guaranteed to be a possible
+ancilla measurement. The first \cx-gate changes the state to
+$\ket{x_2x_1x_0}\ket{x_001}$ and the second \cx-gate produces
+$\ket{x_2x_1x_0}\ket{x_00x_0}$. At that point, we reconcile the
+retrodictive result of the second register $\ket{x_00x_0}$ with the
+initial condition $\ket{000}$ to conclude that $x_0=0$. In other
+words, in order to observe the ancilla at $001$, the computational
+register must be initialized to a superposition of the form
+$\ket{??0}$ where the least significant bit must be 0 and the other
+two bits are unconstrained. Expanding the possibilities, the first
+register needs to be in a superposition of the states $\ket{000},
+\ket{010}, \ket{100}$ or $\ket{110}$ and we have just inferred using
+purely classical but retrodictive reasoning that the period is
+2. Significantly, this approach is robust and does not require small
+hand-optimized circuits. Indeed, following the methods for producing
+quantum circuits for arithmetic operations from first principles using
+adders and multipliers~\cite{PhysRevA.54.147}, our implementation for
+a general circuit for $a^x \mod{15}$ has 56538 generalized Toffoli
+gates over 9 qubits, and yet the equations resulting from the
+retrodictive execution in Fig.~\ref{fig:shor-eqs} are trivial and
+immediately solvable as they only involve either the least significant
+bit $x_0$ (when $a \in \{4,11,14\}$) or the least significant two bits
+$x_0$ and $x_1$ (when $a \in \{2,7,8,13\}$). When the solution is
+$x_0=0$, the period is 2. When the solution is $x_0=0,x_1=0$, the
+period is 4.
 
 \begin{figure}
 \[\begin{array}{l@{\quad}llll@{~|~}l}
@@ -319,214 +511,23 @@ a=2,8 & 1 \oplus x_0 \oplus x_0x_1 \oplus x_1 = 1 & x_0x_1 = 0 & x_0x_1 \oplus x
   variables is given in the last column.}
 \end{figure}
 
-\paragraph*{Shor 15.} 
-The circuit in Fig.~\ref{fig:shor15} uses a hand-optimized
-implementation of the modular exponentiation $4^x \mod{15}$ to factor
-15 using Shor's algorithm. In a conventional forward execution, the
-state at step (3) is:
-\[
-\frac{1}{2\sqrt{2}} (
-  (\ket{0} + \ket{2} + \ket{4} + \ket{6}) \ket{1} + 
-  (\ket{1} + \ket{3} + \ket{5} + \ket{7}) \ket{4}
-  )
-\]
-At this point, the bottom register is measured. The result of the
-measurement can be either $\ket{1}$ or $\ket{4}$. In either case, the
-top register snaps to a state of the form $\sum_{r=0}^3 \ket{a+2r}$
-whose QFT has peaks at $\ket{0}$ or $\ket{4}$. If we measure $\ket{0}$
-for the top register, we repeat the experiment; otherwise we infer
-that the period is 2.  Instead of this forward execution, we can
-reason as follows. Since $x^0 = 1$ for all $x$, we know that~$\ket{1}$
-is a possible measurement of the second register. We can therefore
-proceed in a retrodictive fashion with the state
-$\ket{x_2x_1x_0}\ket{001}$ at step (2) and compute backwards. The
-first \cx-gate changes the state to $\ket{x_2x_1x_0}\ket{x_001}$ and
-the second \cx-gate produces $\ket{x_2x_1x_0}\ket{x_00x_0}$. At that
-point, we reconcile the retrodictive result of the second register
-$\ket{x_00x_0}$ with the initial condition $\ket{000}$ to conclude
-that $x_0=0$. In other words, in order to observe $e_2e_1e_0=001$, the
-first register must be initialized to a superposition of the form
-$\ket{??0}$ where the least significant bit must be 0 and the other
-two bits are unconstrained. Expanding the possibilities, the first
-register needs to be in a superposition of the states $\ket{000},
-\ket{010}, \ket{100}$ or $\ket{110}$ and we have just inferred using
-purely classical but retrodictive reasoning that the period is
-2. Significantly, this approach is robust and does not require small
-hand-optimized circuits. Indeed, following the methods for producing
-quantum circuits for arithmetic operations from first principles using
-adders and multipliers~\cite{PhysRevA.54.147}, our implementation for
-$a^x \mod{15}$ has 56538 generalized Toffoli gates over 9 qubits, and
-yet the equations resulting from the retrodictive execution in
-Fig.~\ref{fig:shor-eqs} are trivial and immediately solvable as they
-only involve either the least significant bit $x_0$ (when $a \in
-\{4,11,14\}$) or the least significant two bits $x_0$ and $x_1$ (when
-$a \in \{2,7,8,13\}$). When the solution is $x_0=0$, the period is
-2. When the solution is $x_0=0,x_1=0$, the period is 4.
-
-\paragraph*{Deutsch.} The problem is to determine if a
-given function $\finset{2} \rightarrow \finset{2}$ is constant or
-balanced. It is assumed that the function is embedded in a quantum
-circuit $U_f$, typically composed of $\x$ and $\cx$ gate, and the goal
-is to use $U_f$ just once. The textbook quantum algorithm prepares a
-quantum superposition that propagates through the quantum oracle $U_f$
-in the forward direction and then performs a measurement that
-deterministically solves the problem. Instead, we fix the ancilla
-output to a possible boundary condition, say~$\ket{0}$, provide a
-symbolic state $\ket{x}$ for the top register, and perform a
-retrodictive execution of the quantum oracle. The execution starts
-from the output side with the state $\ket{x}\ket{0}$ and terminates on
-the input side with a state $\ket{x}\ket{y}$ where $y$ is a symbolic
-expression that captures the necessary initial conditions to produce
-the partial observation $\ket{0}$ on the ancilla register. Running the
-experiment, we get one of the following four symbolic expressions 0,
-1, $x$, or $1\oplus x$ depending on the function $f$. In the first two
-cases, the observation of the ancilla is independent of $x$, i.e. the
-function is constant.  In the last two cases, the ancilla depends on
-$x$ (or its negation), and the function must be balanced.
-
-\paragraph*{Deutsch-Jozsa.} 
-The problem is a generalization of the previous one: we are given a
-function $\finset{n} \rightarrow \finset{2}$ that is promised to be
-constant or balanced and we need to decide distinguish the two
-cases. Again, we fix the ancillary output to a possible boundary
-condition, say $\ket{0}$, and perform a retrodictive execution of the
-circuit to calculate a symbolic expression. Running the experiment for
-the two constant functions, the result is 0 or 1 indicating no
-dependency of the ancilla on the input. As small examples of balanced
-functions with $n=6$, the resulting expression was $x_0$ in one case,
-$x_0 \oplus x_1 \oplus x_2 \oplus x_3 \oplus x_4 \oplus x_5$ in
-another, and $x_0x_1x_2 \oplus x_0x_1x_2x_3x_4 \oplus x_0x_1x_2x_3x_5
-\oplus x_0x_1x_2x_4 \oplus x_0x_1x_2x_4x_5 \oplus x_0x_1x_3x_4 \oplus
-x_0x_1x_3x_5 \oplus x_0x_1x_4 \oplus x_0x_1x_4x_5 \oplus x_0x_2 \oplus
-x_0x_2x_3x_5 \oplus x_0x_2x_4x_5 \oplus x_0x_3 \oplus x_0x_3x_4x_5
-\oplus x_0x_3x_5 \oplus x_1x_2x_3x_5 \oplus x_1x_2x_4x_5 \oplus
-x_1x_3x_4x_5 \oplus x_1x_3x_5 \oplus x_1x_5 \oplus x_2x_3x_4x_5 \oplus
-x_2x_3x_5 \oplus x_2x_4 \oplus x_3x_4x_5 \oplus x_3x_5$ in the
-last. In the first case, the function is balanced because its output
-depends on just one variable (which is 0 half the time); in the second
-case the output of the function is the exclusive-or of all the input
-variables which is an easy instance of a balanced function. The last
-case is a cryptographically strong balanced function whose output
-pattern is, by design, difficult to
-discern~\cite{quteprints21763}. Since we are promised the function is
-either constant or balanced, then any output that depends on at least
-one symbolic variable is incompatible with a constant function; the
-details of the dependency are not relevant. We confirmed this
-observation by running the experiment on all 12870 balanced function
-from $\finset{2^4} \rightarrow \finset{2}$. 
-
-
-\begin{figure}[t]
-\begin{center}
-\begin{quantikz}[row sep=0.02cm]\label{eq:bernstein-vazirani}
-   \lstick{$\ket{0}$} & \gate{H}\slice{1} & \qw      & \qw      & \qw       & \qw \slice{2}      & \qw\slice{3} & \gate{H} 
-   & \meter{} & \rstick{$\tilde{v_0}$}\cw \\
-   \lstick{$\ket{0}$} & \gate{H} & \ctrl{7} & \qw      & \qw       & \qw       & \qw & \gate{H} 
-   & \meter{} & \rstick{$\tilde{v_1}$}\cw \\
-   \lstick{$\ket{0}$} & \gate{H} & \qw      & \qw      & \qw       & \qw       & \qw & \gate{H} 
-   & \meter{} & \rstick{$\tilde{v_2}$}\cw \\
-   \lstick{$\ket{0}$} & \gate{H} & \qw      & \ctrl{5} & \qw       & \qw       & \qw & \gate{H} 
-   & \meter{} & \rstick{$\tilde{v_3}$}\cw \\
-   \lstick{$\ket{0}$} & \gate{H} & \qw      & \qw      & \ctrl{4}  & \qw       & \qw & \gate{H} 
-   & \meter{} & \rstick{$\tilde{v_4}$}\cw \\
-   \lstick{$\ket{0}$} & \gate{H} & \qw      & \qw      & \qw       & \ctrl{3}  & \qw & \gate{H} 
-   & \meter{} & \rstick{$\tilde{v_5}$}\cw \\
-   \lstick{$\ket{0}$} & \gate{H} & \qw      & \qw      & \qw       & \qw       & \qw & \gate{H} 
-   & \meter{} & \rstick{$\tilde{v_6}$}\cw \\
-   \lstick{$\ket{0}$} & \gate{H} & \qw      & \qw      & \qw       & \qw       & \qw & \gate{H} 
-   & \meter{} & \rstick{$\tilde{v_7}$}\cw \\
-   \lstick{$\ket{1}$}  & \gate{H}  & \targ{}  & \targ{}  & \targ{}   & \targ{}   & \meter{} 
-   & \rstick{$w$}\cw
-\end{quantikz}
-\end{center}
-\caption{\label{fig:bv}Circuit for Bernstein-Vazirani
-  Algorithm ($n=8$, $s=92$, least significant bit is the top wire)}
-\end{figure}
-
-\paragraph*{Bernstein-Vazirani.} 
-We are given a function $f : \finset{2^n} \rightarrow \finset{2}$ that
-hides a secret number $s \in \finset{2^n}$. We are promised the
-function is defined using the binary representations $\sum_i^{n-1}
-x_i$ and $\sum_i^{n-1} s_i$ of $x$ and $s$ respectively as $f(x) =
-\sum_{i=0}^{n-1} s_ix_i \mod{2}$.  The goal is to determine the secret
-number $s$. The circuit in Fig.~\ref{fig:bv} solves the problem for
-$n=8$ and a hidden number 92 ($= 00111010$ in binary notation with the
-rightmost bit at index 0). The gates between slice (1) and slice (2)
-collect the sum of the $x_i$ at positions that match the occurrences
-of 1 in the secret string. The retrodictive execution proceeds from
-slice (2) backwards with the state $\ket{x_0x_1x_2x_3x_4x_5x_6x_70}$;
-upon termination the last qubit has the symbolic value $x_1 \oplus x_3
-\oplus x_4 \oplus x_5$. The indices $\{ 1,3,4,5 \}$ are exactly the
-positions in which the secret string has a 1.
-
-\begin{figure}
-\begin{tabular}{ll}
-$w=0$ & 
-$1 \oplus x_0 \oplus x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_2 \oplus x_0x_2x_3 \oplus x_0x_3 \oplus x_1 \oplus x_1x_2 \oplus$ \\
-  & \quad$x_1x_2x_3 \oplus x_1x_3 \oplus x_2 \oplus x_2x_3 \oplus x_3$ \\
-$w=1$ & 
-$x_0 \oplus x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_2 \oplus x_0x_2x_3 \oplus x_0x_3 $ \\
-$w=2$ &
-$x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_1 \oplus x_1x_2 \oplus x_1x_2x_3 \oplus x_1x_3$ \\
-$w=3$ &
-$x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_1x_3$ \\
-$w=4$ &
-$x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_2 \oplus x_0x_2x_3 \oplus x_1x_2 \oplus x_1x_2x_3 \oplus x_2 \oplus x_2x_3$ \\
-$w=5$ &
-$x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_2 \oplus x_0x_2x_3$ \\
-$w=6$ &
-$x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_1x_2 \oplus x_1x_2x_3$ \\
-$w=7$ &
-$x_0x_1x_2 \oplus x_0x_1x_2x_3$ \\
-$w=8$ &
-$x_0x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_2x_3 \oplus x_0x_3 \oplus x_1x_2x_3 \oplus x_1x_3 \oplus x_2x_3 \oplus x_3$ \\
-$w=9$ &
-$x_0x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_2x_3 \oplus x_0x_3$ \\
-$w=10$ &
-$x_0x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_1x_2x_3 \oplus x_1x_3$ \\
-$w=11$ &
-$x_0x_1x_2x_3 \oplus x_0x_1x_3$ \\
-$w=12$ &
-$x_0x_1x_2x_3 \oplus x_0x_2x_3 \oplus x_1x_2x_3 \oplus x_2x_3$ \\
-$w=13$ &
-$x_0x_1x_2x_3 \oplus x_0x_2x_3$ \\
-$w=14$ &
-$x_0x_1x_2x_3 \oplus x_1x_2x_3$ \\
-$w=15$ &
-$x_0x_1x_2x_3$
-\end{tabular}
-\caption{\label{fig:Grover}Result of retrodictive execution for the Grover oracle ($n=4$, $w$ in the range $\{0..15\}$).}
-\end{figure}
-
-
-\paragraph*{Grover.}  We are given a function $f ; \finset{2^n}
-\rightarrow \finset{2}$ with the property that there exists only one
-input $w$ such $f(wx) = 1$. The goal is to find $w$. The conventional
-presentation of the quantum algorithm does not exactly fit the
-template of Fig.~\ref{fig:templateQC}. But it is possible to construct
-a quantum oracle $U_f$ from the given $f$ and perform retrodictive
-execution. The resulting equations for $n=4$ and $w$ in the range
-$\{0..15\}$ are in Fig.~\ref{fig:Grover}. In some cases (e.g. $w=15$)
-the equations immediately reveal $w$; in others non-trivial steps
-would be needed to solve the equations. 
-
 \paragraph*{Shor 21.} 
-The sample examples presented so far demonstrate that some instances
-of quantum algorithms can be solved via classical symbolic
-retrodictive execution. We now show an instance that glaringly shows
-the limitations of the basic retrodictive execution, do a theoretical
-analysis, and show how to tune the basic idea to solve more and more
-instances of quantum algorithms. As is already apparent in some
-examples, running retrodictive execution may produce large
-equations. To appreciate how large these equations may be, we include
-the full set of equations producing for a retrodictive execution of
-Shor's algorithm for factoring 21. Unlike the number 15 and the rare
-occurrences of products of Fermat primes which result in a period that
-is a power of 2 and hence trivial to represent by equations of binary
-numbers, the period of 21 is not easily representable as a system of
-equations over binary numbers. See Sec.~\ref{par:shor21}.
+The examples presented so far demonstrate that some instances of
+quantum algorithms can be solved via classical symbolic retrodictive
+execution. But as was already apparent in some examples
+(e.g. Deutsch-Jozsa and Grover), running retrodictive execution may
+produce large equations. To appreciate how large these equations may
+be, we include the full set of equations produced for a retrodictive
+execution of Shor's algorithm for factoring 21. Unlike the number 15
+and the rare occurrences of products of Fermat primes which result in
+a period that is a power of 2 and hence trivial to represent by
+equations of binary numbers, the period of 21 is not easily
+representable as a system of equations over binary numbers. The
+equations which span three pages in Sec.~\ref{par:shor21} glaringly
+show the limitations of the basic retrodictive execution and the need
+for additional insights.
 
-\begin{figure}[t]
+\begin{wrapfigure}{r}{8cm}
 \begin{center}
 \begin{tikzpicture}
 \draw (0,0) ellipse (1cm and 2cm);
@@ -546,49 +547,34 @@ equations over binary numbers. See Sec.~\ref{par:shor21}.
 \end{tikzpicture}
 \end{center}
 \caption{\label{fig:preimage}The pre-image of 4 under $f(x) = 7^x \mod 15$.}
-\end{figure}
+\end{wrapfigure}
 \paragraph*{Retrodictive Executions, Function Pre-images, and NP-Complete Problems.}
-We now express the computational problems above uniformly as queries
-over function pre-images. Given finite sets $A$ and $B$, a function $f
-: A \rightarrow B$ and an element $y \in B$, we define $\preim{f}{y}$,
-the pre-image of $y$ under $f$, as the set $\{ x \in A ~|~ f(x) = y
-\}$. For example, let $A = B = \{0,1,\ldots,15\}$ and let $f(x) = 7^x
-\mod 15$, then the collection of values that $f$ maps to 4,
-$\preim{f}{4}$, is the set $\{ 2, 6, 10, 14 \}$.
+We first note that, unless $\mathit{P}=\mathit{NP}$, it is impossible
+for both general purpose quantum computers and symbolic retrodictive
+execution to solve arbitrary instances of problems expressed in the
+template circuit of Fig.~\ref{fig:templateQC}. To see this point, we
+first define function pre-images. Given finite sets $A$ and $B$, a
+function $f : A \rightarrow B$ and an element $y \in B$, we define
+$\preim{f}{y}$, the pre-image of $y$ under $f$, as the set $\{ x \in A
+~|~ f(x) = y \}$. For example, let $A = B = \{0,1,\ldots,15\}$ and let
+$f(x) = 7^x \mod 15$, then the collection of values that $f$ maps to
+4, $\preim{f}{4}$, is the set $\{ 2, 6, 10, 14 \}$ as shown in
+Fig.~\ref{fig:preimage}.
 
-Referring back to Fig.~\ref{fig:templateQC}, we observe that the
-quantum algorithm can be decomposed into: (a) the computation up to
-step (3) which just computes the pre-image of the ancilla measurement
-under $f$, and (b) a module performing Hadamard of QFT to analyze this
-pre-image. For example, the pre-image of 4 under $f(x) = 7^x \mod 15$
-displayed in Fig.~\ref{fig:preimage} would be represented as the
-superposition $\ket{\psi} = 1/2 (\ket{2} + \ket{6} + \ket{10} +
-\ket{14})$ at step (3) of Shor's algorithm. What is crucial is that
-although the quantum state $\ket{\psi}$ is not directly observable,
-this is of no concern. Shor's algorithm does not actually care about
-the full description of the pre-image, only about a global property of
-the pre-image: its period. Indeed, in the quantum algorithms we
-discussed, the full calculation of pre-image is never needed: each
-algorithm computes a particular global property of the corresponding
-pre-image. The Deutsch and Deutsch-Jozsa algorithms only need to
-distinguish whether the pre-image of either 1 or 0 is empty, contains
-half the elements, or the entire set. The Bernstein-Vazirani algorithm
-only needs $n$ queries over the pre-image of either 1 or 0: query $i$
-asks whether $2^i$ is a member of the pre-image and the answer
-determines bit $i$ of the secret $s$. Indeed, by definition, $f(2^i) =
-s_i$ and hence $s_i$ is 1 iff $2^i$ is a member of the pre-image of
-1. In the case of the Simon problem, we calculate $f(x) = w$ for some
-$x$ and query the pre-image of $w$ to get the other value in the
-pre-image.
-
-To summarize, quantum algorithms compute ``simple queries'' over
-pre-images, and in fact, unless $P=NP$, such simple queries are the
-only possibility since the full calculation of a pre-image is an
-NP-complete problem, and it is believed that even full fledged quantum
-computers cannot solve NP-complete problems. To appreciate the
-difficulty of computing pre-images in general, note that finding the
-pre-image of a function is subsumes several challenging computational
-problems such as pre-image attacks on hash
+The template quantum circuit of Fig.~\ref{fig:templateQC} can be seen
+as consisting of two parts: (a) the computation up to step (3) which
+just computes the pre-image of the ancilla measurement under $f$, and
+(b) a module performing Hadamard or QFT to analyze this pre-image. For
+example, the pre-image of 4 under $f(x) = 7^x \mod 15$ displayed in
+Fig.~\ref{fig:preimage} would be represented as the superposition
+$\ket{\psi} = 1/2 (\ket{2} + \ket{6} + \ket{10} + \ket{14})$ at step
+(3) of Shor's algorithm. To complete the algorithm, only the period of
+this state is needed. This is fortunate because a full description of
+the pre-image of a function in an $\mathit{NP}$-complete problem that
+not even quantum computers can solve. To appreciate the difficulty of
+computing pre-images in general, note that finding the pre-image of a
+function subsumes several challenging computational problems such as
+pre-image attacks on hash
 functions~\cite{10.1007/978-3-540-25937-4_24}, predicting
 environmental conditions that allow certain reactions to take place in
 computational biology~\cite{Klotz2013,akutsu2009analyses}, and finding
@@ -601,27 +587,29 @@ of one-way functions which itself implies $\mathit{P} \neq
 \mathit{NP}$, all these pre-images calculations are believed to be
 computationally intractable in their most general setting.
 
+Having established a worst-case scenario, it remains to understand the
+instances, like Shor's algorithm, in which quantum algorithms succeed
+but symbolic retrodictive execution fails glaringly. The first
+observation is that the quantum algorithms never need the full
+calculation of pre-image: each algorithm computes a particular global
+property of the corresponding pre-image. The Deutsch and Deutsch-Jozsa
+algorithms only need to distinguish whether the pre-image is empty,
+contains half the elements, or the entire set. The Bernstein-Vazirani
+algorithm only needs $n$ queries over the pre-image where query $i$
+asks whether $2^i$ is a member of the pre-image. Indeed, by
+definition, $f(2^i) = s_i$ and hence $s_i$ is 1 iff $2^i$ is a member
+of the pre-image of 1. In the case of the Simon problem, we calculate
+$f(x) = u$ for some $x$ and query the pre-image of $u$ to get the
+other value in the pre-image. To summarize, quantum algorithms compute
+``simple queries'' over pre-images, and in fact, unless
+$\mathit{P}=\mathit{NP}$, such simple queries are the only possibility
+for the problem to be efficiently solvable, even by quantum computers.
+
 \newpage
-
-
-
-
-
-
-
-
-
-
-
-
-we have enough to analyze many quantum algorithms; say we have an
-implementation and show result of running on many circuits
 
 do communication protocols too ??
 
-then get to $\ket{-}$ 
-
-
+$\ket{-}$ 
 
 graph state: H,H,CZ
 
@@ -633,11 +621,6 @@ graph state: H,H,CZ
 H control +/- distinction not important so use one class of vars
 H target +/- distinction important; use two classes of vars
 
-
-
-
-  just run forward symbolically
-  retrodictive is not fundamental here
   
   symbolic exec
   H introduces uncertainty; forget +/- distinction for now; use variable
@@ -763,8 +746,6 @@ run experiments with PEX and PEY
      propagate are “red: phase=p; frequency=f; involved variables={x1,x2,…}”
 
    Seems that naive taint analysis is just keep track of which variable is used
-
-
 
 ------------
 
