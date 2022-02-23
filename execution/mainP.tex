@@ -233,19 +233,20 @@ revealed to be $11$.
 \caption{\label{fig:bell}Bell and GHZ States}
 \end{wrapfigure}
 \paragraph*{Representing Wavefunctions Symbolically.}
-A symbolic variable represents an boolean value that can be 0 or 1;
+A symbolic variable represents a boolean value that can be 0 or 1;
 this is similar to a qubit in a superposition $(1/\sqrt{2}) (\ket{0}
-\pm \ket{1})$. Thus, it appear possible in any circuit to represent
-$H(\ket{0})$ by a symbol $x$. Surprisingly, this idea scales to even
-represent maximally entangled states. Fig.~\ref{fig:bell}(left) shows
-a circuit to generate the Bell state $(1/\sqrt{2}) (\ket{00} +
-\ket{11})$. By using the symbol $x$ for $H(\ket{0})$, the input to the
-\cx-gate is $\ket{x0}$ which evolves to $\ket{xx}$. By sharing the
-same symbol in two positions, the symbolic state accurately represents
-the entangled Bell state. Similarly, for the circuit in
-Fig.~\ref{fig:bell}(right), the state after the Hadamard gate is
-$\ket{x00}$ which evolves to $\ket{xx0}$ and then to $\ket{xxx}$ again
-accurately capturing the entanglement correlations.
+\pm \ket{1})$. Thus, it appears that $H\ket{0}$ could be represented
+by a symbol~$x$ to denote the uncertainty. Surprisingly, this idea
+scales to even represent maximally entangled
+states. Fig.~\ref{fig:bell}(left) shows a circuit to generate the Bell
+state $(1/\sqrt{2}) (\ket{00} + \ket{11})$. By using the symbol $x$
+for $H\ket{0}$, the input to the \cx-gate is $\ket{x0}$ which
+evolves to $\ket{xx}$. By sharing the same symbol in two positions,
+the symbolic state accurately represents the entangled Bell
+state. Similarly, for the circuit in Fig.~\ref{fig:bell}(right), the
+state after the Hadamard gate is $\ket{x00}$ which evolves to
+$\ket{xx0}$ and then to $\ket{xxx}$ again accurately capturing the
+entanglement correlations.
 
 This insight allows us to symbolically execute the many quantum
 algorithms that match the template in Fig.~\ref{fig:templateQC}
@@ -259,13 +260,6 @@ depicted in Fig.~\ref{fig:templateQC}(a), we find a possible
 measurement outcome $w$ at barrier (3) and perform a retrodictive
 execution with a state $\ket{xw}$ going backwards to collect the
 constraints on $x$ that enable us to solve the problem in question.
-
-\paragraph*{A First Collection of Quantum Algorithms.}
-To demonstrate that symbolic retrodictive execution is applicable to a
-broad class of situations including different algorithms and different
-circuit sizes, we implemented a collection of software tools that
-perform symbolic retrodictive evaluation for circuits matching the
-template shown in Fig.~\ref{fig:templateQC}. 
 
 \begin{wrapfigure}{r}{4cm}
 \begin{tikzpicture}[scale=0.8]
@@ -288,24 +282,24 @@ the quantum oracle $U_f$ is constant or balanced. Since 0 is always a
 possible measurement of the ancilla register, we start a retrodictive
 execution of the $U_f$ block with state $\ket{x0}$. This execution
 terminates with a state $\ket{xr}$ where $r$ is a formula expressing
-the dependencies of the ancilla on $x$. Running the experiment with
+the dependencies of the ancilla on~$x$. Running the experiment with
 different choices for $f$, the resulting formula always perfectly
 describes $f$. Specifically when $f$ is the constant function that
 returns 0, we have $r=0$; when $f$ is the constant function that
 returns 1, we have $r=0$; when $f$ is the balanced function that
 returns its input, we have $r=x$; and when $f$ is the balanced function that
-returns the negation of its input, we have $r=1+x$.
+returns the negation of its input, we have $r=1\oplus x$.
 
 \paragraph*{Deutsch-Jozsa.} 
 The problem is a generalization of the previous one. We are given a
-function $\finset{n} \rightarrow \finset{2}$ that is promised to be
+function $\finset{2^n} \rightarrow \finset{2}$ that is promised to be
 constant or balanced and we need to decide distinguish the two
 cases. The quantum circuit generalizes the one in
-Fig.~\ref{fig:deutsch} to use $n$-wires for the computational
+Fig.~\ref{fig:deutsch} to use $n$-wires for the computation
 register. Similarly to before, we perform a retrodictive execution of
 the $U_f$ block with the state $\ket{x_{n-1}\cdots x_1x_00}$ and
-observe the resulting formula $r$. Like before when the function is
-constant, the formula $r$ is the corresponding constant and then the
+observe the resulting formula $r$. Like before, when the function is
+constant, the formula $r$ is the corresponding constant and when the
 function is balanced, the formula $r$ completely describes how the
 result is computed from the symbols $x_{n-1},\cdots,x_1,x_0$. For
 example, for $n=6$, the resulting formulae for three balanced
@@ -334,8 +328,9 @@ $\finset{2^4} \rightarrow \finset{2}$ and correctly identifying them
 as such. This is significant as some of these functions produce
 complicated entangled patterns during quantum evolution and could not
 be de-quantized using previous approaches~\cite{djdeq}. The catch is
-that symbolic retrodictive execution operates in time proportional to
-the depth of the quantum oracle and the size of the formula.
+that symbolic retrodictive execution is not consistent with ``query
+complexity'' as it operates in time proportional to the depth of the
+quantum oracle and the size of the formula.
 
 
 \begin{wrapfigure}{r}{10cm}
@@ -468,14 +463,14 @@ $\ket{4}$. In either case, the computational register snaps to a state
 of the form $\sum_{r=0}^3 \ket{a+2r}$ whose QFT has peaks at $\ket{0}$
 or $\ket{4}$ making them the most likely outcomes of measurements of
 the computational register. If we measure $\ket{0}$, we repeat the
-experiment; otherwise we infer that the period is 2.
+experiment; otherwise we infer that the period is~2.
 
 In the retrodictive execution, we can start with the state
-$\ket{x_2x_1x_0}\ket{001}$ since 1 is guaranteed to be a possible
+$\ket{x_2x_1x_0001}$ since 1 is guaranteed to be a possible
 ancilla measurement. The first \cx-gate changes the state to
-$\ket{x_2x_1x_0}\ket{x_001}$ and the second \cx-gate produces
-$\ket{x_2x_1x_0}\ket{x_00x_0}$. At that point, we reconcile the
-retrodictive result of the second register $\ket{x_00x_0}$ with the
+$\ket{x_2x_1x_0x_001}$ and the second \cx-gate produces
+$\ket{x_2x_1x_0x_00x_0}$. At that point, we reconcile the
+retrodictive result of the ancilla register $\ket{x_00x_0}$ with the
 initial condition $\ket{000}$ to conclude that $x_0=0$. In other
 words, in order to observe the ancilla at $001$, the computational
 register must be initialized to a superposition of the form
@@ -514,18 +509,18 @@ a=2,8 & 1 \oplus x_0 \oplus x_0x_1 \oplus x_1 = 1 & x_0x_1 = 0 & x_0x_1 \oplus x
 \paragraph*{Shor 21.} 
 The examples presented so far demonstrate that some instances of
 quantum algorithms can be solved via classical symbolic retrodictive
-execution. But as was already apparent in some examples
-(e.g. Deutsch-Jozsa and Grover), running retrodictive execution may
-produce large equations. To appreciate how large these equations may
-be, we include the full set of equations produced for a retrodictive
-execution of Shor's algorithm for factoring 21. Unlike the number 15
-and the rare occurrences of products of Fermat primes which result in
-a period that is a power of 2 and hence trivial to represent by
-equations of binary numbers, the period of 21 is not easily
-representable as a system of equations over binary numbers. The
-equations which span three pages in Sec.~\ref{par:shor21} glaringly
-show the limitations of the basic retrodictive execution and the need
-for additional insights.
+execution. But as was already apparent in some examples (e.g. Grover),
+running retrodictive execution may produce large residual equations
+that are difficult to solve. To appreciate how large these equations
+may be, we include the full set of equations produced for a
+retrodictive execution of Shor's algorithm for factoring 21. Unlike
+the number 15 which corresponds to a rare occurrence of products of
+Fermat primes producing a period that is a power of 2 and hence
+trivial to represent by equations of binary numbers, the period of 21
+is not easily representable as a system of equations over binary
+numbers. The equations which span about five pages in
+Sec.~\ref{par:shor21} glaringly show the limitations of the basic
+retrodictive execution approach and the need for additional insights.
 
 \begin{wrapfigure}{r}{8cm}
 \begin{center}
@@ -555,10 +550,10 @@ execution to solve arbitrary instances of problems expressed in the
 template circuit of Fig.~\ref{fig:templateQC}. To see this point, we
 first define function pre-images. Given finite sets $A$ and $B$, a
 function $f : A \rightarrow B$ and an element $y \in B$, we define
-$\preim{f}{y}$, the pre-image of $y$ under $f$, as the set $\{ x \in A
-~|~ f(x) = y \}$. For example, let $A = B = \{0,1,\ldots,15\}$ and let
-$f(x) = 7^x \mod 15$, then the collection of values that $f$ maps to
-4, $\preim{f}{4}$, is the set $\{ 2, 6, 10, 14 \}$ as shown in
+$\preim{f}{y}$, the pre-image of~$y$ under~$f$, as the set $\{ x \in A
+~|~ f(x) = y \}$. For example, let $A = B = \finset{2^4}$ and let
+$f(x) = 7^x \mod 15$, then the collection of values that $f$ maps
+to~4, $\preim{f}{4}$, is the set $\{ 2, 6, 10, 14 \}$ as shown in
 Fig.~\ref{fig:preimage}.
 
 The template quantum circuit of Fig.~\ref{fig:templateQC} can be seen
@@ -603,7 +598,10 @@ $f(x) = u$ for some $x$ and query the pre-image of $u$ to get the
 other value in the pre-image. To summarize, quantum algorithms compute
 ``simple queries'' over pre-images, and in fact, unless
 $\mathit{P}=\mathit{NP}$, such simple queries are the only possibility
-for the problem to be efficiently solvable, even by quantum computers.
+for the problem to be efficiently solvable, even by quantum
+computers. Using symbolic retrodictive reasoning, the simple queries
+for all the algorithms above can be answered efficiently except for
+Grover and Shor.
 
 \newpage
 
@@ -958,7 +956,7 @@ the unitary transformation: $U_f(\ket{x}\ket{y}) = \ket{x}\ket{f(x)
 it defines the function of interest whose pre-image properties are to
 be calculated. The inputs of the $U_f$ block are grouped in two
 registers: the top register contains an equal superposition of all
-possible inputs to $f$; the second register is prepared in initial
+possible inputs to $f$; the ancilla register is prepared in initial
 states that depend on the specific algorithm. Thus, the state at slice
 (1) in the figure is:
   \[
