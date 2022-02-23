@@ -11,10 +11,9 @@
 \usepackage{yquant}
 \usepackage{tikz}
 \usetikzlibrary{quantikz,fit,quotes,svg.path}
-%% \usepackage[backend=biber,citestyle=numeric-comp]{biblatex}
-%%\usepackage[backend=biber]{biblatex}
-%%\addbibresource{cites.bib}
-%%\ExecuteBibliographyOptions{sorting=nyt,maxbibnames=100,doi=false,isbn=false,url=false}
+\usepackage[backend=biber,citestyle=numeric-comp]{biblatex}
+\ExecuteBibliographyOptions{sorting=nyt,maxbibnames=100,doi=false,isbn=false,url=false}
+\addbibresource{cites.bib}
 
 \newcommand{\x}{\textsc{x}}
 \newcommand{\cx}{\textsc{cx}}
@@ -36,7 +35,7 @@ McMaster University \qquad Indiana University \qquad Indiana University}
 \maketitle
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% \begin{refsection}
+\begin{refsection}
 \section{Main}
 
 Retrodictive quantum theory~\cite{sym13040586},
@@ -795,15 +794,12 @@ kochen specker ??
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% \bibliography{cites}{}
-%% \bibliographystyle{plain}
-
-%% \printbibliography[heading=subbibliography]
-%% \end{refsection}
+\printbibliography[heading=subbibliography]
+\end{refsection}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% \begin{refsection}
+\begin{refsection}
 \section{Methods}
 
 \paragraph*{Lazy Evaluation.}
@@ -1555,11 +1551,8 @@ $x_0 \oplus x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_1x_2x_3x_4 \
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\bibliography{cites}{}
-\bibliographystyle{plain}
-
-%% \printbibliography[heading=subbibliography]
-%% \end{refsection}
+\printbibliography[heading=subbibliography]
+\end{refsection}
 
 \end{document}
 
