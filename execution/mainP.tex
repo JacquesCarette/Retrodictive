@@ -38,6 +38,8 @@ McMaster University \qquad Indiana University \qquad Indiana University}
 \begin{refsection}
 \section{Main}
 
+%% can double this paragraph in size
+
 Retrodictive quantum theory~\cite{sym13040586},
 retrocausality~\cite{Aharonov2008}, and the time-symmetry of physical
 laws~\cite{RevModPhys.27.179} suggest that partial knowledge about the
@@ -571,226 +573,83 @@ algorithm we only need to extract the periodicity of the elements in
 the pre-image but retrodictive execution as presented so far is only
 able to de-quantize some rare instances of algorithms.
 
-\newpage
+\todo{
+do communication protocols too ?
 
-do communication protocols too ??
-
-$\ket{-}$ 
+extensional vs intensional reasoning about functions
 
 graph state: H,H,CZ
-
 00   00
 01   01
 10   10
 11 -11
 
-H control +/- distinction not important so use one class of vars
-H target +/- distinction important; use two classes of vars
+check if H commutes with x and cx and ccx
+so we only need H at beginning and end
 
-  
-  symbolic exec
-  H introduces uncertainty; forget +/- distinction for now; use variable
-  safe is H wires are used as control wires but not targets
-  run symbolically; can represent entanglement; e.g. bell state xx
-  check if H commutes with x and cx
-  so we only need H at beginning and end
-  introduce vars at beginning and run symbolically
-  if only x and cx then symbolic execution is efficient; no need for last batch of H
-  can solve problem classically
-  connect with Gottsman-Knill
+insight: QFT insensitive to
+0+2+4... vs 1+3+5...
+so insensitive to where lsb is 0/1
+so we only need to know if a variable is constant or varying 
+fourier transform classical efficient in some cases
 
-  What is have ccx
-  sometimes fine; shor 15 example; still fine
-  sometimes we get very complicated representation of wavefunction
-  but if we are following up with QFT; QFT insensitive to offset, don't care variables
-  no need to keep track of values of vars; only need to know if they are constant or not
+Ewin Tang papers
 
-  what is H wires are used as targets; need two flavors of variables; +vars and -vars;
-  -vars infect +vars in control gates; taint analysis with increasing precisions (more
-  and more colors)
-
-  retrodictive? Kochen-Specker; interactive QM; observer free will; choice backtracks
-
-  values going at different speeds; intervals ideas; path types
-
-  
-The quantum circuit model consists of two classes of gates: (i)
-quantum counterparts to classical reversible gates (e.g., Toffoli
-gates), and (ii) genuine quantum gates with no classical counterpart
-(e.g., Hadamard and phase gates). We make the remarkable observation,
-that, for a number of well-established quantum algorithms, judicious
-reasoning about the classical components, ignoring all the quantum
-gates, is sufficient. Put differently, in those cases, the quantum
-gates serve no fundamental purpose and are actually distracting from
-an underlying efficient classical algorithm. The result relies on the
-ability to symbolically execute circuits, especially in a retrodictive
-fashion, i.e., by making partial observations at the output site and
-proceeding backwards to infer the implied initial conditions.
-
-
-\begin{quote}
-You can’t connect the dots looking forward; you can only connect them
-looking backwards.  So you have to trust that the dots will somehow
-connect in your future. \emph{Steve Jobs}
-\end{quote}
-
-%% \begin{wrapfigure}{r}{5cm}
-%% \begin{quantikz}[row sep=0.7cm,column sep=1cm]
-%%    \qw & 
-%%    \gate[wires=2][2.5cm]{U_f}\gateinput{$x$}\gateoutput{$x$} &
-%%    \qw
-%%    \\
-%%    \qw &
-%%    \gateinput{$y$}\gateoutput{$f(x)\oplus y$} &
-%%    \qw
-%% \end{quantikz}
-%% \caption{\label{fig:oracle}Quantum oracle}
-%% \end{wrapfigure}
-
-%% \begin{wrapfigure}{r}{6cm}
-%% \begin{tikzpicture}[scale=1]
-%%     \begin{yquant*}[register/minimum height=1.3cm]
-%%     qubit {$x$} x;
-%%     qubit {$\ket{0}$} y;
-%%     hspace {5mm} -;
-%%     [x radius=1.3cm]
-%%     box {$U_f$} (x,y);
-%%     hspace {5mm} -;
-%%     output {$x$} x;
-%%     measure y; 
-%%   \end{yquant*}
-%%   \draw[line width=3pt, ->, blue] (3.5,-2.1) .. controls (-0.2,-1.6) and (-0.2,-1.1) .. (3.5,-0.6);
-%% \end{tikzpicture}
-%% \caption{\label{fig:flow}Retrodictive execution flow}
-%% \end{wrapfigure}
-
-extract vars; all we need for some algos
-
-The obvious question to ask now is whether the retrodictive execution
-can be tuned to only produce the required statistics instead producing
-the full description of pre-images. 
-
-insight 1: qft does not care about 0+2+4.... vs 1+3+5....
-
-0 0 ?
-0 1 ?
-1 0 ?
-1 1 ?
-
-equiv no matter what ? is
-? is used in the computation (don't care about value)
-others not used
-so we just need to keep track of which vars are used
-
-run experiments with PEX and PEY
-
-
-
-
-
-2. Hadamard basis: Toffoli + Hadamard is universal so we “just” need to understand how to run in X basis. 
-
-   Get rid of all quantum gates and run just the reversible classical part but with different taint analyses
-
-   Essentially we have two colors and we do taint analysis
-
-   Blue and Red; when blue interacts with red it gets tainted
-
-   We have two operations +red (add red) -red (remove red)
-
-   Remember cx(+,-) = (-,-) 
-
-   Some interactions (Toffoli) want to create more refined operations +/-(1/2)(red) +/-(red)
-   The more you do these operations the more precise it wants to be +/-(1/4)(red) +/-(1/2) red +/-(red)
-
-   And so on
-
-   You can truncate at the desired level of accuracy
-
-   The taint analysis groups variables in “waves” (superpositions) of things that have the same color so the values we
-
-     propagate are “red: phase=p; frequency=f; involved variables={x1,x2,…}”
-
-   Seems that naive taint analysis is just keep track of which variable is used
-
-------------
-
-run again; refined pe; var used; if used twice then disappears
-
-go back to that stupid paper about logic programming and xor 
-
-The equations turn out to be trivial when the period is a power of
-2. This occurs when the number to factor is a product of Fermat
-primes: 3, 5, 17, 257, 65537, \ldots. The equations generated for some
-of these cases are in \ldots
-
-
-need stats only
-PEX , PEY ...
-
-core of many quantum algos is quantum oracle uf
-two inputs; two outputs
-system; ancilla;
-normal eval; control ancilla; system unknown; so throw in complete superposition and
-eval forward
-
-only need number of vars !!!!
-
-solve other problems with just knowing which vars are involved
-
-   Normal quantum evolution: from present to future
-
-   Now what if I had partial knowledge about the future; what can you
-   say about the present?  (And then about the rest of the unknown
-   future)
-
-   Can this help flow of information, complexity, etc?  
-
-   In some cases, partial knowledge about the future is enough to
-   predict the present accurately enough
-
-   to then predict everything about the future; in some cases it is not enough
-
-   Possibility that collapse of wave function is information flow back
-   from measured future to present unknown initial conditions and then
-   back to rest of wave that was not measured
-
-
-Provide a general introduction to the topic and a brief non-technical
-summary of your main results and their implication.
-
-200 words ??
-
-main text
-  2000-2500 words
-  3-4 figures
-  30-50 references
-
-Methods section
-  3000 words
-  more references ok
-  
-Author contributions
-
-Code available  
-
-https://quantumalgorithmzoo.org
-
-every quantum circuit can be written using Toffoli and Hadamard
-retro just go through Toffoli; ignore Had; but of course we are using symbolic eval
-
-can H be moved past Toffoli?
+retrodictive? Kochen-Specker; interactive QM; observer free will; choice backtracks
 
 universe uses lazy evaluation?
 
 algebra of Toffoli and Hadamard
 ZX calculus
 
-fourier transform classical efficient in some cases
+values going at different speeds; intervals ideas; path types
 
-Ewin Tang papers
+\url{https://quantumalgorithmzoo.org}
 
-kochen specker ??
+$\ket{-}$; two classes of vars; +vars and -vars;
+-vars infect +vars in control gates;
+We have two operations +red (add red) -red (remove red)
+Remember cx(+,-) = (-,-)
+Some interactions (Toffoli) want to create more refined operations +/-(1/2)(red) +/-(red)
+The more you do these operations the more precise it wants to be
+  +/-(1/4)(red) +/-(1/2) red +/-(red)
+taint analysis with increasing precisions; truncate at desired precision
+(more and more colors)
+The taint analysis groups variables in “waves” (superpositions) of
+things that have the same color so the values we propagate are
+“red: phase=p; frequency=f; involved variables={x1,x2,…}”
+
+Possibility that collapse of wave function is information flow back
+from measured future to present unknown initial conditions and then
+back to rest of wave that was not measured
+
+We need to explain ideas about time-reversal, prediction and retrodiction in 
+physics. The laws of computation and the laws of physics are intimately related. 
+When does knowing something about the future help us unveil the structure or 
+symmetries of the past? It is like a detective story, but one with 
+ramifications in complexity and/or efficiency. Problems involving questions 
+where answers demand a Many(past)-to-one(future) map are at the root of 
+our proposal
+
+Possibility that collapse of wave function is information flow back
+from measured future to present unknown initial conditions and then
+back to rest of wave that was not measured
+
+transactional interpretation?
+
+instead of generating one formula; generating many formulas with
+different weights or with various patterns of negative weights...
+and sum them to get the patterns we need
+
+\begin{itemize}
+\item Symbolic (retrodictive) evaluation as a broader perspective to classical computation
+\item Symbolic execution allows you to express/discover interference via shared variables
+\item When interference pattern is simple symbolic execution reveals
+  solutions faster (and completely classically)
+\item Symbolic execution as a ``classical waves'' computing paradigm
+\end{itemize}
+
+}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -801,6 +660,12 @@ kochen specker ??
 
 \begin{refsection}
 \section{Methods}
+
+\begin{quote}
+You can’t connect the dots looking forward; you can only connect them
+looking backwards.  So you have to trust that the dots will somehow
+connect in your future. \emph{Steve Jobs}
+\end{quote}
 
 \paragraph*{Lazy Evaluation.}
 Consider a program that searches for three different numbers $x$, $y$,
@@ -899,6 +764,7 @@ produce the final answer.
 \paragraph*{Algebraic Normal Form (ANF).}
 \label{para:anf}
 
+\todo{
 circuits have generalized toffoli gates: semantics (and of controls;
 xor with target); ANF uses exactly those two primitives; explain
 
@@ -908,6 +774,12 @@ $+$ denotes exclusive-or.
 
 instances with no 'and' easy to solve
 
+if only x and cx then symbolic execution is efficient; no need for last batch of H
+
+can solve problem classically
+
+connect with Gottsman-Knill
+}
 
 \paragraph*{Function Pre-Images and $\mathit{NP}$-Complete Problems.}
 To appreciate the difficulty of computing pre-images in general, note
@@ -926,187 +798,24 @@ of one-way functions which itself implies $\mathit{P} \neq
 computationally intractable in their most general setting.
 
 \paragraph*{Complexity Analysis.}
-one pass over circuit BUT complexity of normalizing to ANF not trivial; be careful
 
-\paragraph*{Data Availability.} available 
+\todo{ one pass over circuit BUT size of circuit may be exponential
+  and complexity of normalizing to ANF not trivial
+}
+
+\paragraph*{Data Availability.}
+All execution results will be made available and can be replicated by
+executing the associated software.
+
+\paragraph*{Code Availability.}
+The computer programs used to generate the circuits and symbolically
+execute the quantum algorithms retrodictively will be made publicly
+available.
 
 \paragraph*{Discussion.}
-Possibility that collapse of wave function is information flow back
-from measured future to present unknown initial conditions and then
-back to rest of wave that was not measured
 
-transactional interpretation?
+\todo{
 
-Luckily, the problems of concern to us are quite special: (i) the
-functions are not arbitrary but have additional structure that can be
-exploited, and (ii) we never need access to all the elements in the
-pre-image; we just need to answer aggregate queries about the
-pre-images. Quantum algorithms somehow exploit these properties along
-with some physical principles to solve these problems efficiently. To
-understand the precise way in which this is happening, we start with
-the template of the quantum circuit used for solving all the problems
-above in Fig.~\ref{fig:templateQC}.
-
-The core of the circuit is the $U_f$ block which can be assumed to be
-implemented using only generalized Toffoli gates. The block implements
-the unitary transformation: $U_f(\ket{x}\ket{y}) = \ket{x}\ket{f(x)
-  \oplus y}$ where $\oplus$ is the (bitwise) exclusive-or operation;
-it defines the function of interest whose pre-image properties are to
-be calculated. The inputs of the $U_f$ block are grouped in two
-registers: the top register contains an equal superposition of all
-possible inputs to $f$; the ancilla register is prepared in initial
-states that depend on the specific algorithm. Thus, the state at slice
-(1) in the figure is:
-  \[
-  \frac{1}{\sqrt{2^n}\sqrt{2^m}}\sum_{x=0}^{2^n-1} ~\sum_{y=0}^{2^m-1} ~\ket{x}\ket{y}
-  \]
-This is transformed by $U_f$ to:
-  \[
-  \frac{1}{\sqrt{2^n}\sqrt{2^m}}
-  \sum_{x=0}^{2^n-1} ~\sum_{y=0}^{2^m-1} ~\ket{x}\ket{f(x)\oplus y}
-  \]
-So far, nothing too interesting is happening: we have just produced a
-superposition of states where each state is a possible input to $f$,
-say $x$, tensored with $f(x) \oplus y$, the result of applying $f$ to
-this particular input adjusted by the second register $y$. At slice
-(3), something remarkable occurs; the result $w$ of measuring the
-second register ``kicks back'' information to the first register whose
-state becomes a superposition of those values $x$ that are consistent
-with the measurement, i.e., \emph{the pre-image of $w$ under $f$!}
-That pre-image representation is then analyzed using the Quantum
-Fourier Transform (QFT) to produce the final result.
-
-Quantum algorithms typically operate on a \emph{black box} holding a
-classical function whose properties need to be computed. The general
-structure of these algorithms is to (i) create a superposition of
-values to be passed as inputs to the black box, (ii) apply the
-operation inside the black box, and (iii) post-process the output of
-the black box. We observe that, in quite a few cases, steps (i) and
-(iii) are actually unnecessary and that the entire ``quantum''
-algorithm can be executed by forward or backward, full or partial,
-efficient classical \emph{symbolic execution} of the black box.
-
-
-typical use: superposition, Uf, measure second register; we only care
-about which x has f(x) = r
-
-By default all functions are reversible. 
-
-To make them irreversible you fix h and delete g. If you delete too
-much the function becomes very expensive to reverse. So one way
-functions emerge
-
-
-simplify function has polynomial realization and we want
-statistics about the kernel (not necessarily compute it exactly)
-
-
-
-collect assumptions:
-
-
-important that no matter what measurement we do on w, properly we want is the same
-
-
-since we say that algos related to pre-images lets do naive thing and eval backwards
-
-assumptions we have a rev circuit efficient forward
-two inputs: first is full superposition; second whatever
-first output same as first input; but that is only at point 2; at point 3 explain kick back; misleading to think it is the same after 3
-second output is result of function; measure; have element of range; go back with that elem
-if we knew first output as well as w then eval backwards same complexity but we only know w and we don't know first output; because we are starting at 3 not 2
-
-we have no use for H block; it was only there for the forward exec to express our complete ignorance o the future; prepared with every x but if we have knowledge about future (w measured) we go back to find the values of x in the present that would be consistent with w so general circuit reduces to :
-
-...
-
-fix pics to have amplitudes with y (most general)
-
-To what extent are the quantum algorithms above taking advantage of
-non-classical features. We posit that pre-image computation can be, at
-least for some of the some of the algorithms, be performed
-classically. The main insight needed for that is to perform the
-execution \emph{symbolically}. We illustrate the idea with two
-examples.
-
-We need to explain ideas about time-reversal, prediction and retrodiction in 
-physics. The laws of computation and the laws of physics are intimately related. 
-When does knowing something about the future help us unveil the structure or 
-symmetries of the past? It is like a detective story, but one with 
-ramifications in complexity and/or efficiency. Problems involving questions 
-where answers demand a Many(past)-to-one(future) map are at the root of 
-our proposal.... {\color{red} Difference between exploiting or not entanglement
-in the unitary evolution.}
-
-As we demonstrate, the family of quantum algorithms initiated by
-Deutsch's algorithm and culminating with Shor's algorithm (i) solves
-variants of the pre-image problem efficiently, and, in that context,
-(ii) answering queries about pre-images is closely related to
-\emph{retrodictive quantum theory}~\cite{sym13040586},
-retrocausality~\cite{Aharonov2008}, and the time-symmetry of physical
-laws~\cite{RevModPhys.27.179}.
-
-
-\begin{itemize}
-\item Retrodictive execution more efficient in some cases. What cases?
-\item Here are three examples: Deutsch-Jozsa, Simon, Shor when period
-  is close to a power of 2
-\item Symbolic (retrodictive) evaluation as a broader perspective to classical computation
-\item Symbolic execution allows you to express/discover interference via shared variables
-\item When interference pattern is simple symbolic execution reveals
-  solutions faster (and completely classically)
-\item Symbolic execution as a “classical waves” computing paradigm
-\end{itemize}
-
-
-to represent unequal superpositions do multiple runs with vars the
-first has x1 x2 etc the second has y1 2y2 etc or y2/2 etc, or with
-various patterns of negative weights.... And then the punchline would
-be to interpret the negative backwards. So instead of all forward or
-all retro we have some values going forward and then backwards
-
-Start with the story about function many to one etc why superpositions
-because we don’t know which values so we try all easy to represent by
-unknown vars so we can represent superpositions as vars and equations
-between them but at the end we want stats about superpositions slow
-way is to generate all equations and solve faster way is generate many
-sets of equations with different weights and sum to get your stats
-
-
-
-We should use two prototypical examples to illustrate main ideas
-before going to the complex ones. The examples I have in mind are:
-Deutsch-Jozsa and Simon (precursor of Shor's). There are prior works
-on de-quantization of the first problem and should make contact with
-their resolution. Perhaps we can show that they are as efficient
-classically? That would justify retrodiction alone. The more complex
-(and important) case of factorization should be the natural follow up.
-
-The idea of symbolic execution is not tied to forward or backward
-execution. We should introduce it in a way that is independent of the
-direction of execution. What the idea depends on however is that the
-wave function, at least in the cases we are considering, can be
-represented as equations over booleans.
-
-Wave Functions as Equations over Booleans
-
-in the typical scenario for using quantum oracles, we can represent
-wave function as equations over booleans; equations represent the wave
-function but the solution is unobservable just like the components of
-the superposition in the wave function are not observable; just like
-we don't directly get access to the components of the wave function;
-we don't directly get access to the solution of the equations; need to
-"observe" the equations
-
-we can go backwards with an equation (representing a wave function
-sigma x where f(x) = r and go back towards the present to calculate
-the wave function (represented as equations again)
-
-Musing: how to explain complementarity when wave function is
-represented as an equation? Kochen specker;
- 
-or contextuality
- 
 observer 1 measures wires a,b; obs2 measures wires b,c; not commuting;
 each obs gives partial solution to equations; but partial solutions
 cannot lead to a global solution
@@ -1117,6 +826,23 @@ materialize when you measure;
 can associate a probability with each variable in a equation: look at
 all solutions and see the contribution of each variable to these
 solutions.
+
+}
+
+\paragraph*{Author Contributions.}
+The idea of symbolic evaluation is due to A.S. The connection to
+retrodictive quantum mechanics is due to G.O. The connection to
+partial evaluation are due to J.C. Both A.S. and J.C. contributed to
+the software code to run the experiments. Both A.S. and
+G.O. contributed to the analysis of the quantum algorithms and their
+de-quantization. All authors contributed to the writing of the
+document.
+
+\paragraph*{Competing Interests.}
+No competing interests.
+
+\paragraph*{Materials \& Correspondence.}
+The corresponding author is Gerardo Ortiz. 
 
 \paragraph*{Supplementary Information.} 
 \label{par:shor21}
@@ -1542,12 +1268,6 @@ $x_0 \oplus x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_1x_2x_3x_4 \
  x_5x_6x_8 \oplus x_5x_6x_8x_9 \oplus x_5x_7 \oplus x_5x_7x_8x_9 \oplus x_5x_7x_9 \oplus x_5x_8 \oplus x_5x_9 \oplus x_6 \oplus
  x_6x_7 \oplus x_6x_7x_8 \oplus x_6x_7x_8x_9 \oplus x_6x_8x_9 \oplus x_6x_9 \oplus x_7x_8 \oplus x_7x_9 \oplus x_8 \oplus x_8x_9 =
  0$
-
-\paragraph*{Author Contributions.}
-
-\paragraph*{Competing Interests.}
-
-\paragraph*{Materials \& Correspondence.}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
