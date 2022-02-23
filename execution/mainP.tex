@@ -11,9 +11,10 @@
 \usepackage{yquant}
 \usepackage{tikz}
 \usetikzlibrary{quantikz,fit,quotes,svg.path}
-\usepackage[backend=biber,citestyle=numeric-comp]{biblatex}
-\addbibresource{cites.bib}
-\ExecuteBibliographyOptions{sorting=nyt,maxbibnames=100,doi=false,isbn=false,url=false}
+%% \usepackage[backend=biber,citestyle=numeric-comp]{biblatex}
+%%\usepackage[backend=biber]{biblatex}
+%%\addbibresource{cites.bib}
+%%\ExecuteBibliographyOptions{sorting=nyt,maxbibnames=100,doi=false,isbn=false,url=false}
 
 \newcommand{\x}{\textsc{x}}
 \newcommand{\cx}{\textsc{cx}}
@@ -35,7 +36,8 @@ McMaster University \qquad Indiana University \qquad Indiana University}
 \maketitle
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{refsection}
+%% \begin{refsection}
+\section{Main}
 
 Retrodictive quantum theory~\cite{sym13040586},
 retrocausality~\cite{Aharonov2008}, and the time-symmetry of physical
@@ -522,9 +524,9 @@ numbers. The equations which span about five pages in
 Sec.~\ref{par:shor21} glaringly show the limitations of the basic
 retrodictive execution approach and the need for additional insights.
 
-\begin{wrapfigure}{r}{8cm}
+\begin{wrapfigure}{r}{5cm}
 \begin{center}
-\begin{tikzpicture}
+\begin{tikzpicture}[scale=0.7]
 \draw (0,0) ellipse (1cm and 2cm);
 \draw (5,0) circle (1cm and 2cm);
 \fill[blue!20!white] (0,0.6) ellipse (0.5cm and 1.2cm);
@@ -543,65 +545,32 @@ retrodictive execution approach and the need for additional insights.
 \end{center}
 \caption{\label{fig:preimage}The pre-image of 4 under $f(x) = 7^x \mod 15$.}
 \end{wrapfigure}
-\paragraph*{Retrodictive Executions, Function Pre-images, and NP-Complete Problems.}
-We first note that, unless $\mathit{P}=\mathit{NP}$, it is impossible
-for both general purpose quantum computers and symbolic retrodictive
-execution to solve arbitrary instances of problems expressed in the
-template circuit of Fig.~\ref{fig:templateQC}. To see this point, we
-first define function pre-images. Given finite sets $A$ and $B$, a
-function $f : A \rightarrow B$ and an element $y \in B$, we define
-$\preim{f}{y}$, the pre-image of~$y$ under~$f$, as the set $\{ x \in A
-~|~ f(x) = y \}$. For example, let $A = B = \finset{2^4}$ and let
-$f(x) = 7^x \mod 15$, then the collection of values that $f$ maps
-to~4, $\preim{f}{4}$, is the set $\{ 2, 6, 10, 14 \}$ as shown in
-Fig.~\ref{fig:preimage}.
-
-The template quantum circuit of Fig.~\ref{fig:templateQC} can be seen
-as consisting of two parts: (a) the computation up to step (3) which
-just computes the pre-image of the ancilla measurement under $f$, and
-(b) a module performing Hadamard or QFT to analyze this pre-image. For
-example, the pre-image of 4 under $f(x) = 7^x \mod 15$ displayed in
-Fig.~\ref{fig:preimage} would be represented as the superposition
-$\ket{\psi} = 1/2 (\ket{2} + \ket{6} + \ket{10} + \ket{14})$ at step
-(3) of Shor's algorithm. To complete the algorithm, only the period of
-this state is needed. This is fortunate because a full description of
-the pre-image of a function in an $\mathit{NP}$-complete problem that
-not even quantum computers can solve. To appreciate the difficulty of
-computing pre-images in general, note that finding the pre-image of a
-function subsumes several challenging computational problems such as
-pre-image attacks on hash
-functions~\cite{10.1007/978-3-540-25937-4_24}, predicting
-environmental conditions that allow certain reactions to take place in
-computational biology~\cite{Klotz2013,akutsu2009analyses}, and finding
-the pre-image of feature vectors in the space induced by a kernel in
-neural networks~\cite{1353287}. More to the point, the boolean
-satisfiability problem SAT is expressible as a boolean function over
-the input variables and solving a SAT problem is asking for the
-pre-image of \textsf{true}. Indeed, based on the conjectured existence
-of one-way functions which itself implies $\mathit{P} \neq
-\mathit{NP}$, all these pre-images calculations are believed to be
-computationally intractable in their most general setting.
-
-Having established a worst-case scenario, it remains to understand the
-instances, like Shor's algorithm, in which quantum algorithms succeed
-but symbolic retrodictive execution fails glaringly. The first
-observation is that the quantum algorithms never need the full
-calculation of pre-image: each algorithm computes a particular global
-property of the corresponding pre-image. The Deutsch and Deutsch-Jozsa
-algorithms only need to distinguish whether the pre-image is empty,
-contains half the elements, or the entire set. The Bernstein-Vazirani
-algorithm only needs $n$ queries over the pre-image where query $i$
-asks whether $2^i$ is a member of the pre-image. Indeed, by
-definition, $f(2^i) = s_i$ and hence $s_i$ is 1 iff $2^i$ is a member
-of the pre-image of 1. In the case of the Simon problem, we calculate
-$f(x) = u$ for some $x$ and query the pre-image of $u$ to get the
-other value in the pre-image. To summarize, quantum algorithms compute
-``simple queries'' over pre-images, and in fact, unless
-$\mathit{P}=\mathit{NP}$, such simple queries are the only possibility
-for the problem to be efficiently solvable, even by quantum
-computers. Using symbolic retrodictive reasoning, the simple queries
-for all the algorithms above can be answered efficiently except for
-Grover and Shor.
+\paragraph*{Retrodictive Executions and Function Pre-images.}
+Given finite sets $A$ and $B$, a function $f : A \rightarrow B$ and an
+element $y \in B$, we define $\preim{f}{y}$, the pre-image of~$y$
+under~$f$, as the set $\{ x \in A ~|~ f(x) = y \}$. For example, let
+$A = B = \finset{2^4}$ and let $f(x) = 7^x \mod 15$, then the
+collection of values that $f$ maps to~4, $\preim{f}{4}$, is the set
+$\{ 2, 6, 10, 14 \}$ as shown in Fig.~\ref{fig:preimage}. Symbolic
+retrodictive execution can be seen as a method to generate boolean
+formulae that describe the pre-image of the function $f$ under
+study. For the example in Fig.~\ref{fig:preimage}, retrodictive
+execution might generate the formulae $x_1=1$ and $x_0=0$. The
+(trivial in this case) solution for the formulae is indeed the set $\{
+2, 6, 10, 14 \}$. The critical points to note, however, are that: (i)
+solving the equations describing the pre-image is in general an
+intractable (even for quantum computers) $\mathit{NP}$-complete
+problem, and (ii) solving the equations is not needed for the quantum
+algorithms in the previous section. \emph{Only some global properties
+  of the pre-image are needed!} Indeed, we have already seen that for
+solving the Deutsch-Jozsa problem, the only thing needed was whether
+the formula contains some variables. Also for the Bernstein-Vazirani
+problem, the only thing needed was the indices of the variables
+occurring in the formula. For Grover's algorithm, we only need to
+extract the singleton element in the pre-image and for Shor's
+algorithm we only need to extract the periodicity of the elements in
+the pre-image but retrodictive execution as presented so far is only
+able to de-quantize some rare instances of algorithms.
 
 \newpage
 
@@ -766,13 +735,9 @@ system; ancilla;
 normal eval; control ancilla; system unknown; so throw in complete superposition and
 eval forward
 
-\paragraph*{Retrodictive QFT.}
-
 only need number of vars !!!!
 
 solve other problems with just knowing which vars are involved
-
-\paragraph*{Discussion.}
 
    Normal quantum evolution: from present to future
 
@@ -828,12 +793,17 @@ Ewin Tang papers
 
 kochen specker ??
 
-\printbibliography[heading=subbibliography]
-\end{refsection}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% \bibliography{cites}{}
+%% \bibliographystyle{plain}
+
+%% \printbibliography[heading=subbibliography]
+%% \end{refsection}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\begin{refsection}
+
+%% \begin{refsection}
 \section{Methods}
 
 \paragraph*{Lazy Evaluation.}
@@ -929,6 +899,38 @@ time the computation reaches the measurement stages, the relative
 phases and probability amplitudes in that enormous superposition have
 become biased towards states of interest which are projected to
 produce the final answer.
+
+\paragraph*{Algebraic Normal Form (ANF).}
+\label{para:anf}
+
+circuits have generalized toffoli gates: semantics (and of controls;
+xor with target); ANF uses exactly those two primitives; explain
+
+The resulting
+expressions are in algebraic normal form~\cite{TOKAREVA20151} where
+$+$ denotes exclusive-or. 
+
+instances with no 'and' easy to solve
+
+
+\paragraph*{Function Pre-Images and $\mathit{NP}$-Complete Problems.}
+To appreciate the difficulty of computing pre-images in general, note
+that finding the pre-image of a function subsumes several challenging
+computational problems such as pre-image attacks on hash
+functions~\cite{10.1007/978-3-540-25937-4_24}, predicting
+environmental conditions that allow certain reactions to take place in
+computational biology~\cite{Klotz2013,akutsu2009analyses}, and finding
+the pre-image of feature vectors in the space induced by a kernel in
+neural networks~\cite{1353287}. More to the point, the boolean
+satisfiability problem SAT is expressible as a boolean function over
+the input variables and solving a SAT problem is asking for the
+pre-image of \textsf{true}. Indeed, based on the conjectured existence
+of one-way functions which itself implies $\mathit{P} \neq
+\mathit{NP}$, all these pre-images calculations are believed to be
+computationally intractable in their most general setting.
+
+\paragraph*{Complexity Analysis.}
+one pass over circuit BUT complexity of normalizing to ANF not trivial; be careful
 
 \paragraph*{Data Availability.} available 
 
@@ -1075,11 +1077,6 @@ way is to generate all equations and solve faster way is generate many
 sets of equations with different weights and sum to get your stats
 
 
-\paragraph*{Partial Symbolic Evaluation with Algebraic Normal Form (ANF).}
-
-The resulting
-expressions are in algebraic normal form~\cite{TOKAREVA20151} where
-$+$ denotes exclusive-or. 
 
 We should use two prototypical examples to illustrate main ideas
 before going to the complex ones. The examples I have in mind are:
@@ -1124,9 +1121,6 @@ materialize when you measure;
 can associate a probability with each variable in a equation: look at
 all solutions and see the contribution of each variable to these
 solutions.
-
-\paragraph*{Complexity Analysis.}
-one pass over circuit BUT complexity of normalizing to ANF not trivial; be careful
 
 \paragraph*{Supplementary Information.} 
 \label{par:shor21}
@@ -1559,12 +1553,16 @@ $x_0 \oplus x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_1x_2x_3x_4 \
 
 \paragraph*{Materials \& Correspondence.}
 
-\printbibliography[heading=subbibliography]
-\end{refsection}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\bibliography{cites}{}
+\bibliographystyle{plain}
+
+%% \printbibliography[heading=subbibliography]
+%% \end{refsection}
 
 \end{document}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
