@@ -23,7 +23,7 @@
 \newcommand{\preim}[2]{\{\cdot\stackrel{#1}{\longleftarrow}{#2}\}}
 \newcommand{\finset}[1]{[\mathbf{#1}]}
 \newcommand{\red}[1]{{\color{red}{#1}}}
-\newcommand{\todo}[1]{\fbox{\begin{minipage}{25em}{\red{#1}}\end{minipage}}}
+\newcommand{\todo}[1]{\fbox{\begin{minipage}{40em}{\red{#1}}\end{minipage}}}
 
 \linenumbers
 
@@ -109,14 +109,14 @@ Simon's problem, we are given a 2-1 (classical) function $f :
 exists an $a$ such $f(x) = f(x \oplus a)$ for all~$x$; the goal is to
 determine~$a$. The circuit in Fig.~\ref{fig:Simon} implements the
 quantum algorithm when $n=2$ and $a = 3$. In the circuit, the gates
-between barrier (1) and barrier (2) implement a quantum oracle
-$U_f(x,0) = (x,f(x))$ that encapsulates the function $f$ of
-interest. A direct classical simulation of the quantum circuit would
-need to execute the $U_f$ block four times, once for each possible value
-$\ket{00}$, $\ket{01}$, $\ket{10}$, and~$\ket{11}$ for the top two
-wires. Instead, let us introduce two symbols $x_0$ representing the
-top wire and~$x_1$ representing the wire below it, and let's proceed
-with the execution symbolically. The state at barrier (1) is initially
+between barriers (1) and (2) implement a quantum oracle $U_f(x,0) =
+(x,f(x))$ that encapsulates the function $f$ of interest. A direct
+classical simulation of the quantum circuit would need to execute the
+$U_f$ block four times, once for each possible value $\ket{00}$,
+$\ket{01}$, $\ket{10}$, and~$\ket{11}$ for the top two wires. Instead,
+let us introduce two symbols $x_0$ representing the top wire and~$x_1$
+representing the wire below it, and let's proceed with the execution
+symbolically. The state at barrier (1) is initially
 $\ket{x_0x_100}$. At the first \cx-gate, we symbolically calculate the
 result of the target wire as $x_0 \oplus 0 = x_0$ evolving the state
 to $\ket{x_0x_1x_00}$. Going through the next three \cx-gates, the
@@ -131,7 +131,7 @@ $\ket{x_0x_1}$ subject to the constraint that $x_0\oplus x_1 = 0$ or
 equivalently that $x_0 = x_1$.  We have thus inferred that both
 $x_0=x_1=0$ and $x_0=x_1=1$ produce the same measurement result at
 barrier (3) and hence that $f(00) = f(11) = f(00 \oplus 11)$ which
-reveals that $a$ is $11$ in binary notation.
+reveals that $a$ is~$11$ in binary notation.
 
 Since the quantum circuit between barriers (1) and (2) is reversible,
 we can perform the analysis above in a mixed predictive and symbolic
@@ -151,7 +151,7 @@ $\ket{x_0x_1(1\oplus x_0 \oplus x_1)(1\oplus x_0 \oplus x_1)}$. Having
 reached the initial conditions on the bottom two wires, we reconcile
 them with the collected constraints to conclude that $1 \oplus x_0
 \oplus x_1 = 0$ or equivalently that $x_0 \neq x_1$. The measurement
-of 11 at barrier (3) is consistent with not just the state $\ket{01}$
+of 11 at barrier~(3) is consistent with not just the state $\ket{01}$
 we started with but also with the state $\ket{10}$. In other words, we
 have $f(01) = f(10) = f(01 \oplus 11)$ and the hidden value of $a$ is
 revealed to be $11$.
@@ -336,8 +336,9 @@ complexity'' as it operates in time proportional to the depth of the
 quantum oracle and the size of the formula.
 
 
-\begin{wrapfigure}{r}{10cm}
-\begin{center}
+\begin{wrapfigure}{r}{7cm}
+  \begin{center}
+\begin{tikzpicture}\node[scale=0.7]{
 \begin{quantikz}[row sep=0.02cm]\label{eq:bernstein-vazirani}
    \lstick{$\ket{0}$} & \gate{H} & \qw      & \qw      & \qw       & \qw       & \qw & \gate{H} 
    & \meter{} & \cw \\
@@ -358,6 +359,7 @@ quantum oracle and the size of the formula.
    \lstick{$\ket{1}$}  & \gate{H}  & \targ{}  & \targ{}  & \targ{}   & \targ{}   & \meter{} 
    & \cw
 \end{quantikz}
+};\end{tikzpicture}
 \end{center}
 \caption{\label{fig:bv}Circuit for Bernstein-Vazirani
   Algorithm ($n=8$, $s=92$, least significant bit is the top wire)}
@@ -431,8 +433,10 @@ immediately reveal $u$; in others, retrodictive executive provides no
 advantage since solving arbitrary equations over boolean variables is,
 in general, an $\mathit{NP}$-complete problem.
 
-\begin{wrapfigure}{r}{7cm}
+\begin{wrapfigure}{r}{5.5cm}
 \begin{center}
+\begin{tikzpicture}
+\node[scale=0.7]{    
 \begin{quantikz}[row sep=0.005cm,column sep=0.22cm]
 \lstick{$x_2 = \ket{0}$} & \gate{H}& \qw & \qw 
       & \qw & \gate[wires=3][0.5cm]{QFT} & \meter{} & \cw \\
@@ -447,6 +451,7 @@ in general, an $\mathit{NP}$-complete problem.
 \lstick{$\ket{0}$} & \qw & \targ{} & \qw 
       & \meter{} & \cw
 \end{quantikz}
+};\end{tikzpicture}
 \end{center}
 \caption{\label{fig:shor15}Finding the period of $4^x \mod{15}$}
 \end{wrapfigure}
@@ -595,7 +600,7 @@ fourier transform classical efficient in some cases
 
 Ewin Tang papers
 
-retrodictive? Kochen-Specker; interactive QM; observer free will; choice backtracks
+Kochen-Specker; interactive QM; observer free will; choice backtracks
 
 universe uses lazy evaluation?
 
@@ -764,6 +769,8 @@ produce the final answer.
 \paragraph*{Algebraic Normal Form (ANF).}
 \label{para:anf}
 
+~
+
 \todo{
 circuits have generalized toffoli gates: semantics (and of controls;
 xor with target); ANF uses exactly those two primitives; explain
@@ -799,20 +806,15 @@ computationally intractable in their most general setting.
 
 \paragraph*{Complexity Analysis.}
 
+~
+
 \todo{ one pass over circuit BUT size of circuit may be exponential
   and complexity of normalizing to ANF not trivial
 }
 
-\paragraph*{Data Availability.}
-All execution results will be made available and can be replicated by
-executing the associated software.
-
-\paragraph*{Code Availability.}
-The computer programs used to generate the circuits and symbolically
-execute the quantum algorithms retrodictively will be made publicly
-available.
-
 \paragraph*{Discussion.}
+
+~
 
 \todo{
 
@@ -829,10 +831,19 @@ solutions.
 
 }
 
+\paragraph*{Data Availability.}
+All execution results will be made available and can be replicated by
+executing the associated software.
+
+\paragraph*{Code Availability.}
+The computer programs used to generate the circuits and symbolically
+execute the quantum algorithms retrodictively will be made publicly
+available.
+
 \paragraph*{Author Contributions.}
 The idea of symbolic evaluation is due to A.S. The connection to
 retrodictive quantum mechanics is due to G.O. The connection to
-partial evaluation are due to J.C. Both A.S. and J.C. contributed to
+partial evaluation is due to J.C. Both A.S. and J.C. contributed to
 the software code to run the experiments. Both A.S. and
 G.O. contributed to the analysis of the quantum algorithms and their
 de-quantization. All authors contributed to the writing of the
