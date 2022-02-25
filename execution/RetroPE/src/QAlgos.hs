@@ -3,7 +3,7 @@
 module QAlgos where
 
 import Data.STRef (readSTRef,writeSTRef)
-import Data.List (intercalate,group,sort)
+import Data.List (intercalate,group,sort,sortBy)
 import Data.Sequence (fromList)
 
 import Control.Monad.ST (runST)
@@ -63,6 +63,41 @@ retroShor fr m = do
         then putStrLn (printf "Lucky guess %d = %d * %d\n" m gma (m `div` gma))
         else do putStrLn (printf "n=%d; a=%d\n" n a)
                 peExpMod fr n a m 1
+
+-- One of the wires = x; others 0
+
+peExpModp :: (Show f, Value f) =>
+            FormulaRepr f -> Int -> Integer -> Integer -> Integer -> Int -> IO ()
+peExpModp fr n a m r i = printResult $ runST $ do
+  circ <- expm n a m
+  mapM_ (uncurry writeSTRef) (zip (ancillaOuts circ) (fromInt (n+1) r))
+  mapM_ (uncurry writeSTRef) (zip (xs circ) (fromVars fr (n+1) "x"))
+  writeSTRef ((xs circ) !! i) zero
+  run circ
+  result <- mapM readSTRef (ancillaIns circ)
+  let eqs = zip result (ancillaVals circ)
+  return (eqs, showSizes (sizeOP (op circ)))
+  where printResult (eqs,size) = do
+          putStrLn size
+          mapM_ (\(r,v) ->
+            let sr = show r
+                sv = show v
+            in if sr == sv then return () else 
+              printf "%s = %s\n" sr sv)
+            eqs
+
+
+retroShorp :: (Show f, Value f) => FormulaRepr f -> Integer -> Int -> IO ()
+retroShorp fr m i = do
+      a <- randomRIO (2,m-1)
+      let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
+      let gma = gcd m a 
+      if gma /= 1 
+        then putStrLn (printf "Lucky guess %d = %d * %d\n" m gma (m `div` gma))
+        else do putStrLn (printf "n=%d; a=%d\n" n a)
+                peExpModp fr n a m 1 i
+
+
 
 -- Deutsch
 
@@ -146,9 +181,9 @@ retroBernsteinVazirani fr = print $ runST $ do
 retroSimon fr = print $ runST $ do
   xs <- newVars (fromVars fr 2 "x")
   as <- newVars (fromInt 2 0)
-  let op = fromList [ cx (xs !! 0) (as !! 0)
-                    , cx (xs !! 0) (as !! 1)
-                    , cx (xs !! 1) (as !! 0)
+  let op = fromList [ cx (head xs) (head as)
+                    , cx (head xs) (as !! 1)
+                    , cx (xs !! 1) (head as)
                     , cx (xs !! 1) (as !! 1)
                     ]
   run Circuit { op = op

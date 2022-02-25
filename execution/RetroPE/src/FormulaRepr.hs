@@ -2,7 +2,6 @@ module FormulaRepr where
 
 -- representing formulas
  
-import Value (Value)
 
 ----------------------------------------------------------------------------------------
 

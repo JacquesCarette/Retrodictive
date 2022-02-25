@@ -2,11 +2,14 @@ module PEZ where
 
 -- partial evaluation of a circuit in the Z basis (the computational basis)
 
-import Data.List (intercalate,group,sort)
+import Data.List (intercalate,group,sort,sortBy)
 
 import Value (Value(..))
 import FormulaRepr (FormulaRepr(FR))
 import qualified QAlgos as Q
+
+
+import Text.Printf
 
 ----------------------------------------------------------------------------------------
 -- Values can static or symbolic formulae
@@ -44,7 +47,7 @@ instance Show Formula where
   show f = showC (ands f)
     where
       showC [] = "0"
-      showC cs = intercalate " + " (map show cs)
+      showC cs = intercalate " \\oplus " (map show cs)
 
 mapF :: ([Ands] -> [Ands]) -> Formula -> Formula
 mapF f (Formula ands) = Formula (f ands)
@@ -60,12 +63,13 @@ mapF2 f (Formula ands1) (Formula ands2) = Formula (f ands1 ands2)
 -- a && a => a
 
 normalizeLits :: [Literal] -> [Literal]
-normalizeLits = map head . group . sort 
+normalizeLits = map head . group . sort
 
 -- a XOR a = 0
 
 normalizeAnds :: [Ands] -> [Ands]
-normalizeAnds = map head . filter (odd . length) . group . sort
+normalizeAnds = map head . filter (odd . length) . group . sort -- (sortBy f)
+  where f (Ands xs) (Ands ys) = compare (length xs) (length ys)
 
 -- Convert to ANF
 
@@ -91,7 +95,7 @@ fromVar :: String -> Formula
 fromVar s = Formula [ Ands [s] ]
 
 fromVars :: Int -> String -> [Formula]
-fromVars n s = map fromVar (map (\ n -> s ++ show n) [0..(n-1)])
+fromVars n s = map (fromVar . (\ n -> s ++ "_" ++ show n)) [0..(n-1)]
 
 --
 
@@ -133,6 +137,9 @@ formRepr = FR fromVar fromVars
 
 retroShor :: Integer -> IO ()
 retroShor = Q.retroShor formRepr 
+
+retroShorp :: Integer -> Int -> IO ()
+retroShorp = Q.retroShorp formRepr 
 
 {--
 
@@ -12994,6 +13001,7 @@ x0x2 + x0x3 + x1 + x1x2 + x1x3
 x0x1x2 + x0x3 + x1 + x1x2 + x1x3
 x0x1x3 + x0x2 + x1 + x1x2 + x1x3
 x0 + x0x1 + x0x1x2 + x0x1x3 + x1 + x1x2 + x1x2x3 + x1x3
+
 x0 + x0x1 + x0x1x3 + x1 + x1x2 + x1x2x3 + x1x3
 x0 + x0x1 + x0x1x2 + x1 + x1x2 + x1x2x3 + x1x3
 x0 + x1 + x1x2 + x1x2x3 + x1x3
@@ -13234,6 +13242,125 @@ x0x1x2x3 + x1x2x3
 
 -- w=15
 x0x1x2x3
+
+------------------------------------------------------------
+mapM_ (retroGrover 5) [0..31]
+
+
+w=0
+1 + x0 + x0x1 + x0x1x2 + x0x1x2x3 + x0x1x2x3x4 + x0x1x2x4 + x0x1x3 +
+  x0x1x3x4 + x0x1x4 + x0x2 + x0x2x3 + x0x2x3x4 + x0x2x4 + x0x3 + x0x3x4
+  + x0x4 + x1 + x1x2 + x1x2x3 + x1x2x3x4 + x1x2x4 + x1x3 + x1x3x4 + x1x4
+  + x2 + x2x3 + x2x3x4 + x2x4 + x3 + x3x4 + x4
+
+w=1
+x0 + x0x1 + x0x1x2 + x0x1x2x3 + x0x1x2x3x4 + x0x1x2x4 + x0x1x3 +
+  x0x1x3x4 + x0x1x4 + x0x2 + x0x2x3 + x0x2x3x4 + x0x2x4 + x0x3 + x0x3x4
+  + x0x4
+
+w=2
+x0x1 + x0x1x2 + x0x1x2x3 + x0x1x2x3x4 + x0x1x2x4 + x0x1x3 + x0x1x3x4 +
+  x0x1x4 + x1 + x1x2 + x1x2x3 + x1x2x3x4 + x1x2x4 + x1x3 + x1x3x4 + x1x4
+
+w=3
+x0x1 + x0x1x2 + x0x1x2x3 + x0x1x2x3x4 + x0x1x2x4 + x0x1x3 + x0x1x3x4 +
+  x0x1x4
+
+w=4
+x0x1x2 + x0x1x2x3 + x0x1x2x3x4 + x0x1x2x4 + x0x2 + x0x2x3 + x0x2x3x4 +
+  x0x2x4 + x1x2 + x1x2x3 + x1x2x3x4 + x1x2x4 + x2 + x2x3 + x2x3x4 + x2x4
+
+w=5
+x0x1x2 + x0x1x2x3 + x0x1x2x3x4 + x0x1x2x4 + x0x2 + x0x2x3 + x0x2x3x4 +
+  x0x2x4
+
+w=6
+x0x1x2 + x0x1x2x3 + x0x1x2x3x4 + x0x1x2x4 + x1x2 + x1x2x3 + x1x2x3x4 +
+  x1x2x4
+
+w=7
+x0x1x2 + x0x1x2x3 + x0x1x2x3x4 + x0x1x2x4
+
+w=8
+x0x1x2x3 + x0x1x2x3x4 + x0x1x3 + x0x1x3x4 + x0x2x3 + x0x2x3x4 + x0x3 +
+  x0x3x4 + x1x2x3 + x1x2x3x4 + x1x3 + x1x3x4 + x2x3 + x2x3x4 + x3 + x3x4
+
+w=9
+x0x1x2x3 + x0x1x2x3x4 + x0x1x3 + x0x1x3x4 + x0x2x3 + x0x2x3x4 + x0x3 +
+  x0x3x4
+
+w=10
+x0x1x2x3 + x0x1x2x3x4 + x0x1x3 + x0x1x3x4 + x1x2x3 + x1x2x3x4 + x1x3 +
+  x1x3x4
+
+w=11
+x0x1x2x3 + x0x1x2x3x4 + x0x1x3 + x0x1x3x4
+
+w=12
+x0x1x2x3 + x0x1x2x3x4 + x0x2x3 + x0x2x3x4 + x1x2x3 + x1x2x3x4 + x2x3 +
+  x2x3x4
+
+w=13
+x0x1x2x3 + x0x1x2x3x4 + x0x2x3 + x0x2x3x4
+
+w=14
+x0x1x2x3 + x0x1x2x3x4 + x1x2x3 + x1x2x3x4
+
+w=15
+x0x1x2x3 + x0x1x2x3x4
+
+w=16
+x0x1x2x3x4 + x0x1x2x4 + x0x1x3x4 + x0x1x4 + x0x2x3x4 + x0x2x4 + x0x3x4
+  + x0x4 + x1x2x3x4 + x1x2x4 + x1x3x4 + x1x4 + x2x3x4 + x2x4 + x3x4 + x4
+
+w=17
+x0x1x2x3x4 + x0x1x2x4 + x0x1x3x4 + x0x1x4 + x0x2x3x4 + x0x2x4 + x0x3x4
+  + x0x4
+
+w=18
+x0x1x2x3x4 + x0x1x2x4 + x0x1x3x4 + x0x1x4 + x1x2x3x4 + x1x2x4 + x1x3x4
+  + x1x4
+
+w=19
+x0x1x2x3x4 + x0x1x2x4 + x0x1x3x4 + x0x1x4
+
+w=20
+x0x1x2x3x4 + x0x1x2x4 + x0x2x3x4 + x0x2x4 + x1x2x3x4 + x1x2x4 + x2x3x4
+  + x2x4
+
+w=21
+x0x1x2x3x4 + x0x1x2x4 + x0x2x3x4 + x0x2x4
+
+w=22
+x0x1x2x3x4 + x0x1x2x4 + x1x2x3x4 + x1x2x4
+
+w=23
+x0x1x2x3x4 + x0x1x2x4
+
+w=24
+x0x1x2x3x4 + x0x1x3x4 + x0x2x3x4 + x0x3x4 + x1x2x3x4 + x1x3x4 + x2x3x4
+  + x3x4
+
+w=25
+x0x1x2x3x4 + x0x1x3x4 + x0x2x3x4 + x0x3x4
+
+w=26
+x0x1x2x3x4 + x0x1x3x4 + x1x2x3x4 + x1x3x4
+
+w=27
+x0x1x2x3x4 + x0x1x3x4
+
+w=28
+x0x1x2x3x4 + x0x2x3x4 + x1x2x3x4 + x2x3x4
+
+w=29
+x0x1x2x3x4 + x0x2x3x4
+
+w=30
+x0x1x2x3x4 + x1x2x3x4
+
+w=31
+x0x1x2x3x4
 
 --}
 

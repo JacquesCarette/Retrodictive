@@ -82,11 +82,11 @@ subsets (a:as) = map (a :) ss ++ ss
   where ss = subsets as
 
 allFuns :: Int -> [[Bool] -> Bool]
-allFuns n = [(\bs -> bs `elem` ts) | ts <- maptoT ]
+allFuns n = [(`elem` ts) | ts <- maptoT ]
   where maptoT = subsets (allBools n)
 
 allBalancedFuns :: Int -> [[Bool] -> Bool]
-allBalancedFuns n = [(\bs -> bs `elem` ts) | ts <- maptoT, length ts == bigN `div` 2 ]
+allBalancedFuns n = [(`elem` ts) | ts <- maptoT, length ts == bigN `div` 2 ]
   where bigN = 2 ^ n
         maptoT = subsets (allBools n)
 

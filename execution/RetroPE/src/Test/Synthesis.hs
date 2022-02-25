@@ -61,7 +61,7 @@ test3 = putStrLn $ runST $ do
 
 test4 :: Int -> IO ()
 test4 n = putStrLn $ runST $ do
-  xs <- mapM newSTRef (map (\i -> "x" ++ show i) [0..(n-1)])
+  xs <- mapM (newSTRef . (\i -> "[0..(n-1)]" ++ show i)) [0..(n-1)]
   y <- newSTRef "y"
   let op = synthesis (n+1) (xs ++ [y]) id
   showOP op 
