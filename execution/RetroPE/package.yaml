@@ -1,10 +1,10 @@
 name:                RetroPE
 version:             0.1.0.0
-github:              "githubuser/RetroPE"
+github:              "JacquesCarette/Theseus"
 license:             BSD3
-author:              "Author name here"
-maintainer:          "example@example.com"
-copyright:           "2022 Author name here"
+author:              ["Jacques Carette", "Amr Sabry"]
+maintainer:          ["carette@mcmaster.ca", "sabry@indiana.edu"]
+copyright:           "2022 Jacques Carette and Amr Sabry"
 
 extra-source-files:
 - README.md
