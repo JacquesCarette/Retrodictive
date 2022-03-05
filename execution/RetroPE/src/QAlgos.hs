@@ -54,17 +54,6 @@ peExpMod fr n a m r = printResult $ runST $ do
               printf "%s = %s\n" sr sv)
             eqs
 
-retroShor :: (Show f, Value f) => FormulaRepr f -> Integer -> IO ()
-retroShor fr m = do
-      gen <- newIOGenM (mkStdGen 42)
-      a <- uniformRM (2,m-1) gen
-      let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
-      let gma = gcd m a 
-      if gma /= 1 
-        then putStrLn (printf "Lucky guess %d = %d * %d\n" m gma (m `div` gma))
-        else do putStrLn (printf "n=%d; a=%d\n" n a)
-                peExpMod fr n a m 1
-
 -- One of the wires = x; others 0
 
 peExpModp :: (Show f, Value f) =>
@@ -99,6 +88,9 @@ retroShorp fr m i = do
         else do putStrLn (printf "n=%d; a=%d\n" n a)
                 peExpModp fr n a m 1 i
 
+
+retroShor :: (Show f, Value f) => FormulaRepr f -> Integer -> IO ()
+retroShor fr m = retroShorp fr m 1
 
 
 -- Deutsch
