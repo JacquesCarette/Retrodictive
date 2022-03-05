@@ -6,7 +6,7 @@ import Data.STRef (readSTRef,writeSTRef)
 import Data.List (intercalate,group,sort,sortBy)
 import Data.Sequence (fromList)
 
-import Control.Monad.ST (runST)
+import Control.Monad.ST (runST,ST)
 
 import System.Random.Stateful (uniformRM, newIOGenM, mkStdGen)
 
@@ -15,12 +15,24 @@ import GHC.Show (intToDigit)
 import Text.Printf (printf)
 
 import Value (Var, Value(..), newVar, newVars, fromInt)
-import Circuits (Circuit(..), cx, showSizes, sizeOP)
+import Circuits (Circuit(..), cx, showSizes, sizeOP, OP)
 import ArithCirc (expm)
 import PE (run)
 import Synthesis (synthesis)
 import FormulaRepr (FormulaRepr(..))
 import QNumeric (toInt)
+
+----------------------------------------------------------------------------------------
+-- Helper routine to print out the results
+printResult :: (Foldable t, Show a, Show b) => (t (a,b), [(Int,Int)]) -> IO ()
+printResult (eqs,sizes) = do
+  putStrLn $ showSizes sizes
+  mapM_ (\(r,v) ->
+    let sr = show r
+        sv = show v
+    in if sr == sv then return () else 
+      printf "%s = %s\n" sr sv)
+    eqs
 
 ----------------------------------------------------------------------------------------
 -- Generic quantum oracle construction
@@ -35,47 +47,35 @@ uf f (viewL -> (xs,y)) = xs ++ [f xs /= y]
 
 -- Shor
 
-peExpMod :: (Show f, Value f) =>
-            FormulaRepr f -> Int -> Integer -> Integer -> Integer -> IO ()
-peExpMod fr n a m r = printResult $ runST $ do
-  circ <- expm n a m
+setupCirc :: Value f => -- invariant: cc is of 'size' n
+    FormulaRepr f -> Int -> Integer -> Circuit s f -> ST s () 
+setupCirc fr n r circ = do
   mapM_ (uncurry writeSTRef) (zip (ancillaOuts circ) (fromInt (n+1) r))
   mapM_ (uncurry writeSTRef) (zip (xs circ) (fromVars fr (n+1) "x"))
+
+peExpMod :: (Show f, Value f) =>
+            FormulaRepr f -> Int -> Integer -> Integer -> Integer -> 
+            ST s ([(f,f)], [(Int,Int)])
+peExpMod fr n a m r = do
+  circ <- expm n a m
+  setupCirc fr n r circ
   run circ
   result <- mapM readSTRef (ancillaIns circ)
   let eqs = zip result (ancillaVals circ)
-  return (eqs, showSizes (sizeOP (op circ)))
-  where printResult (eqs,size) = do
-          putStrLn size
-          mapM_ (\(r,v) ->
-            let sr = show r
-                sv = show v
-            in if sr == sv then return () else 
-              printf "%s = %s\n" sr sv)
-            eqs
+  return (eqs, sizeOP $ op circ)
 
 -- One of the wires = x; others 0
 
 peExpModp :: (Show f, Value f) =>
-            FormulaRepr f -> Int -> Integer -> Integer -> Integer -> Int -> IO ()
-peExpModp fr n a m r i = printResult $ runST $ do
+    FormulaRepr f -> Int -> Integer -> Integer -> Integer -> Int -> ST s ([(f,f)], [(Int,Int)])
+peExpModp fr n a m r i = do
   circ <- expm n a m
-  mapM_ (uncurry writeSTRef) (zip (ancillaOuts circ) (fromInt (n+1) r))
-  mapM_ (uncurry writeSTRef) (zip (xs circ) (fromVars fr (n+1) "x"))
+  setupCirc fr n r circ
   writeSTRef ((xs circ) !! i) zero
   run circ
   result <- mapM readSTRef (ancillaIns circ)
   let eqs = zip result (ancillaVals circ)
-  return (eqs, showSizes (sizeOP (op circ)))
-  where printResult (eqs,size) = do
-          putStrLn size
-          mapM_ (\(r,v) ->
-            let sr = show r
-                sv = show v
-            in if sr == sv then return () else 
-              printf "%s = %s\n" sr sv)
-            eqs
-
+  return (eqs, sizeOP $ op circ)
 
 retroShorp :: (Show f, Value f) => FormulaRepr f -> Integer -> Int -> IO ()
 retroShorp fr m i = do
@@ -86,12 +86,11 @@ retroShorp fr m i = do
       if gma /= 1 
         then putStrLn (printf "Lucky guess %d = %d * %d\n" m gma (m `div` gma))
         else do putStrLn (printf "n=%d; a=%d\n" n a)
-                peExpModp fr n a m 1 i
-
+                let res = runST $ peExpModp fr n a m 1 i
+                printResult res
 
 retroShor :: (Show f, Value f) => FormulaRepr f -> Integer -> IO ()
 retroShor fr m = retroShorp fr m 1
-
 
 -- Deutsch
 
