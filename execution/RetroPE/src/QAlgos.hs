@@ -8,7 +8,7 @@ import Data.Sequence (fromList)
 
 import Control.Monad.ST (runST)
 
-import System.Random (randomRIO)
+import System.Random.Stateful (uniformRM, newIOGenM, mkStdGen)
 
 import Numeric (readHex)
 import GHC.Show (intToDigit)
@@ -56,7 +56,8 @@ peExpMod fr n a m r = printResult $ runST $ do
 
 retroShor :: (Show f, Value f) => FormulaRepr f -> Integer -> IO ()
 retroShor fr m = do
-      a <- randomRIO (2,m-1)
+      gen <- newIOGenM (mkStdGen 42)
+      a <- uniformRM (2,m-1) gen
       let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
       let gma = gcd m a 
       if gma /= 1 
@@ -89,7 +90,8 @@ peExpModp fr n a m r i = printResult $ runST $ do
 
 retroShorp :: (Show f, Value f) => FormulaRepr f -> Integer -> Int -> IO ()
 retroShorp fr m i = do
-      a <- randomRIO (2,m-1)
+      gen <- newIOGenM (mkStdGen 42)
+      a <- uniformRM (2,m-1) gen
       let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
       let gma = gcd m a 
       if gma /= 1 
