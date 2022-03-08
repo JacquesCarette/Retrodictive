@@ -8,7 +8,7 @@ import Data.Sequence (fromList)
 
 import Control.Monad.ST (runST,ST)
 
-import System.Random.Stateful (uniformRM, newIOGenM, mkStdGen)
+import System.Random.Stateful (uniformRM, newIOGenM, mkStdGen, getStdGen)
 
 import Numeric (readHex)
 import GHC.Show (intToDigit)
@@ -77,6 +77,7 @@ peExpModp fr n a m r i = do
   let eqs = zip result (ancillaVals circ)
   return (eqs, sizeOP $ op circ)
 
+-- pick observed ancilla
 retroShorp :: (Show f, Value f) => FormulaRepr f -> Integer -> Int -> IO ()
 retroShorp fr m i = do
       gen <- newIOGenM (mkStdGen 42)
@@ -87,6 +88,16 @@ retroShorp fr m i = do
         then putStrLn (printf "Lucky guess %d = %d * %d\n" m gma (m `div` gma))
         else do putStrLn (printf "n=%d; a=%d\n" n a)
                 let res = runST $ peExpModp fr n a m 1 i
+                printResult res
+
+-- pick number of bits and 'a'
+retroShorn :: (Show f, Value f) => FormulaRepr f -> Integer -> Int -> Integer -> IO ()
+retroShorn fr m n a = do
+      let gma = gcd m a 
+      if gma /= 1 
+        then putStrLn (printf "Lucky guess %d = %d * %d\n" m gma (m `div` gma))
+        else do putStrLn (printf "n=%d; a=%d\n" n a)
+                let res = runST $ peExpModp fr n a m 1 1
                 printResult res
 
 retroShor :: (Show f, Value f) => FormulaRepr f -> Integer -> IO ()

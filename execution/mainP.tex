@@ -40,6 +40,57 @@ McMaster University \qquad Indiana University \qquad Indiana University}
 
 %% can double this paragraph in size
 
+\todo{
+
+  small tree width idea suggests we could do retro and measure every
+  once in a while. for shor perhaps measure after every iteration of
+  multiplication \url{https://arxiv.org/pdf/quant-ph/0511069.pdf}
+
+  try retro with impossible measurement; how happens with the equations:
+  retroShor 15 with ancilla=0 produces equation: 0 = 1
+
+  with post selection can we solve SAT ??
+
+  what is know about complexity of converting a circuit to ANF?
+
+  for Shor we construct Uf as part of the algorithm so the cost of
+  generating the circuit is part of the complexity analysis
+
+  for the other algos Uf is given to us: if given to us as an ANF
+  formula we can answer questions directly with minimal evaluation; so
+  the challenge is to convert the Uf box to ANF; exponential in
+  general ??? but for the particular functions of interest could be
+  efficient
+
+  run Shor backwards from QFT measurement; the state right before QFT
+  is a periodic state that approximates the state we would have
+  received from forward exec. Good point to discuss existence of
+  wavefunction; forward vs backwards. construct circuit with period =
+  3; show wavefunction before QFT in regular exec; assume we measure v
+  show wavefunction before QFT in retrodictive. Connection between
+  these two wavefunctions?
+
+  of course try 1/-1 instead 0/1
+
+  existence of wavefunction: retrodictive QM says no reality to
+  wavefunctions.
+
+  other paper on reality of wavefunction; can't be just observer
+  belief
+
+  in our work it is an intermediate state of computation, so yes some
+  wavefunction exists but which one exists depends on the particulars
+  of the execution model and is not uniquely determined by the circuit 
+
+  what would happen in Shor if you put 0 at ancilla init and 1 at
+  ancilla measurement (only look for 1 at ancilla measurement)
+
+  post-selection https://en.wikipedia.org/wiki/PostBQP
+
+  why would Nature execute the circuit in the way we draw it
+
+}
+
 Retrodictive quantum theory~\cite{sym13040586},
 retrocausality~\cite{Aharonov2008}, and the time-symmetry of physical
 laws~\cite{RevModPhys.27.179} suggest that partial knowledge about the
@@ -435,7 +486,22 @@ advantage since solving arbitrary equations over boolean variables is,
 in general, an $\mathit{NP}$-complete problem.
 
 \todo{
-  the shortest clause gives the solution!!!!!!!!
+  run PEZ with +1/-1 instead of 0/1
+
+
+  black box model forbids you to use some interesting property of the
+  circuit for $U_f$; we actually have this too because ANF
+  representation does not depend on how you implement the
+  circuit. (circuit for $a^x \mod{15}$ manually optimized or not gives
+  the same formula); so we could fit in the black box model but
+  putting the formula inside the black box. We can answer lots of
+  questions quickly but not Shor in general.
+
+  if oracle takes n steps to answer, I can probably absorb the n cost
+  in the main algorithm and assume the oracle takes one step
+
+
+  for Grover the shortest clause gives the solution!!!!!!!!
 
   ANF is a normal form; any other implementation gives the same formula
 
@@ -472,7 +538,7 @@ in general, an $\mathit{NP}$-complete problem.
 \end{center}
 \caption{\label{fig:shor15}Finding the period of $4^x \mod{15}$}
 \end{wrapfigure}
-\paragraph*{Shor 15.} 
+\paragraph*{Easy Instances of Shor.}
 The circuit in Fig.~\ref{fig:shor15} uses a hand-optimized
 implementation of the modular exponentiation $4^x \mod{15}$ to factor
 15 using Shor's algorithm. In a conventional forward execution, the
@@ -531,6 +597,108 @@ a=2,8 & 1 \oplus x_0 \oplus x_1 \oplus x_0x_1 = 1 & x_0x_1 = 0 & x_1 \oplus x_0x
   variables is given in the last column.}
 \end{figure}
 
+\todo{
+retroShor 51
+n=12; a=49
+
+Generalized Toffoli Gates with 3 controls = 8788
+Generalized Toffoli Gates with 2 controls = 86866
+Generalized Toffoli Gates with 1 controls = 81796
+
+$1 \oplus x_2 \oplus x_0x_2 = 1$
+
+$x_0x_1 \oplus x_0x_2 = 0$
+
+$x_1 \oplus x_0x_1 = 0$
+
+$x_0 \oplus x_1 \oplus x_1x_2 \oplus x_0x_1x_2 = 0$
+
+$x_0 \oplus x_2 \oplus x_1x_2 = 0$
+
+$x_0x_2 = 0$
+
+----
+
+$x_0=x_1=x_2=0$; period = 8
+}
+
+\todo{
+retroShor 85
+n=13; a=57
+
+Generalized Toffoli Gates with 3 controls = 10976
+Generalized Toffoli Gates with 2 controls = 109368
+Generalized Toffoli Gates with 1 controls = 102704
+
+$1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_1x_2x_3 \oplus x_1x_3 \oplus x_2x_3 \oplus x_3 = 1$
+
+$x_0 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_2 \oplus x_0x_3 \oplus x_1x_3 = 0$
+
+$x_0x_1x_2 \oplus x_0x_1x_3 \oplus x_1x_2x_3 \oplus x_2x_3 = 0$
+
+$x_0x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_2 \oplus x_1 \oplus x_1x_2 = 0$
+
+$x_0x_1 \oplus x_0x_1x_2x_3 \oplus x_0x_2 \oplus x_0x_2x_3 \oplus x_2 \oplus x_2x_3 \oplus x_3 = 0$
+
+$x_0x_3 \oplus x_1x_2 \oplus x_1x_3 = 0$
+
+$x_1x_2 \oplus x_1x_2x_3 \oplus x_2 \oplus x_2x_3 = 0$
+
+period = 16
+}
+
+\todo{
+
+retroShor 771
+n=20; a=769
+
+Generalized Toffoli Gates with 3 controls = 37044
+Generalized Toffoli Gates with 2 controls = 381906
+Generalized Toffoli Gates with 1 controls = 354564
+
+$1 \oplus x_0x_3 \oplus x_3 = 1$
+
+$x_0x_1x_2 \oplus x_0x_3 = 0$
+
+$x_0x_1x_2 \oplus x_1x_2 = 0$
+
+$x_0x_1x_2x_3 \oplus x_0x_2 \oplus x_1x_2 \oplus x_1x_2x_3 = 0$
+
+$x_0x_2 \oplus x_0x_2x_3 \oplus x_1x_2x_3 \oplus x_2 = 0$
+
+$x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_2 \oplus x_2 \oplus x_2x_3 = 0$
+
+$x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_3 \oplus x_0x_2 \oplus x_1 \oplus x_1x_2 \oplus x_2 \oplus x_2x_3 = 0$
+
+$x_0 \oplus x_0x_1x_2x_3 \oplus x_1 \oplus x_1x_2 \oplus x_1x_2x_3 \oplus x_1x_3 \oplus x_2 \oplus x_2x_3 = 0$
+
+$x_0 \oplus x_0x_1x_3 \oplus x_0x_2x_3 \oplus x_1x_2x_3 \oplus x_1x_3 \oplus x_2x_3 \oplus x_3 = 0$
+
+$x_0x_3 = 0$
+
+period = 16
+}
+
+\todo{ longest clause gives period; basically we have constraints on
+  all the vars in the longest clause; $2^i$ where i is the index of
+  the next variable is the period
+
+Try: 1285, 196611, 327685
+}
+
+\todo{
+
+  Known Fermat primes: 3, 5, 17, 257, 65537
+
+  some equations are bigger; these are sweet
+
+  is it ever the case that we have an even number of clauses that are 1 in
+  the formula for Shor
+
+  it should $a^x mod N = 1$ for two different $x$ ???
+
+}
+
 \paragraph*{Shor 21.} 
 The examples presented so far demonstrate that some instances of
 quantum algorithms can be solved via classical symbolic retrodictive
@@ -546,6 +714,18 @@ is not easily representable as a system of equations over binary
 numbers. The equations which span about five pages in
 Sec.~\ref{par:shor21} glaringly show the limitations of the basic
 retrodictive execution approach and the need for additional insights.
+
+Special optimizations of Shor 21. Let's use only 5 bits. The formulae are:
+\[\begin{array}{l}
+1 \oplus x_0 \oplus x_0x_2 \oplus x_0x_2x_3 \oplus x_0x_2x_3x_4 \oplus x_0x_2x_3x_4x_5 \oplus x_0x_2x_4x_5 \oplus x_0x_2x_5 \oplus x_0x_3x_4 \oplus x_0x_3x_5 \oplus x_0x_4 \\
+  \quad \oplus x_0x_4x_5 \oplus x_2 \oplus x_2x_3x_4 \oplus x_2x_3x_5 \oplus x_2x_4 \oplus x_2x_4x_5 \oplus x_3 \oplus x_3x_4x_5 \oplus x_3x_5 \oplus x_4 \oplus x_5 = 1
+\\[2ex]
+x_0 \oplus x_0x_2x_3 \oplus x_0x_2x_3x_4x_5 \oplus x_0x_2x_3x_5 \oplus x_0x_2x_4 \oplus x_0x_2x_5 \oplus x_0x_3 \oplus x_0x_3x_4 \oplus x_0x_3x_4x_5 \oplus x_0x_4x_5 \\
+  \quad \oplus x_0x_5 \oplus x_2 \oplus x_2x_3 \oplus x_2x_3x_4 \oplus x_2x_3x_4x_5 \oplus x_2x_4x_5 \oplus x_2x_5 \oplus x_3x_4 \oplus x_3x_5 \oplus x_4 \oplus x_4x_5 = 0
+\\[2ex]
+x_0x_2 \oplus x_0x_2x_3x_4 \oplus x_0x_2x_3x_5 \oplus x_0x_2x_4 \oplus x_0x_2x_4x_5 \oplus x_0x_3 \oplus x_0x_3x_4x_5 \oplus x_0x_3x_5 \oplus x_0x_4 \oplus x_0x_5 \oplus x_2x_3 \\
+  \quad \oplus x_2x_3x_4x_5 \oplus x_2x_3x_5 \oplus x_2x_4 \oplus x_2x_5 \oplus x_3 \oplus x_3x_4 \oplus x_3x_4x_5 \oplus x_4x_5 \oplus x_5 = 0
+\end{array}\]
 
 \begin{wrapfigure}{r}{5cm}
 \begin{center}
@@ -672,7 +852,7 @@ and sum them to get the patterns we need
 Shor: have some fixed set of periodic states and always match the
 closest one after each gate??
 
-Sort clauses by length; the difference two consecustive clauses is the period !!!!!!
+Sort clauses by length; the difference two consecutive clauses is the period !!!!!!
 
 }
 
