@@ -78,9 +78,9 @@ peExpModp fr n a m r i = do
   return (eqs, sizeOP $ op circ)
 
 -- pick observed ancilla
-retroShorp :: (Show f, Value f) => FormulaRepr f -> Integer -> Int -> IO ()
-retroShorp fr m i = do
-      gen <- newIOGenM (mkStdGen 42)
+retroShorp :: (Show f, Value f) => FormulaRepr f -> Maybe Int -> Integer -> Int -> IO ()
+retroShorp fr seed m i = do
+      gen <- newIOGenM $ mkStdGen (maybe 42 id seed)
       a <- uniformRM (2,m-1) gen
       let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
       let gma = gcd m a 
@@ -101,7 +101,7 @@ retroShorn fr m n a = do
                 printResult res
 
 retroShor :: (Show f, Value f) => FormulaRepr f -> Integer -> IO ()
-retroShor fr m = retroShorp fr m 1
+retroShor fr m = retroShorp fr Nothing m 1
 
 -- Deutsch
 

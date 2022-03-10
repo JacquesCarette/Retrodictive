@@ -139,7 +139,7 @@ retroShor :: Integer -> IO ()
 retroShor = Q.retroShor formRepr 
 
 retroShorp :: Integer -> Int -> IO ()
-retroShorp = Q.retroShorp formRepr 
+retroShorp = Q.retroShorp formRepr Nothing 
 
 {--
 
