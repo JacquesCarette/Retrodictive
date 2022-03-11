@@ -8,9 +8,9 @@ module FormulaRepr where
 -- We're going to use an explicit dictionary here, as in actual use it can't be
 -- inferred
 
-data FormulaRepr f = FR 
-  { fromVar :: String -> f
-  , fromVars :: Int -> String -> [ f ]
+data FormulaRepr f r = FR 
+  { fromVar :: r -> f
+  , fromVars :: Int -> r -> [ f ]
   }
 
 ----------------------------------------------------------------------------------------

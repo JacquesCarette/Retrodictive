@@ -1,23 +1,17 @@
-module Shor21 where
+module FormAsMaps where
 
--- PEZ with special optimizations for Shor21
--- first period = 3, so we don't need 9 qubits
--- we need 2 qubits for ancilla and 3 or 4 for computational register
+-- Representation of formulas as xor lists of and maps (of strings)
 
 import Data.List (intercalate,group,sort,sortBy)
 
 import Value (Value(..))
 import FormulaRepr (FormulaRepr(FR))
-import qualified QAlgos as Q
-
-
-import Text.Printf
 
 ----------------------------------------------------------------------------------------
 -- Values can static or symbolic formulae
 -- Formulae are in "algebraic normal form"
 
-type Literal = String
+type Literal = Int
 
 -- Ands []      = True
 -- Ands [a,b,c] = a && b && c
@@ -28,7 +22,7 @@ newtype Ands = Ands { lits :: [Literal] }
 instance Show Ands where
   show as = showL (lits as)
     where showL [] = "1"
-          showL ss = concat ss
+          showL ss = concatMap (\x -> 'x' : show x) ss
 
 mapA :: ([Literal] -> [Literal]) -> Ands -> Ands
 mapA f (Ands lits) = Ands (f lits)
@@ -93,11 +87,11 @@ fromBool :: Bool -> Formula
 fromBool False = false
 fromBool True  = true
 
-fromVar :: String -> Formula
+fromVar :: Int -> Formula
 fromVar s = Formula [ Ands [s] ]
 
-fromVars :: Int -> String -> [Formula]
-fromVars n s = map (fromVar . (\ n -> s ++ "_" ++ show n)) [0..(n-1)]
+fromVars :: Int -> Int -> [Formula]
+fromVars n base = map (fromVar . (base +)) [0..(n-1)]
 
 --
 
@@ -129,34 +123,5 @@ instance Value Formula where
   sxor = fxor
 
 -- instance as explicit dict
-formRepr :: FormulaRepr Formula String
+formRepr :: FormulaRepr Formula Int
 formRepr = FR fromVar fromVars
-
-----------------------------------------------------------------------------------------
--- Testing
-
--- Shor
-
-retroShor :: Integer -> IO ()
-retroShor = Q.retroShor formRepr "x"
-
-retroShorp :: Integer -> Int -> IO ()
-retroShorp = Q.retroShorp formRepr "x" Nothing
-
-retroShorn :: Integer -> Int -> Integer -> IO ()
-retroShorn = Q.retroShorn formRepr "x"
-
-{--
-shor 21  with n=5 and a=16
-
-1 \oplus x_0 \oplus x_0x_2 \oplus x_0x_2x_3 \oplus x_0x_2x_3x_4 \oplus x_0x_2x_3x_4x_5 \oplus x_0x_2x_4x_5 \oplus x_0x_2x_5 \oplus x_0x_3x_4 \oplus x_0x_3x_5 \oplus x_0x_4 \oplus x_0x_4x_5 \oplus x_2 \oplus x_2x_3x_4 \oplus x_2x_3x_5 \oplus x_2x_4 \oplus x_2x_4x_5 \oplus x_3 \oplus x_3x_4x_5 \oplus x_3x_5 \oplus x_4 \oplus x_5 = 1
-
-x_0 \oplus x_0x_2x_3 \oplus x_0x_2x_3x_4x_5 \oplus x_0x_2x_3x_5 \oplus x_0x_2x_4 \oplus x_0x_2x_5 \oplus x_0x_3 \oplus x_0x_3x_4 \oplus x_0x_3x_4x_5 \oplus x_0x_4x_5 \oplus x_0x_5 \oplus x_2 \oplus x_2x_3 \oplus x_2x_3x_4 \oplus x_2x_3x_4x_5 \oplus x_2x_4x_5 \oplus x_2x_5 \oplus x_3x_4 \oplus x_3x_5 \oplus x_4 \oplus x_4x_5 = 0
-
-x_0x_2 \oplus x_0x_2x_3x_4 \oplus x_0x_2x_3x_5 \oplus x_0x_2x_4 \oplus x_0x_2x_4x_5 \oplus x_0x_3 \oplus x_0x_3x_4x_5 \oplus x_0x_3x_5 \oplus x_0x_4 \oplus x_0x_5 \oplus x_2x_3 \oplus x_2x_3x_4x_5 \oplus x_2x_3x_5 \oplus x_2x_4 \oplus x_2x_5 \oplus x_3 \oplus x_3x_4 \oplus x_3x_4x_5 \oplus x_4x_5 \oplus x_5 = 0
-
-
---}
-
-----------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------

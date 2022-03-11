@@ -1,17 +1,11 @@
-module Shor21 where
+module FormAsLists where
 
--- PEZ with special optimizations for Shor21
--- first period = 3, so we don't need 9 qubits
--- we need 2 qubits for ancilla and 3 or 4 for computational register
+-- Representation of formulas as xor lists of and lists (of strings)
 
 import Data.List (intercalate,group,sort,sortBy)
 
 import Value (Value(..))
 import FormulaRepr (FormulaRepr(FR))
-import qualified QAlgos as Q
-
-
-import Text.Printf
 
 ----------------------------------------------------------------------------------------
 -- Values can static or symbolic formulae
@@ -131,32 +125,3 @@ instance Value Formula where
 -- instance as explicit dict
 formRepr :: FormulaRepr Formula String
 formRepr = FR fromVar fromVars
-
-----------------------------------------------------------------------------------------
--- Testing
-
--- Shor
-
-retroShor :: Integer -> IO ()
-retroShor = Q.retroShor formRepr "x"
-
-retroShorp :: Integer -> Int -> IO ()
-retroShorp = Q.retroShorp formRepr "x" Nothing
-
-retroShorn :: Integer -> Int -> Integer -> IO ()
-retroShorn = Q.retroShorn formRepr "x"
-
-{--
-shor 21  with n=5 and a=16
-
-1 \oplus x_0 \oplus x_0x_2 \oplus x_0x_2x_3 \oplus x_0x_2x_3x_4 \oplus x_0x_2x_3x_4x_5 \oplus x_0x_2x_4x_5 \oplus x_0x_2x_5 \oplus x_0x_3x_4 \oplus x_0x_3x_5 \oplus x_0x_4 \oplus x_0x_4x_5 \oplus x_2 \oplus x_2x_3x_4 \oplus x_2x_3x_5 \oplus x_2x_4 \oplus x_2x_4x_5 \oplus x_3 \oplus x_3x_4x_5 \oplus x_3x_5 \oplus x_4 \oplus x_5 = 1
-
-x_0 \oplus x_0x_2x_3 \oplus x_0x_2x_3x_4x_5 \oplus x_0x_2x_3x_5 \oplus x_0x_2x_4 \oplus x_0x_2x_5 \oplus x_0x_3 \oplus x_0x_3x_4 \oplus x_0x_3x_4x_5 \oplus x_0x_4x_5 \oplus x_0x_5 \oplus x_2 \oplus x_2x_3 \oplus x_2x_3x_4 \oplus x_2x_3x_4x_5 \oplus x_2x_4x_5 \oplus x_2x_5 \oplus x_3x_4 \oplus x_3x_5 \oplus x_4 \oplus x_4x_5 = 0
-
-x_0x_2 \oplus x_0x_2x_3x_4 \oplus x_0x_2x_3x_5 \oplus x_0x_2x_4 \oplus x_0x_2x_4x_5 \oplus x_0x_3 \oplus x_0x_3x_4x_5 \oplus x_0x_3x_5 \oplus x_0x_4 \oplus x_0x_5 \oplus x_2x_3 \oplus x_2x_3x_4x_5 \oplus x_2x_3x_5 \oplus x_2x_4 \oplus x_2x_5 \oplus x_3 \oplus x_3x_4 \oplus x_3x_4x_5 \oplus x_4x_5 \oplus x_5 = 0
-
-
---}
-
-----------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------

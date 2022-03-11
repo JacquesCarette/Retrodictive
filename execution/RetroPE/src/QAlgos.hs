@@ -49,17 +49,17 @@ uf f (viewL -> (xs,y)) = xs ++ [f xs /= y]
 -- Shor
 
 setupCirc :: Value f => -- invariant: cc is of 'size' n
-    FormulaRepr f -> Int -> Integer -> Circuit s f -> ST s () 
-setupCirc fr n r circ = do
+    FormulaRepr f r -> r -> Int -> Integer -> Circuit s f -> ST s () 
+setupCirc fr base n r circ = do
   mapM_ (uncurry writeSTRef) (zip (ancillaOuts circ) (fromInt (n+1) r))
-  mapM_ (uncurry writeSTRef) (zip (xs circ) (fromVars fr (n+1) "x"))
+  mapM_ (uncurry writeSTRef) (zip (xs circ) (fromVars fr (n+1) base))
 
 peExpMod :: (Show f, Value f) =>
-            FormulaRepr f -> Int -> Integer -> Integer -> Integer -> 
+            FormulaRepr f r -> r -> Int -> Integer -> Integer -> Integer -> 
             ST s ([(f,f)], [(Int,Int)])
-peExpMod fr n a m r = do
+peExpMod fr base n a m r = do
   circ <- expm n a m
-  setupCirc fr n r circ
+  setupCirc fr base n r circ
   run circ
   result <- mapM readSTRef (ancillaIns circ)
   let eqs = zip result (ancillaVals circ)
@@ -68,10 +68,10 @@ peExpMod fr n a m r = do
 -- One of the wires = x; others 0
 
 peExpModp :: (Show f, Value f) =>
-    FormulaRepr f -> Int -> Integer -> Integer -> Integer -> Int -> ST s ([(f,f)], [(Int,Int)])
-peExpModp fr n a m r i = do
+    FormulaRepr f r -> r -> Int -> Integer -> Integer -> Integer -> Int -> ST s ([(f,f)], [(Int,Int)])
+peExpModp fr base n a m r i = do
   circ <- expm n a m
-  setupCirc fr n r circ
+  setupCirc fr base n r circ
   writeSTRef ((xs circ) !! i) zero
   run circ
   result <- mapM readSTRef (ancillaIns circ)
@@ -83,8 +83,8 @@ mkGen Nothing = return globalStdGen
 mkGen (Just i) = newAtomicGenM (mkStdGen i)
 
 -- pick observed ancilla
-retroShorp :: (Show f, Value f) => FormulaRepr f -> Maybe Int -> Integer -> Int -> IO ()
-retroShorp fr seed m i = do
+retroShorp :: (Show f, Value f) => FormulaRepr f r -> r -> Maybe Int -> Integer -> Int -> IO ()
+retroShorp fr base seed m i = do
       gen <- mkGen seed
       a <- uniformRM (2,m-1) gen
       let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
@@ -92,21 +92,21 @@ retroShorp fr seed m i = do
       if gma /= 1 
         then putStrLn (printf "Lucky guess %d = %d * %d\n" m gma (m `div` gma))
         else do putStrLn (printf "n=%d; a=%d\n" n a)
-                let res = runST $ peExpModp fr n a m 1 i
+                let res = runST $ peExpModp fr base n a m 1 i
                 printResult res
 
 -- pick number of bits and 'a'
-retroShorn :: (Show f, Value f) => FormulaRepr f -> Integer -> Int -> Integer -> IO ()
-retroShorn fr m n a = do
+retroShorn :: (Show f, Value f) => FormulaRepr f r -> r -> Integer -> Int -> Integer -> IO ()
+retroShorn fr base m n a = do
       let gma = gcd m a 
       if gma /= 1 
         then putStrLn (printf "Lucky guess %d = %d * %d\n" m gma (m `div` gma))
         else do putStrLn (printf "n=%d; a=%d\n" n a)
-                let res = runST $ peExpModp fr n a m 1 1
+                let res = runST $ peExpModp fr base n a m 1 1
                 printResult res
 
-retroShor :: (Show f, Value f) => FormulaRepr f -> Integer -> IO ()
-retroShor fr m = retroShorp fr Nothing m 1
+retroShor :: (Show f, Value f) => FormulaRepr f r -> r -> Integer -> IO ()
+retroShor fr base m = retroShorp fr base Nothing m 1
 
 -- Deutsch
 
@@ -116,9 +116,9 @@ deutschNot [x,y] = [x,y /= not x]
 deutsch0 [x,y]   = [x,y]
 deutsch1 [x,y]   = [x,not y]
 
-retroDeutsch :: (Show f, Value f) => FormulaRepr f -> ([Bool] -> [Bool]) -> IO ()
-retroDeutsch fr f = print $ runST $ do
-  x <- newVar (fromVar fr "x")
+retroDeutsch :: (Show f, Value f) => FormulaRepr f r -> r -> ([Bool] -> [Bool]) -> IO ()
+retroDeutsch fr base f = print $ runST $ do
+  x <- newVar (fromVar fr base)
   y <- newVar zero
   run Circuit { op = synthesis 2 [x,y] f
               , xs = [x]
@@ -153,9 +153,9 @@ deutschJozsaBal3 = uf f
         f xs = sbin !! fromInteger (toInt xs)
 
 retroDeutschJozsa :: (Show f, Value f) =>
-                     FormulaRepr f -> Int -> ([Bool] -> [Bool]) -> IO ()
-retroDeutschJozsa fr n f = print $ runST $ do
-  xs <- newVars (fromVars fr n "x")
+                     FormulaRepr f r -> r -> Int -> ([Bool] -> [Bool]) -> IO ()
+retroDeutschJozsa fr base n f = print $ runST $ do
+  xs <- newVars (fromVars fr n base)
   y <- newVar zero
   run Circuit { op = synthesis (n+1) (xs ++ [y]) f
               , xs = xs
@@ -206,9 +206,9 @@ retroSimon fr = print $ runST $ do
 -- Grover
 
 retroGrover :: (Show f, Value f) =>
-               FormulaRepr f -> Int -> Integer -> IO ()
-retroGrover fr n w = print $ runST $ do
-  xs <- newVars (fromVars fr n "x")
+               FormulaRepr f r -> r -> Int -> Integer -> IO ()
+retroGrover fr base n w = print $ runST $ do
+  xs <- newVars (fromVars fr n base)
   y <- newVar zero
   run Circuit { op = synthesis (n+1) (xs ++ [y]) (groverOracle n w)
               , xs = xs
