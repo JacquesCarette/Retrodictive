@@ -43,10 +43,7 @@ executables:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
-    - -O
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+    - -O2
     dependencies:
     - RetroPE
 
@@ -55,8 +52,6 @@ tests:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+    - -O
     dependencies:
     - RetroPE
