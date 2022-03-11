@@ -1,8 +1,9 @@
 module FormAsMaps where
 
--- Representation of formulas as xor lists of and maps (of strings)
+-- Representation of formulas as xor lists of and maps (of Int)
 
 import Data.List (intercalate,group,sort,sortBy)
+import Data.IntSet (IntSet, toAscList, union, empty, singleton)
 
 import Value (Value(..))
 import FormulaRepr (FormulaRepr(FR))
@@ -16,19 +17,16 @@ type Literal = Int
 -- Ands []      = True
 -- Ands [a,b,c] = a && b && c
 
-newtype Ands = Ands { lits :: [Literal] }
+newtype Ands = Ands { lits :: IntSet }
   deriving (Eq,Ord)
 
 instance Show Ands where
-  show as = showL (lits as)
+  show as = showL (toAscList $ lits as)
     where showL [] = "1"
           showL ss = concatMap (\x -> 'x' : show x) ss
 
-mapA :: ([Literal] -> [Literal]) -> Ands -> Ands
-mapA f (Ands lits) = Ands (f lits)
-
 (&&&) :: Ands -> Ands -> Ands
-(Ands lits1) &&& (Ands lits2) = Ands (lits1 ++ lits2)
+(Ands lits1) &&& (Ands lits2) = Ands $ union lits1 lits2
 
 (***) :: [Ands] -> [Ands] -> [Ands]
 ands1 *** ands2 = [ and1 &&& and2 | and1 <- ands1, and2 <- ands2 ]
@@ -56,21 +54,17 @@ mapF2 f (Formula ands1) (Formula ands2) = Formula (f ands1 ands2)
 
 -- Normalization
 
--- a && a => a
-
-normalizeLits :: [Literal] -> [Literal]
-normalizeLits = map head . group . sort
+-- a && a => a is automatically done by IntSet
 
 -- a XOR a = 0
 
 normalizeAnds :: [Ands] -> [Ands]
 normalizeAnds = map head . filter (odd . length) . group . sort -- (sortBy f)
-  where f (Ands xs) (Ands ys) = compare (length xs) (length ys)
 
 -- Convert to ANF
 
 anf :: Formula -> Formula
-anf = mapF (normalizeAnds . map (mapA normalizeLits))
+anf = mapF normalizeAnds
 
 -- 
 
@@ -78,7 +72,7 @@ false :: Formula
 false = Formula []
 
 true :: Formula
-true = Formula [ Ands [] ]
+true = Formula [ Ands empty ]
 
 isStatic :: Formula -> Bool
 isStatic f = f == false || f == true
@@ -88,7 +82,7 @@ fromBool False = false
 fromBool True  = true
 
 fromVar :: Int -> Formula
-fromVar s = Formula [ Ands [s] ]
+fromVar s = Formula [ Ands (singleton s) ]
 
 fromVars :: Int -> Int -> [Formula]
 fromVars n base = map (fromVar . (base +)) [0..(n-1)]
