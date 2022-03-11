@@ -27,7 +27,7 @@ dependencies:
 - assert
 - integer-gmp
 - lens
-- random
+- random >= 1.2.1
 
 library:
   source-dirs:
