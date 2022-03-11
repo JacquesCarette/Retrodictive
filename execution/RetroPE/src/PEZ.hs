@@ -2,7 +2,8 @@ module PEZ where
 
 -- partial evaluation of a circuit in the Z basis (the computational basis)
 
-import FormAsLists
+import qualified FormAsLists as FL
+import qualified FormAsMaps  as FM
 import qualified QAlgos as Q
 
 ----------------------------------------------------------------------------------------
@@ -11,10 +12,10 @@ import qualified QAlgos as Q
 -- Shor
 
 retroShor :: Integer -> IO ()
-retroShor = Q.retroShor formRepr "x"
+retroShor = Q.retroShor FL.formRepr "x"
 
 retroShorp :: Maybe Int -> Integer -> Int -> IO ()
-retroShorp = Q.retroShorp formRepr "x"
+retroShorp = Q.retroShorp FM.formRepr 0
 
 {--
 
@@ -52,7 +53,7 @@ x0 = 0
 
 --}
 
-retroDeutsch = Q.retroDeutsch formRepr
+retroDeutsch = Q.retroDeutsch FL.formRepr
 
 {--
 
@@ -71,7 +72,7 @@ x
 --}
 
 retroDeutschJozsa :: Int -> ([Bool] -> [Bool]) -> IO ()
-retroDeutschJozsa = Q.retroDeutschJozsa formRepr "x"
+retroDeutschJozsa = Q.retroDeutschJozsa FL.formRepr "x"
 
 {--
 
@@ -13054,17 +13055,17 @@ x0
 --}
 
 retroBernsteinVazirani :: IO ()
-retroBernsteinVazirani = Q.retroBernsteinVazirani formRepr
+retroBernsteinVazirani = Q.retroBernsteinVazirani FL.formRepr
 
 --
 
 retroSimon :: IO ()
-retroSimon = Q.retroSimon formRepr
+retroSimon = Q.retroSimon FL.formRepr
 
 --
 
 retroGrover :: Int -> Integer -> IO ()
-retroGrover = Q.retroGrover formRepr "x"
+retroGrover = Q.retroGrover FL.formRepr "x"
 
 {--
 
