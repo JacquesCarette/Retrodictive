@@ -28,6 +28,7 @@ dependencies:
 - integer-gmp
 - lens
 - random >= 1.2.1
+- multiset
 
 library:
   source-dirs:
