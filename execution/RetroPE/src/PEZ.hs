@@ -138,8 +138,8 @@ formRepr = FR fromVar fromVars
 retroShor :: Integer -> IO ()
 retroShor = Q.retroShor formRepr 
 
-retroShorp :: Integer -> Int -> IO ()
-retroShorp = Q.retroShorp formRepr Nothing 
+retroShorp :: Maybe Int -> Integer -> Int -> IO ()
+retroShorp = Q.retroShorp formRepr
 
 {--
 

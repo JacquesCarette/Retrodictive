@@ -7,8 +7,9 @@ import Data.List (intercalate,group,sort,sortBy)
 import Data.Sequence (fromList)
 
 import Control.Monad.ST (runST,ST)
+import Control.Monad.IO.Class (MonadIO)
 
-import System.Random.Stateful (uniformRM, newIOGenM, mkStdGen, getStdGen)
+import System.Random.Stateful (uniformRM, newIOGenM, mkStdGen, getStdGen, newAtomicGenM, globalStdGen, applyAtomicGen, AtomicGenM, StdGen)
 
 import Numeric (readHex)
 import GHC.Show (intToDigit)
@@ -77,10 +78,14 @@ peExpModp fr n a m r i = do
   let eqs = zip result (ancillaVals circ)
   return (eqs, sizeOP $ op circ)
 
+mkGen :: Maybe Int -> IO (AtomicGenM StdGen)
+mkGen Nothing = return globalStdGen
+mkGen (Just i) = newAtomicGenM (mkStdGen i)
+
 -- pick observed ancilla
 retroShorp :: (Show f, Value f) => FormulaRepr f -> Maybe Int -> Integer -> Int -> IO ()
 retroShorp fr seed m i = do
-      gen <- newIOGenM $ mkStdGen (maybe 42 id seed)
+      gen <- mkGen seed
       a <- uniformRM (2,m-1) gen
       let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
       let gma = gcd m a 
