@@ -1,9 +1,11 @@
 module FormAsMaps where
 
--- Representation of formulas as xor lists of and maps (of Int)
+-- Representation of formulas as xor maps of and maps (of Int)
 
 import Data.List (intercalate,group,sort,sortBy)
-import Data.IntSet (IntSet, toAscList, union, empty, singleton)
+import qualified Data.IntSet as IS 
+import qualified Data.Map as Map
+import qualified Data.MultiSet as MS
 
 import Value (Value(..))
 import FormulaRepr (FormulaRepr(FR))
@@ -17,62 +19,83 @@ type Literal = Int
 -- Ands []      = True
 -- Ands [a,b,c] = a && b && c
 
-newtype Ands = Ands { lits :: IntSet }
+newtype Ands = Ands { lits :: IS.IntSet }
   deriving (Eq,Ord)
 
 instance Show Ands where
-  show as = showL (toAscList $ lits as)
+  show as = showL (IS.toAscList $ lits as)
     where showL [] = "1"
           showL ss = concatMap (\x -> 'x' : show x) ss
 
 (&&&) :: Ands -> Ands -> Ands
-(Ands lits1) &&& (Ands lits2) = Ands $ union lits1 lits2
-
-(***) :: [Ands] -> [Ands] -> [Ands]
-ands1 *** ands2 = [ and1 &&& and2 | and1 <- ands1, and2 <- ands2 ]
+(Ands lits1) &&& (Ands lits2) = Ands $ IS.union lits1 lits2
 
 -- Formula [] = False
 -- Formula [ Ands [], Ands [a], Ands [b,c] ] = True XOR a XOR (b && c)
 
-newtype Formula = Formula { ands :: [Ands]}
+type Occur = Int
+-- Raw XOR formulas
+type XORFU = Map.Map Ands Occur
+-- XOR formulas that are normalized, i.e occur 0 or 1 time
+type XORF = MS.MultiSet Ands
+
+newtype Formula = Formula { ands :: XORF }
   deriving (Eq,Ord)
 
+-- assumes the Multiset is normalized
 instance Show Formula where
-  show f = showC (ands f)
+  show f = showC (MS.toAscList $ ands f)
     where
       showC [] = "0"
       showC cs = intercalate " \\oplus " (map show cs)
 
-mapF :: ([Ands] -> [Ands]) -> Formula -> Formula
+normalizeF :: XORFU -> XORF
+normalizeF m = MS.fromOccurMap $ Map.mapMaybe normal m
+  where
+    normal a = if even a then Nothing else Just 1
+
+--- Cartesian Product
+(***) :: XORF -> XORF -> XORF
+ands1 *** ands2 = normalizeF mm
+  where
+    m1 = MS.toMap ands1
+    m2 = MS.toMap ands2
+    -- cartesian product of maps
+    mm :: XORFU
+    mm = Map.foldrWithKey (\k a b ->
+           Map.foldrWithKey 
+             (\k' a' b' -> Map.alter (maybe (Just (a*a')) (\x -> Just ((a*a')+x))) (k &&& k') b')
+             b m2) Map.empty m1
+
+mapF :: (XORF -> XORF) -> Formula -> Formula
 mapF f (Formula ands) = Formula (f ands)
 
-mapF2 :: ([Ands] -> [Ands] -> [Ands]) -> Formula -> Formula -> Formula
+mapF2 :: (XORF -> XORF -> XORF) -> Formula -> Formula -> Formula
 mapF2 f (Formula ands1) (Formula ands2) = Formula (f ands1 ands2)
 
+-- +++ does not normalize
+-- 'Xor' of formulas
 (+++) :: Formula -> Formula -> Formula
-(Formula ands1) +++ (Formula ands2) = Formula (ands1 ++ ands2)
+(Formula ands1) +++ (Formula ands2) = Formula (MS.union ands1 ands2)
 
 -- Normalization
 
 -- a && a => a is automatically done by IntSet
 
--- a XOR a = 0
-
-normalizeAnds :: [Ands] -> [Ands]
-normalizeAnds = map head . filter (odd . length) . group . sort -- (sortBy f)
+-- a XOR a = 0 is kept by having an even OCCUR in XORF
 
 -- Convert to ANF
 
 anf :: Formula -> Formula
-anf = mapF normalizeAnds
+anf = mapF (normalizeF . MS.toMap)
 
 -- 
 
 false :: Formula
-false = Formula []
+false = Formula MS.empty
 
 true :: Formula
-true = Formula [ Ands empty ]
+true = Formula $ MS.singleton $ Ands IS.empty
 
 isStatic :: Formula -> Bool
 isStatic f = f == false || f == true
@@ -82,7 +105,7 @@ fromBool False = false
 fromBool True  = true
 
 fromVar :: Int -> Formula
-fromVar s = Formula [ Ands (singleton s) ]
+fromVar s = Formula $ MS.singleton $ Ands (IS.singleton s)
 
 fromVars :: Int -> Int -> [Formula]
 fromVars n base = map (fromVar . (base +)) [0..(n-1)]
@@ -96,7 +119,7 @@ fxor :: Formula -> Formula -> Formula
 fxor form1 form2 = anf $ form1 +++ form2
 
 fand :: Formula -> Formula -> Formula
-fand form1 form2 = anf $ mapF2 (***) form1 form2
+fand form1 form2 = Formula $ ands form1 *** ands form2
 
 --
 
