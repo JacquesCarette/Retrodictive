@@ -20,7 +20,16 @@ type Literal = Int
 -- Ands [a,b,c] = a && b && c
 
 newtype Ands = Ands { lits :: IS.IntSet }
-  deriving (Eq,Ord)
+
+instance Eq Ands where
+  (Ands a1) == (Ands a2) = a1 == a2
+
+{-# INLINABLE compAnds #-}
+compAnds :: Ands -> Ands -> Ordering
+compAnds (Ands a1) (Ands a2) = compare (IS.toAscList a1) (IS.toAscList a2)
+
+instance Ord Ands where
+  compare = compAnds
 
 instance Show Ands where
   show as = showL (IS.toAscList $ lits as)
@@ -40,7 +49,9 @@ type XORFU = Map.Map Ands Occur
 type XORF = MS.MultiSet Ands
 
 newtype Formula = Formula { ands :: XORF }
-  deriving (Eq,Ord)
+
+instance Eq Formula where
+  (Formula f1) == (Formula f2) = f1 == f2
 
 -- assumes the Multiset is normalized
 instance Show Formula where
