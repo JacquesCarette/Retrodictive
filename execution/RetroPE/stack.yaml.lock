@@ -18,6 +18,13 @@ packages:
       sha256: 8bdc994ce41f43624ab42302a881fe5a0f81d965f5d238841e24943664681a06
   original:
     hackage: random-1.2.1
+- completed:
+    hackage: bitwise-1.0.0.1@sha256:04c0e0c65a9228d9e004b5c4b08633b2f0e915afe8f3affc9bd16f75f92ccf61,3110
+    pantry-tree:
+      size: 760
+      sha256: fe95409d2e77769965df68eade44e6eb5fcc63643a94e2645cd5db357670b20f
+  original:
+    hackage: bitwise-1.0.0.1
 snapshots:
 - completed:
     size: 590102

@@ -29,6 +29,7 @@ dependencies:
 - lens
 - random >= 1.2.1
 - multiset
+- bitwise
 
 library:
   source-dirs:

@@ -5,6 +5,7 @@ import PEZ (retroGrover, retroShorp)
 main :: IO ()
 main = do
   retroShorp (Just 40) 21 1 -- should be fast: 15, 21, 51, 83, 771; slower: 21, 35
+  -- retroShorp (Just 42) 15 1
   -- mapM_ (retroGrover 5) [0..31]
 
 

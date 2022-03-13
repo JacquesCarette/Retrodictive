@@ -3,7 +3,8 @@ module PEZ where
 -- partial evaluation of a circuit in the Z basis (the computational basis)
 
 import qualified FormAsLists as FL
-import qualified FormAsMaps  as FM
+-- import qualified FormAsMaps  as FM
+import qualified FormAsBitmaps as FB
 import qualified QAlgos as Q
 
 ----------------------------------------------------------------------------------------
@@ -15,7 +16,8 @@ retroShor :: Integer -> IO ()
 retroShor = Q.retroShor FL.formRepr "x"
 
 retroShorp :: Maybe Int -> Integer -> Int -> IO ()
-retroShorp = Q.retroShorp FM.formRepr 0
+-- retroShorp = Q.retroShorp FM.formRepr 0
+retroShorp = Q.retroShorp FB.formRepr 0
 
 {--
 
