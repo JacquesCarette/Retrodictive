@@ -16,7 +16,7 @@ import GHC.Show (intToDigit)
 import Text.Printf (printf)
 
 import Value (Var, Value(..), newVar, newVars, fromInt)
-import Circuits (Circuit(..), cx, showSizes, sizeOP, OP)
+import Circuits (Circuit(..), cx, ccx, cncx, showSizes, sizeOP, OP)
 import ArithCirc (expm)
 import PE (run)
 import Synthesis (synthesis)
@@ -25,6 +25,7 @@ import QNumeric (toInt)
 
 ----------------------------------------------------------------------------------------
 -- Helper routine to print out the results
+
 printResult :: (Foldable t, Show a, Show b) => (t (a,b), [(Int,Int)]) -> IO ()
 printResult (eqs,sizes) = do
   putStrLn $ showSizes sizes
@@ -34,6 +35,12 @@ printResult (eqs,sizes) = do
     in if sr == sv then return () else 
       printf "%s = %s\n" sr sv)
     eqs
+
+-- Random numbers
+
+mkGen :: Maybe Int -> IO (AtomicGenM StdGen)
+mkGen Nothing = return globalStdGen
+mkGen (Just i) = newAtomicGenM (mkStdGen i)
 
 ----------------------------------------------------------------------------------------
 -- Generic quantum oracle construction
@@ -65,8 +72,6 @@ peExpMod fr base n a m r = do
   let eqs = zip result (ancillaVals circ)
   return (eqs, sizeOP $ op circ)
 
--- One of the wires = x; others 0
-
 peExpModp :: (Show f, Value f) =>
     FormulaRepr f r -> r -> Int -> Integer -> Integer -> Integer -> Int -> ST s ([(f,f)], [(Int,Int)])
 peExpModp fr base n a m r i = do
@@ -78,11 +83,8 @@ peExpModp fr base n a m r i = do
   let eqs = zip result (ancillaVals circ)
   return (eqs, sizeOP $ op circ)
 
-mkGen :: Maybe Int -> IO (AtomicGenM StdGen)
-mkGen Nothing = return globalStdGen
-mkGen (Just i) = newAtomicGenM (mkStdGen i)
-
 -- pick observed ancilla
+
 retroShorp :: (Show f, Value f) => FormulaRepr f r -> r -> Maybe Int -> Integer -> Int -> IO ()
 retroShorp fr base seed m i = do
       gen <- mkGen seed
@@ -96,6 +98,7 @@ retroShorp fr base seed m i = do
                 printResult res
 
 -- pick number of bits and 'a'
+
 retroShorn :: (Show f, Value f) => FormulaRepr f r -> r -> Integer -> Int -> Integer -> IO ()
 retroShorn fr base m n a = do
       let gma = gcd m a 
@@ -107,6 +110,63 @@ retroShorn fr base m n a = do
 
 retroShor :: (Show f, Value f) => FormulaRepr f r -> r -> Integer -> IO ()
 retroShor fr base m = retroShorp fr base Nothing m 1
+
+-- Shor 21 optimized
+
+retroShor21 :: (Show f, Value f) =>
+               FormulaRepr f r -> r -> Integer -> IO ()
+retroShor21 fr base w = print $ runST $ do
+  cs <- newVars (fromVars fr 3 base)
+  qs <- newVars (fromInt 2 w)
+  run Circuit { op = op (cs !! 0) (cs !! 1) (cs !! 2) (qs !! 0) (qs !! 1)
+              , xs = cs
+              , ancillaIns = qs
+              , ancillaOuts = qs
+              , ancillaVals = undefined
+              }
+  mapM readSTRef qs
+  where
+    op c0 c1 c2 q0 q1 = fromList
+      [ cx c2 q1
+      , cx c1 q1
+      , cx q1 q0
+      , ccx c1 q0 q1
+      , cx q1 q0
+      , cncx c0 q1 q0
+      , cx q1 q0
+      , ccx c0 q0 q1
+      , cx q1 q0
+      ]
+
+{--
+
+Q.retroShor21 FL.formRepr "x" 0
+x0 + x0x1 = 0
+x0x1 + x1 + x2 = 0
+  x0=0, x1=x2 => 000, 011
+  x0=1, x1=1, x2=0 => 110
+using qutrits:
+  x0=0, x2=0 => 000, 010, 020
+
+Q.retroShor21 FL.formRepr "x" 1
+1 + x0 + x1 = 0
+x0 + x2 = 0
+  x0/=x1, x0=x2 => 010, 101
+using qutrits
+  x0=0, x2=2 => 002, 012 (022)
+
+Q.retroShor21 FL.formRepr "x" 2
+x0x1 + x1 = 0
+1 + x0 + x0x1 + x2 = 0
+  x0=0, x1=0, x2=1 => 001
+  x0=1, x1=0, x2=0 => 100
+  x0=1, x1=1, x2=1 => 111
+using qutrits
+  x0=0, x2=1 => 001, 011, 021
+
+
+--}
+
 
 -- Deutsch
 

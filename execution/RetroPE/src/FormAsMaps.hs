@@ -1,7 +1,5 @@
 module FormAsMaps where
 
--- Representation of formulas as xor maps of and maps (of Int)
-
 import Data.List (intercalate,group,sort,sortBy)
 import qualified Data.IntSet as IS 
 import qualified Data.Map as Map
@@ -10,7 +8,10 @@ import qualified Data.MultiSet as MS
 import Value (Value(..))
 import FormulaRepr (FormulaRepr(FR))
 
-----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+-- Representation of formulas as xor-maps of and-maps (of Int)
+-- Faster that lists of strings
+
 -- Values can static or symbolic formulae
 -- Formulae are in "algebraic normal form"
 
@@ -54,6 +55,7 @@ instance Eq Formula where
   (Formula f1) == (Formula f2) = f1 == f2
 
 -- assumes the Multiset is normalized
+
 instance Show Formula where
   show f = showC (MS.toAscList $ ands f)
     where
@@ -66,6 +68,7 @@ normalizeF m = MS.fromOccurMap $ Map.mapMaybe normal m
     normal a = if even a then Nothing else Just 1
 
 --- Cartesian Product
+
 (***) :: XORF -> XORF -> XORF
 ands1 *** ands2 = normalizeF mm
   where
@@ -86,6 +89,7 @@ mapF2 f (Formula ands1) (Formula ands2) = Formula (f ands1 ands2)
 
 -- +++ does not normalize
 -- 'Xor' of formulas
+
 (+++) :: Formula -> Formula -> Formula
 (Formula ands1) +++ (Formula ands2) = Formula (MS.union ands1 ands2)
 
@@ -151,5 +155,8 @@ instance Value Formula where
   sxor = fxor
 
 -- instance as explicit dict
+
 formRepr :: FormulaRepr Formula Int
 formRepr = FR fromVar fromVars
+
+----------------------------------------------------------------------------------------

@@ -1,6 +1,8 @@
 import PEZ 
 import Test.QuickCheck
 
+------------------------------------------------------------------------------
+
 main :: IO ()
 main = do 
   quickCheck f1xorf2
@@ -8,7 +10,8 @@ main = do
   quickCheck f1andf2
   putStrLn "Done"
   
--- From the Wikipedia page for Algebraic Normal Form  
+------------------------------------------------------------------------------
+-- From the Wikipedia page for Algebraic Normal Form (ANF)
   
 one = Ands []
 x = Ands [ "x" ]
@@ -26,3 +29,5 @@ notf2 = fnot f2 == anf (Formula [ x, y ])
 
 f1andf2 :: Bool 
 f1andf2 = f1 `fand` f2 == anf (Formula [ one, x, y, xy ])
+
+------------------------------------------------------------------------------

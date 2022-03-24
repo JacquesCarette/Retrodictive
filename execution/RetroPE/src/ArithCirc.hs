@@ -1,7 +1,5 @@
 module ArithCirc where
 
--- Circuits to perform arithmetic
-
 import Prelude hiding (seq)
 
 import qualified Data.Sequence as S
@@ -14,11 +12,15 @@ import Text.Printf (printf)
 import QNumeric (doublemods, sqmods, invsqmods)
 import Value (Var, Value, newVars, fromInt, newVar, zero)
 import GToffoli (GToffoli(GToffoli), showGToffoli)
-import Circuits (OP, Circuit(..), cx, ccx, ncx, cop, copyOP, ncop, ccop)
+import Circuits (OP, Circuit(..), cx, ccx, ncx, cop, ncop, ccop)
 
-----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+-- Circuits to perform arithmetic
+
 -- Addition, multiplication, and modular exponentiation circuits
--- -------------------------------------------------------------
+
+copyOP :: [Var s v] -> [Var s v] -> OP s v
+copyOP as bs = S.fromList (zipWith cx as bs)
 
 carryOP :: Var s v -> Var s v -> Var s v -> Var s v -> OP s v
 carryOP c a b c' = S.fromList [ccx a b c', cx a b, ccx c b c']
@@ -102,7 +104,6 @@ makeExpMod n a m xs ts us = do
                     S.reverse mulinvsqMod ><
                     rest)
 
-----------------------------------------------------------------------------------------
 -- a^x mod m
 
 expm :: Value v => Int -> Integer -> Integer -> ST s (Circuit s v)
@@ -119,6 +120,6 @@ expm n a m = do
     , ancillaVals  = fromInt (n+1) 1
     }
                
-----------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+
 

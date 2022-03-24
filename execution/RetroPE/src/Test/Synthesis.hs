@@ -8,25 +8,8 @@ import FormulaRepr (FormulaRepr(..))
 import Circuits (showOP)
 import Synthesis (synthesis)
 
-
---import Data.STRef (readSTRef,writeSTRef)
---import Data.List (intercalate,group,sort)
-
---import System.Random (randomRIO)
-
---import Text.Printf (printf)
-
---
---import Circuits (Circuit(..), showSizes, sizeOP)
---import ArithCirc (expm)
---import PE (run)
-
-
-
-
-
 ----------------------------------------------------------------------------------------
--- Some test cases
+-- Some test cases of the synthesis algorithm
 
 test1 :: IO ()
 test1 = putStrLn $ runST $ do

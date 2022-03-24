@@ -7,7 +7,7 @@ import Text.Printf (printf)
 
 import Value (Var)
 
-----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 -- Generalized Toffoli gates
 
 -- (Circuits will be made out of these)
@@ -23,3 +23,5 @@ showGToffoli (GToffoli bs cs t) = do
     (show (map fromEnum bs))
     (show controls)
     (show vt)
+
+------------------------------------------------------------------------------

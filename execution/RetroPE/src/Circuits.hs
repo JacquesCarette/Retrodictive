@@ -1,7 +1,5 @@
 module Circuits where
 
--- Circuit defined over abstract values
-
 import qualified Data.Sequence as S
 import Data.Sequence (Seq)
 
@@ -12,12 +10,10 @@ import Text.Printf (printf)
 import Value (Var)
 import GToffoli (GToffoli(GToffoli), showGToffoli)
 
-----------------------------------------------------------------------------------------
--- Circuits manipulate locations holding values
+------------------------------------------------------------------------------
+-- Circuits manipulate locations holding (abstract) values
 
---
 -- A circuit is a sequence of generalized Toffoli gates
--- ----------------------------------------------------
 
 type OP s v = Seq (GToffoli s v)
 
@@ -36,9 +32,8 @@ showSizes ((g,r) : gs) =
   printf "Generalized Toffoli Gates with %d controls = %d\n" g r
   ++ showSizes gs
 
---
+------------------------------------------------------------------------------
 -- Basic circuits
--- -------------------------------------------------------------
 
 xop :: Var s v -> GToffoli s v
 xop = GToffoli [] []
@@ -52,6 +47,9 @@ ncx a = GToffoli [False] [a]
 ccx :: Var s v -> Var s v -> Var s v -> GToffoli s v
 ccx a b = GToffoli [True,True] [a,b]
 
+cncx :: Var s v -> Var s v -> Var s v -> GToffoli s v
+cncx a b = GToffoli [True,False] [a,b]
+
 cop :: Var s v -> OP s v -> OP s v
 cop c = fmap (\ (GToffoli bs cs t) -> GToffoli (True:bs) (c:cs) t)
   
@@ -61,13 +59,7 @@ ncop c = fmap (\ (GToffoli bs cs t) -> GToffoli (False:bs) (c:cs) t)
 ccop :: OP s v -> [Var s v] -> OP s v
 ccop = foldr cop
 
-copyOP :: [Var s v] -> [Var s v] -> OP s v
-copyOP as bs = S.fromList (zipWith cx as bs)
-
-carryOP :: Var s v -> Var s v -> Var s v -> Var s v -> OP s v
-carryOP c a b c' = S.fromList [ccx a b c', cx a b, ccx c b c']
-
-----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 -- Circuit abstraction
 
 {--
@@ -82,9 +74,11 @@ carryOP c a b c' = S.fromList [ccx a b c', cx a b, ccx c b c']
     - to initialize ancillaIns in forward evaluation, or
     - to compare with result of retrodictive execution
  
-  forward eval: set ancillaIns to ancillaVals; set xs to input; run; check ancillaOuts
+  forward eval: set ancillaIns to ancillaVals; set xs to input; run;
+  check ancillaOuts
 
-  retrodictive: set xs to symbolic; set ancillaOuts to input; run; check ancillaInss against ancillaVals
+  retrodictive: set xs to symbolic; set ancillaOuts to input; run;
+  check ancillaIns against ancillaVals
 
 --}
 
@@ -96,6 +90,6 @@ data Circuit s v = Circuit
   , ancillaVals :: [v]
   }
 
-----------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+
 

@@ -1,6 +1,8 @@
 module Simple where
 
--- generate-and-test
+------------------------------------------------------------------------------
+
+-- demonstration of generate-and-test
 
 generate :: Int -> [(Int,Int,Int)]
 generate n =  [(x,y,z) | x <- [1..n], y <- [1..n], z <- [1..n]]
@@ -11,7 +13,7 @@ test s nums = [(x,y,z) | (x,y,z) <- nums, x /= y, x /= z, y /= z, x+y+z == s]
 find :: Int -> Int -> (Int,Int,Int)
 find s =  head . test s . generate
 
--- PE idea
+-- demonstration of partial evaluation
 
 power :: Int -> Int -> Int
 power a n
@@ -23,3 +25,5 @@ power a n
   | otherwise = 
      let r = power a (n-1) in
      a * r
+
+------------------------------------------------------------------------------

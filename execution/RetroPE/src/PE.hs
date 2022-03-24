@@ -12,8 +12,8 @@ import GToffoli (GToffoli(..), showGToffoli)
 import Circuits (OP, Circuit(op))
 import Trace (traceM)
 
-----------------------------------------------------------------------------------------
--- PE
+------------------------------------------------------------------------------
+-- Evaluate a circuit with symbolic values (partial evaluation)
 
 peG :: Value v => GToffoli s v -> ST s ()
 peG g@(GToffoli bs cs t) = do
@@ -32,4 +32,4 @@ pe = foldMap peG
 run :: Value v => Circuit s v -> ST s ()
 run circ = pe $ S.reverse (op circ)
 
-----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------

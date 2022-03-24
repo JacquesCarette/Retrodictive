@@ -1,21 +1,25 @@
-module FormAsLists where
+module Shor21Base3 where
+
+-- Run with base 3 numbers (qutrits)
 
 import Data.List (intercalate,group,sort,sortBy)
 
 import Value (Value(..))
 import FormulaRepr (FormulaRepr(FR))
+import qualified QAlgos as Q
 
-------------------------------------------------------------------------------
--- Representation of formulas as xor-lists of and-lists (of strings)
--- This is the naive representation. It is functional but quite slow
+import Text.Printf
 
+{--
+
+----------------------------------------------------------------------------------------
 -- Values can static or symbolic formulae
 -- Formulae are in "algebraic normal form"
 
 type Literal = String
 
--- Ands []      = True
--- Ands [a,b,c] = a && b && c
+-- Ands []      = 1
+-- Ands [a,b,c] = (a * b * c) `mod` 3
 
 newtype Ands = Ands { lits :: [Literal] }
   deriving (Eq,Ord)
@@ -34,8 +38,8 @@ mapA f (Ands lits) = Ands (f lits)
 (***) :: [Ands] -> [Ands] -> [Ands]
 ands1 *** ands2 = [ and1 &&& and2 | and1 <- ands1, and2 <- ands2 ]
 
--- Formula [] = False
--- Formula [ Ands [], Ands [a], Ands [b,c] ] = True XOR a XOR (b && c)
+-- Formula [] = 0
+-- Formula [ Ands [], Ands [a], Ands [b,c] ] = (1 + a + bc) `mod` 3
 
 newtype Formula = Formula { ands :: [Ands]}
   deriving (Eq,Ord)
@@ -54,24 +58,6 @@ mapF2 f (Formula ands1) (Formula ands2) = Formula (f ands1 ands2)
 
 (+++) :: Formula -> Formula -> Formula
 (Formula ands1) +++ (Formula ands2) = Formula (ands1 ++ ands2)
-
--- Normalization
-
--- a && a => a
-
-normalizeLits :: [Literal] -> [Literal]
-normalizeLits = map head . group . sort
-
--- a XOR a = 0
-
-normalizeAnds :: [Ands] -> [Ands]
-normalizeAnds = map head . filter (odd . length) . group . sort -- (sortBy f)
-  where f (Ands xs) (Ands ys) = compare (length xs) (length ys)
-
--- Convert to ANF
-
-anf :: Formula -> Formula
-anf = mapF (normalizeAnds . map (mapA normalizeLits))
 
 -- 
 
@@ -124,8 +110,38 @@ instance Value Formula where
   sxor = fxor
 
 -- instance as explicit dict
-
 formRepr :: FormulaRepr Formula String
 formRepr = FR fromVar fromVars
 
-------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------
+-- Testing
+
+-- Shor
+
+retroShor :: Integer -> IO ()
+retroShor = Q.retroShor formRepr "x"
+
+retroShorp :: Integer -> Int -> IO ()
+retroShorp = Q.retroShorp formRepr "x" Nothing
+
+retroShorn :: Integer -> Int -> Integer -> IO ()
+retroShorn = Q.retroShorn formRepr "x"
+
+{--
+shor 21  with n=5 and a=16
+
+1 \oplus x_0 \oplus x_0x_2 \oplus x_0x_2x_3 \oplus x_0x_2x_3x_4 \oplus x_0x_2x_3x_4x_5 \oplus x_0x_2x_4x_5 \oplus x_0x_2x_5 \oplus x_0x_3x_4 \oplus x_0x_3x_5 \oplus x_0x_4 \oplus x_0x_4x_5 \oplus x_2 \oplus x_2x_3x_4 \oplus x_2x_3x_5 \oplus x_2x_4 \oplus x_2x_4x_5 \oplus x_3 \oplus x_3x_4x_5 \oplus x_3x_5 \oplus x_4 \oplus x_5 = 1
+
+x_0 \oplus x_0x_2x_3 \oplus x_0x_2x_3x_4x_5 \oplus x_0x_2x_3x_5 \oplus x_0x_2x_4 \oplus x_0x_2x_5 \oplus x_0x_3 \oplus x_0x_3x_4 \oplus x_0x_3x_4x_5 \oplus x_0x_4x_5 \oplus x_0x_5 \oplus x_2 \oplus x_2x_3 \oplus x_2x_3x_4 \oplus x_2x_3x_4x_5 \oplus x_2x_4x_5 \oplus x_2x_5 \oplus x_3x_4 \oplus x_3x_5 \oplus x_4 \oplus x_4x_5 = 0
+
+x_0x_2 \oplus x_0x_2x_3x_4 \oplus x_0x_2x_3x_5 \oplus x_0x_2x_4 \oplus x_0x_2x_4x_5 \oplus x_0x_3 \oplus x_0x_3x_4x_5 \oplus x_0x_3x_5 \oplus x_0x_4 \oplus x_0x_5 \oplus x_2x_3 \oplus x_2x_3x_4x_5 \oplus x_2x_3x_5 \oplus x_2x_4 \oplus x_2x_5 \oplus x_3 \oplus x_3x_4 \oplus x_3x_4x_5 \oplus x_4x_5 \oplus x_5 = 0
+
+
+--}
+
+----------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------
+
+
+----------------------------------------------------------------------------------------
+--}

@@ -1,7 +1,5 @@
 module FormAsBitmaps where
 
--- Representation of formulas as xor maps of bitmaps
-
 import Data.Bits
 import Data.Bits.Bitwise (toListLE)
 import Data.List (intercalate)
@@ -12,7 +10,10 @@ import Numeric.Natural
 import Value (Value(..))
 import FormulaRepr (FormulaRepr(FR))
 
-----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+-- Representation of formulas as xor maps of bitmaps
+-- Faster than lists of strings
+
 -- Values can static or symbolic formulae
 -- Formulae are in "algebraic normal form"
 
@@ -39,6 +40,7 @@ instance Show Ands where
           showL ss = foldr (\x s -> if snd x then 'x' : (show (fst x) ++ s) else s) "" ss
 
 -- while this represents an And, this is about presence / absence of variables
+
 (&&&) :: Ands -> Ands -> Ands
 (Ands lits1) &&& (Ands lits2) = Ands $ lits1 .|. lits2
 
@@ -69,6 +71,7 @@ normalizeF m = MS.fromOccurMap $ Map.mapMaybe normal m
     normal a = if even a then Nothing else Just 1
 
 --- Cartesian Product
+
 (***) :: XORF -> XORF -> XORF
 ands1 *** ands2 = normalizeF mm
   where
@@ -80,6 +83,7 @@ ands1 *** ands2 = normalizeF mm
            Map.foldrWithKey 
              (\k' a' b' -> Map.alter (maybe (Just (a*a')) (\x -> Just ((a*a')+x))) (k &&& k') b')
              b m2) Map.empty m1
+         
     {- the following seems to be slower -- all the time is in the fromOccurList
     m3 :: [ (Ands,Int) ]
     m3 = Map.foldrWithKey (\k a b ->
@@ -96,6 +100,7 @@ mapF2 f (Formula ands1) (Formula ands2) = Formula (f ands1 ands2)
 
 -- +++ does not normalize
 -- 'Xor' of formulas
+
 (+++) :: Formula -> Formula -> Formula
 (Formula ands1) +++ (Formula ands2) = Formula (MS.union ands1 ands2)
 
@@ -161,5 +166,8 @@ instance Value Formula where
   sxor = fxor
 
 -- instance as explicit dict
+
 formRepr :: FormulaRepr Formula Int
 formRepr = FR fromVar fromVars
+
+------------------------------------------------------------------------------

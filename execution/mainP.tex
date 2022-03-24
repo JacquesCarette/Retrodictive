@@ -89,7 +89,179 @@ McMaster University \qquad Indiana University \qquad Indiana University}
 
   why would Nature execute the circuit in the way we draw it
 
+  Use Pi to write circuits because the current model is hardwired to use base 2.
+
+  two classes of variables ???
+  Z vars whose values range over 0/1
+  X vars whose values range over +/-
+
+
+
+We are running classically and symbolically.
+
+State is maintained in ANF.
+
+We will maintain the ANF clauses in p-blocks with a maximum p of say 10.
+
+We will start running with base 2 representation.
+
+  If an operation involves variables in the same block, then good
+  
+  If an operation involves variables in different blocks, merge the
+    blocks, do the operation.
+    
+  If the block is now too large, find a different basis for this block
+    that will make its size smaller
+  
+---
+Step I: QC with qutrits (or more generally qudits)
+
+not x = (x + 1) `mod` 3
+cnot (x,y)= (x , (x + y) `mod` 3)
+toffoli (x,y,z) = (x , y, (xy + z) `mod` 3)
+
+Bell cnot(x,0) = (x,x)
+
+GHZ  (x,0,0) => (x,x,0) => (x,x,x) 
+
+Shor 21 with qutrits
+
+c0 c1 c2 q0 q1
+(0+1+2) (0+1+2) (0+1+2) 0 0
+=>
+(c2,q1) c0 c1 q0
+(00+11+22) (0+1+2) (0+1+2) 0 
+=>
+(c1,c2,q1) c0 q0
+(000+112+221) (0+1+2) 0
+=>
+(c1,c2,q1,q0) c0 
+(0000+1122+2211) (0+1+2)
+=>
+(c1,c2,q1,q0) c0 
+(0000+1112+2201) (0+1+2)
+=>
+(c1,c2,q1,q0) c0 
+(0000+1110+2201) (0+1+2)
+=>
+(c1,c2,q1,q0) c0 
+(0010+1120+2211) (0+1+2)
+=>
+(c0,c1,c2,q1,q0) 
+(00010+01120+02211+10011+11122+12212+20012+21121+22210)
+=>
+(c0,c1,c2,q1,q0) 
+(00020+01100+02221+10021+11102+12222+20022+21101+22220)
+=>
+(c0,c1,c2,q1,q0) 
+(00022+01100+02220+10020+11102+12221+20021+21101+22222)
+=>
+(c0,c1,c2,q1,q0) 
+(00022+01100+02220+10020+11122+12201+20011+21121+22202)
+=>
+(c0,c1,c2,q1,q0) 
+(00021+01100+02222+10022+11121+12201+20012+21120+22202)
+
+
+c0 c1 c2 q0 q1	
+
+01100 +
+
+21102 +
+
+12210 +
+
+00012 +
+11112 +
+
+22220
+
+20021 +
+
+02222 +
+10022 +
+
+
+
+
+
+---
+
+Need to write quantum programs in a way that is independent of the
+underlying basis and let the runtime system change basis to reduce the
+size of the intermediate states.
+
+This could be related to QFT and to reducing dimension in ML
+
+Circuit for 4^x mod 21
+
+x    f(x)
+0    1
+1    4
+2    16
+3    1
+4    4
+5    16
+6    1
+7    4
+
+3 qubits for computational register (c2c1c0)
+5 qubits for ancilla (a4a3a2a1a0)
+
+000 00000  ==> 000 00001
+001 00000  ==> 001 00100
+010 00000  ==> 010 10000
+011 00000  ==> 011 00001
+100 00000  ==> 100 00100
+101 00000  ==> 101 10000
+110 00000  ==> 110 00001
+111 00000  ==> 111 00100
+
+000 + 011 + 110 ==> a0=1
+001 + 100 + 111 ==> a2=1
+010 + 101       ==> a4=1
+
+cccx(-c2,-c1,-c0,a0)
+cccx(-c2,c1,c0,a0)
+cccx(c2,c1,-c0,a0)
+cccx(-c2,-c1,c0,a2)
+cccx(c2,-c1,-c0,a2)
+cccx(c2,c1,c0,a2)
+cccx(-c2,c1,-c0,a4)
+cccx(c2,-c1,c0,a4)
+
+--- Execute keeping track of blocks (keep max at 4)
+
+{c2} {c1} {c0} {a4} {a3} {a2} {a1} {a0}
+     (0+1)(0+1)(0+1) 00000
+
+{c2,c1,c0,a0} {a4} {a3} {a2} {a1}
+ (0001+0010+0100+0110+1000+1010+1100+1110) 0000
+ (0001+0010+0100+0111+1000+1010+1100+1110) 0000
+ (0001+0010+0100+0111+1000+1010+1101+1110) 0000
+
+{c2,c1,c0,a0,a2} {a4} {a3} {a1}
+ (00010+00101+01000+01110+10000+10100+11010+11100) 000
+ express 2+5+8+14+16+20+26+28 in base 3
+ 00002+00012+00022+00112+00121+00202+00222+01001
+ 0 (0002+0012+0022+0112+0121+0202+0222+1001)
+
+{c2} {c1,c0,a0,a2} {a4} {a3} {a1}
+
+
+
+
+
+
+--- Symbolically ?
+
+
 }
+
+start with base 2 (booleans) and maximum groups of p.
+if groups get too big switch to another basis that makes the representation smaller
+related to p-adics ???
+
 
 Retrodictive quantum theory~\cite{sym13040586},
 retrocausality~\cite{Aharonov2008}, and the time-symmetry of physical
@@ -301,6 +473,11 @@ state. Similarly, for the circuit in Fig.~\ref{fig:bell}(right), the
 state after the Hadamard gate is $\ket{x00}$ which evolves to
 $\ket{xx0}$ and then to $\ket{xxx}$ again accurately capturing the
 entanglement correlations.
+
+\todo{ need for entanglement~\cite{10.2307/3560059}
+  }
+
+
 
 This insight allows us to symbolically execute the many quantum
 algorithms that match the template in Fig.~\ref{fig:templateQC}
@@ -715,17 +892,277 @@ numbers. The equations which span about five pages in
 Sec.~\ref{par:shor21} glaringly show the limitations of the basic
 retrodictive execution approach and the need for additional insights.
 
-Special optimizations of Shor 21. Let's use only 5 bits. The formulae are:
+%% I know 00000 is a solution because we picked ancilla = 1
+%% solutions
+%%
+%% 00011, 00110,
+%% 01001, 01100,
+%% 11011, 10010, 10101,
+%% 11000, 11011, 11110
+
+%% Want the next smallest solution
+
+%% x4 x3 x2 x1 x0
+%%  0  0  0  1  1
+
+n=4
+
 \[\begin{array}{l}
-1 \oplus x_0 \oplus x_0x_2 \oplus x_0x_2x_3 \oplus x_0x_2x_3x_4 \oplus x_0x_2x_3x_4x_5 \oplus x_0x_2x_4x_5 \oplus x_0x_2x_5 \oplus x_0x_3x_4 \oplus x_0x_3x_5 \oplus x_0x_4 \\
-  \quad \oplus x_0x_4x_5 \oplus x_2 \oplus x_2x_3x_4 \oplus x_2x_3x_5 \oplus x_2x_4 \oplus x_2x_4x_5 \oplus x_3 \oplus x_3x_4x_5 \oplus x_3x_5 \oplus x_4 \oplus x_5 = 1
+1  \oplus x_0 
+\oplus x_2
+\oplus x_4 \\
+~~
+\oplus x_0x_2 
+\oplus x_0x_3 
+\oplus x_0x_4
+\oplus x_2x_3 
+\oplus x_2x_4
+\oplus x_3x_4 \\
+~~
+\oplus x_0x_2x_4 \\
+~~
+\oplus x_0x_2x_3x_4 
+= 1
 \\[2ex]
-x_0 \oplus x_0x_2x_3 \oplus x_0x_2x_3x_4x_5 \oplus x_0x_2x_3x_5 \oplus x_0x_2x_4 \oplus x_0x_2x_5 \oplus x_0x_3 \oplus x_0x_3x_4 \oplus x_0x_3x_4x_5 \oplus x_0x_4x_5 \\
-  \quad \oplus x_0x_5 \oplus x_2 \oplus x_2x_3 \oplus x_2x_3x_4 \oplus x_2x_3x_4x_5 \oplus x_2x_4x_5 \oplus x_2x_5 \oplus x_3x_4 \oplus x_3x_5 \oplus x_4 \oplus x_4x_5 = 0
-\\[2ex]
-x_0x_2 \oplus x_0x_2x_3x_4 \oplus x_0x_2x_3x_5 \oplus x_0x_2x_4 \oplus x_0x_2x_4x_5 \oplus x_0x_3 \oplus x_0x_3x_4x_5 \oplus x_0x_3x_5 \oplus x_0x_4 \oplus x_0x_5 \oplus x_2x_3 \\
-  \quad \oplus x_2x_3x_4x_5 \oplus x_2x_3x_5 \oplus x_2x_4 \oplus x_2x_5 \oplus x_3 \oplus x_3x_4 \oplus x_3x_4x_5 \oplus x_4x_5 \oplus x_5 = 0
+x_0 
+\oplus x_2
+\oplus x_4  \\
+~~
+\oplus x_0x_3
+\oplus x_2x_3
+\oplus x_3x_4 \\
+~~
+\oplus x_0x_2x_3 
+\oplus x_0x_3x_4 
+\oplus x_2x_3x_4 \\
+~~
+\oplus x_0x_2x_3x_4 
+= 0
 \end{array}\]
+
+n=5
+\[\begin{array}{l}
+1 \oplus x_0
+\oplus x_2
+\oplus x_3
+\oplus x_4
+\oplus x_5 \\
+~~
+\oplus x_0x_2
+\oplus x_0x_4
+\oplus x_2x_4
+\oplus x_3x_5 \\
+~~
+\oplus x_0x_2x_3
+\oplus x_0x_2x_5
+\oplus x_0x_3x_4
+\oplus x_0x_3x_5
+\oplus x_0x_4x_5
+\oplus x_2x_3x_4
+\oplus x_2x_3x_5
+\oplus x_2x_4x_5
+\oplus x_3x_4x_5 \\
+~~
+\oplus x_0x_2x_3x_4
+\oplus x_0x_2x_4x_5 \\
+~~
+\oplus x_0x_2x_3x_4x_5
+= 1
+\\[2ex]
+
+x_0 
+\oplus x_2
+\oplus x_4 \\
+~~
+\oplus x_0x_3
+\oplus x_0x_5
+\oplus x_2x_3 
+\oplus x_2x_5 
+\oplus x_3x_4 
+\oplus x_3x_5 
+\oplus x_4x_5 \\
+~~
+\oplus x_0x_2x_3 
+\oplus x_0x_2x_4 
+\oplus x_0x_2x_5 
+\oplus x_0x_3x_4 
+\oplus x_0x_4x_5 
+\oplus x_2x_3x_4 
+\oplus x_2x_4x_5 \\
+~~
+\oplus x_0x_2x_3x_5
+\oplus x_0x_3x_4x_5 
+\oplus x_2x_3x_4x_5 \\
+~~
+\oplus x_0x_2x_3x_4x_5 
+= 0
+\\[2ex]
+
+x_3
+\oplus x_5 \\
+~~
+\oplus x_0x_2 
+\oplus x_0x_3 
+\oplus x_0x_4 
+\oplus x_0x_5 
+\oplus x_2x_3 
+\oplus x_2x_4
+\oplus x_2x_5
+\oplus x_3x_4
+\oplus x_4x_5 \\
+~~
+\oplus x_0x_2x_4 
+\oplus x_0x_3x_5
+\oplus x_2x_3x_5 
+\oplus x_3x_4x_5 \\
+~~
+\oplus x_0x_2x_3x_4 
+\oplus x_0x_2x_3x_5
+\oplus x_0x_2x_4x_5 
+\oplus x_0x_3x_4x_5 
+\oplus x_2x_3x_4x_5
+= 0
+\end{array}\]
+
+z-gate entanglement uses xor perhaps look at various patterns of
+entanglement and how they are expressed in ANF then look at ANF and
+how various properties are apparent without actually solving the
+equations
+
+n=6
+\[\begin{array}{l}
+1 \oplus x_0 \oplus x_2 \oplus x_3 \oplus x_4 \oplus x_5 \oplus x_6 \\
+\oplus x_0x_2
+\oplus x_0x_4 
+\oplus x_0x_6
+\oplus x_2x_4 
+\oplus x_2x_6 
+\oplus x_3x_5 
+\oplus x_4x_6 \\
+\oplus x_0x_2x_3
+\oplus x_0x_2x_5 
+\oplus x_0x_3x_4 
+\oplus x_0x_3x_5 
+\oplus x_0x_3x_6 
+\oplus x_0x_4x_5
+\oplus x_0x_5x_6
+\oplus x_2x_3x_4 
+\oplus x_2x_3x_5 
+\oplus x_2x_3x_6 \\
+~~\oplus x_2x_4x_5 
+\oplus x_2x_5x_6 
+\oplus x_3x_4x_5 
+\oplus x_3x_4x_6 
+\oplus x_3x_5x_6 
+\oplus x_4x_5x_6 \\
+\oplus x_0x_2x_3x_4 
+\oplus x_0x_2x_3x_6 
+\oplus x_0x_2x_4x_5 
+\oplus x_0x_2x_4x_6 
+\oplus x_0x_2x_5x_6 
+\oplus x_0x_3x_4x_6
+\oplus x_0x_4x_5x_6 
+\oplus x_2x_3x_4x_6 
+\oplus x_2x_4x_5x_6 \\
+\oplus x_0x_2x_3x_4x_5 
+\oplus x_0x_3x_4x_5x_6 
+\oplus x_0x_2x_3x_5x_6
+\oplus x_2x_3x_4x_5x_6 \\
+\oplus x_0x_2x_3x_4x_5x_6 
+= 1
+\\[2ex]
+
+x_0 
+\oplus x_0x_2x_3 
+\oplus x_0x_2x_3x_4x_5 
+\oplus x_0x_2x_3x_4x_6 
+\oplus x_0x_2x_3x_5 
+\oplus x_0x_2x_3x_5x_6 
+\oplus x_0x_2x_4 
+\oplus x_0x_2x_4x_5x_6 
+\oplus x_0x_2x_4x_6 
+\oplus x_0x_2x_5 
+\oplus x_0x_2x_6 
+\oplus x_0x_3 
+\oplus x_0x_3x_4 
+\oplus x_0x_3x_4x_5 
+\oplus x_0x_3x_4x_5x_6 
+\oplus x_0x_3x_5x_6 
+\oplus x_0x_3x_6 
+\oplus x_0x_4x_5 
+\oplus x_0x_4x_6 
+\oplus x_0x_5 
+\oplus x_0x_5x_6 
+\oplus x_2 
+\oplus x_2x_3 
+\oplus x_2x_3x_4 
+\oplus x_2x_3x_4x_5 
+\oplus x_2x_3x_4x_5x_6 
+\oplus x_2x_3x_5x_6 
+\oplus x_2x_3x_6 
+\oplus x_2x_4x_5 
+\oplus x_2x_4x_6 
+\oplus x_2x_5 
+\oplus x_2x_5x_6 
+\oplus x_3x_4 
+\oplus x_3x_4x_5x_6 
+\oplus x_3x_4x_6 
+\oplus x_3x_5 
+\oplus x_3x_6 
+\oplus x_4 
+\oplus x_4x_5 
+\oplus x_4x_5x_6 
+\oplus x_5x_6 
+\oplus x_6 
+= 0
+
+\\[2ex]
+
+x_0x_2 
+\oplus x_0x_2x_3x_4 
+\oplus x_0x_2x_3x_4x_5x_6 
+\oplus x_0x_2x_3x_4x_6 
+\oplus x_0x_2x_3x_5 
+\oplus x_0x_2x_3x_6 
+\oplus x_0x_2x_4 
+\oplus x_0x_2x_4x_5 
+\oplus x_0x_2x_4x_5x_6 
+\oplus x_0x_2x_5x_6 
+\oplus x_0x_2x_6 
+\oplus x_0x_3 
+\oplus x_0x_3x_4x_5 
+\oplus x_0x_3x_4x_6 
+\oplus x_0x_3x_5 
+\oplus x_0x_3x_5x_6 
+\oplus x_0x_4 
+\oplus x_0x_4x_5x_6 
+\oplus x_0x_4x_6 
+\oplus x_0x_5 
+\oplus x_0x_6 
+\oplus x_2x_3 
+\oplus x_2x_3x_4x_5 
+\oplus x_2x_3x_4x_6 
+\oplus x_2x_3x_5 
+\oplus x_2x_3x_5x_6 
+\oplus x_2x_4 
+\oplus x_2x_4x_5x_6 
+\oplus x_2x_4x_6 
+\oplus x_2x_5 
+\oplus x_2x_6 
+\oplus x_3 
+\oplus x_3x_4 
+\oplus x_3x_4x_5 
+\oplus x_3x_4x_5x_6 
+\oplus x_3x_5x_6 
+\oplus x_3x_6 
+\oplus x_4x_5 
+\oplus x_4x_6 
+\oplus x_5 
+\oplus x_5x_6 
+= 0
+
+\end{array}\]
+
 
 \begin{wrapfigure}{r}{5cm}
 \begin{center}
@@ -855,6 +1292,29 @@ closest one after each gate??
 Sort clauses by length; the difference two consecutive clauses is the period !!!!!!
 
 }
+
+something has to give: either more entanglement requires more energy;
+or signal back in time can be detected; or more mass
+
+quantum algorithms built complex wavevfunction and then ask an
+aggregate question; similar to molecules moving this way and that way
+and then asking a question about temperature. It can be calculated by
+average; no need to track every molecule.
+
+but the program and the programming language is designed to track
+every molecule; and then the observation is something aggregate and
+statistical. Strange
+
+
+Average frequency of each bit weighed by $2^i$. Run with one symbolic
+variable and all others 0 to find contribution of this bit to
+frequency or its average frquency.
+
+Use qutrits for Shor 21. Equations should be nice
+
+Then see if we can run with a parameter p for the base. Then we can
+choose p dynamically. Perhaps keep a range of ``good'' values of p as
+we execute.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

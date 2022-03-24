@@ -1,7 +1,5 @@
 module EvalZ where
 
--- evaluate a circuit in the Z basis (the computational basis)
-
 import Data.STRef (readSTRef, writeSTRef)
 
 import Control.Monad (when)
@@ -15,7 +13,9 @@ import ArithCirc (expm)
 import Value (Value(..), fromInt)
 import QNumeric (toInt)
 
-----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+-- Evaluate a circuit in the Z basis (the computational basis)
+
 -- Values
 
 newtype ZValue = ZValue Bool
@@ -36,7 +36,7 @@ instance Value ZValue where
   sand (ZValue b1) (ZValue b2) = ZValue (b1 && b2)
   sxor (ZValue b1) (ZValue b2) = ZValue (b1 /= b2)
 
-----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 -- Interpreter
 
 controlsActive :: [Bool] -> [ZValue] -> Bool
@@ -54,7 +54,7 @@ interp = foldMap interpGT
 run :: Circuit s ZValue -> ST s ()
 run = interp . op
  
-----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 -- Tests
 
 runExpMod :: Int -> Integer -> Integer -> Integer -> IO ()
@@ -69,5 +69,5 @@ runExpMod n a m x = printResult $ runST $ do
           putStrLn size
           putStrLn (printf "Result = %d" res)
 
-----------------------------------------------------------------------------------------
-----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+
