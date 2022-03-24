@@ -1,13 +1,14 @@
 module Main where
 
-import PEZ (retroGrover, retroShorp)
+import QAlgos (runRetroGrover, runRetroShor)
 
 ------------------------------------------------------------------------------
 
 main :: IO ()
 main = do
-  retroShorp (Just 40) 21 1 -- should be fast: 15, 51, 83, 771; slower: 21, 35
-  -- retroShorp (Just 42) 15 1
+  runRetroShor (Just 40) Nothing Nothing 21
+  -- should be fast: 15, 51, 83, 771; slower: 21, 35
+  -- runRetroShor (Just 42) 15 1
   -- mapM_ (retroGrover 5) [0..31]
 
 -- Notes

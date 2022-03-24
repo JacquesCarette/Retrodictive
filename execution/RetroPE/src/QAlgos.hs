@@ -20,10 +20,13 @@ import Circuits (Circuit(..), cx, ccx, cncx, showSizes, sizeOP, OP)
 import ArithCirc (expm)
 import PE (run)
 import Synthesis (synthesis)
-import FormulaRepr (FormulaRepr(..))
 import QNumeric (toInt)
+import FormulaRepr (FormulaRepr(..))
+import qualified FormAsLists as FL
+import qualified FormAsBitmaps as FB
+-- import qualified FormAsMaps  as FM
 
-----------------------------------------------------------------------------------------
+------------------------------------------------------------------------------
 -- Helper routine to print out the results
 
 printResult :: (Foldable t, Show a, Show b) => (t (a,b), [(Int,Int)]) -> IO ()
@@ -40,9 +43,8 @@ printResult (eqs,sizes) = do
 
 mkGen :: Maybe Int -> IO (AtomicGenM StdGen)
 mkGen Nothing = return globalStdGen
-mkGen (Just i) = newAtomicGenM (mkStdGen i)
+mkGen (Just seed) = newAtomicGenM (mkStdGen seed)
 
-----------------------------------------------------------------------------------------
 -- Generic quantum oracle construction
 
 viewL :: [a] -> ([a],a)
@@ -51,122 +53,8 @@ viewL xs = (init xs, last xs)
 uf :: ([Bool] -> Bool) -> ([Bool] -> [Bool])
 uf f (viewL -> (xs,y)) = xs ++ [f xs /= y]
 
+----------------------------------------------------------------------------------------
 -- Quantum algorithms
-
--- Shor
-
-setupCirc :: Value f => -- invariant: cc is of 'size' n
-    FormulaRepr f r -> r -> Int -> Integer -> Circuit s f -> ST s () 
-setupCirc fr base n r circ = do
-  mapM_ (uncurry writeSTRef) (zip (ancillaOuts circ) (fromInt (n+1) r))
-  mapM_ (uncurry writeSTRef) (zip (xs circ) (fromVars fr (n+1) base))
-
-peExpMod :: (Show f, Value f) =>
-            FormulaRepr f r -> r -> Int -> Integer -> Integer -> Integer -> 
-            ST s ([(f,f)], [(Int,Int)])
-peExpMod fr base n a m r = do
-  circ <- expm n a m
-  setupCirc fr base n r circ
-  run circ
-  result <- mapM readSTRef (ancillaIns circ)
-  let eqs = zip result (ancillaVals circ)
-  return (eqs, sizeOP $ op circ)
-
-peExpModp :: (Show f, Value f) =>
-    FormulaRepr f r -> r -> Int -> Integer -> Integer -> Integer -> Int -> ST s ([(f,f)], [(Int,Int)])
-peExpModp fr base n a m r i = do
-  circ <- expm n a m
-  setupCirc fr base n r circ
-  writeSTRef ((xs circ) !! i) zero
-  run circ
-  result <- mapM readSTRef (ancillaIns circ)
-  let eqs = zip result (ancillaVals circ)
-  return (eqs, sizeOP $ op circ)
-
--- pick observed ancilla
-
-retroShorp :: (Show f, Value f) => FormulaRepr f r -> r -> Maybe Int -> Integer -> Int -> IO ()
-retroShorp fr base seed m i = do
-      gen <- mkGen seed
-      a <- uniformRM (2,m-1) gen
-      let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
-      let gma = gcd m a 
-      if gma /= 1 
-        then putStrLn (printf "Lucky guess %d = %d * %d\n" m gma (m `div` gma))
-        else do putStrLn (printf "n=%d; a=%d\n" n a)
-                let res = runST $ peExpModp fr base n a m 1 i
-                printResult res
-
--- pick number of bits and 'a'
-
-retroShorn :: (Show f, Value f) => FormulaRepr f r -> r -> Integer -> Int -> Integer -> IO ()
-retroShorn fr base m n a = do
-      let gma = gcd m a 
-      if gma /= 1 
-        then putStrLn (printf "Lucky guess %d = %d * %d\n" m gma (m `div` gma))
-        else do putStrLn (printf "n=%d; a=%d\n" n a)
-                let res = runST $ peExpModp fr base n a m 1 1
-                printResult res
-
-retroShor :: (Show f, Value f) => FormulaRepr f r -> r -> Integer -> IO ()
-retroShor fr base m = retroShorp fr base Nothing m 1
-
--- Shor 21 optimized
-
-retroShor21 :: (Show f, Value f) =>
-               FormulaRepr f r -> r -> Integer -> IO ()
-retroShor21 fr base w = print $ runST $ do
-  cs <- newVars (fromVars fr 3 base)
-  qs <- newVars (fromInt 2 w)
-  run Circuit { op = op (cs !! 0) (cs !! 1) (cs !! 2) (qs !! 0) (qs !! 1)
-              , xs = cs
-              , ancillaIns = qs
-              , ancillaOuts = qs
-              , ancillaVals = undefined
-              }
-  mapM readSTRef qs
-  where
-    op c0 c1 c2 q0 q1 = fromList
-      [ cx c2 q1
-      , cx c1 q1
-      , cx q1 q0
-      , ccx c1 q0 q1
-      , cx q1 q0
-      , cncx c0 q1 q0
-      , cx q1 q0
-      , ccx c0 q0 q1
-      , cx q1 q0
-      ]
-
-{--
-
-Q.retroShor21 FL.formRepr "x" 0
-x0 + x0x1 = 0
-x0x1 + x1 + x2 = 0
-  x0=0, x1=x2 => 000, 011
-  x0=1, x1=1, x2=0 => 110
-using qutrits:
-  x0=0, x2=0 => 000, 010, 020
-
-Q.retroShor21 FL.formRepr "x" 1
-1 + x0 + x1 = 0
-x0 + x2 = 0
-  x0/=x1, x0=x2 => 010, 101
-using qutrits
-  x0=0, x2=2 => 002, 012 (022)
-
-Q.retroShor21 FL.formRepr "x" 2
-x0x1 + x1 = 0
-1 + x0 + x0x1 + x2 = 0
-  x0=0, x1=0, x2=1 => 001
-  x0=1, x1=0, x2=0 => 100
-  x0=1, x1=1, x2=1 => 111
-using qutrits
-  x0=0, x2=1 => 001, 011, 021
-
-
---}
-
 
 -- Deutsch
 
@@ -188,6 +76,9 @@ retroDeutsch fr base f = print $ runST $ do
               }
   readSTRef y
 
+runRetroDeutsch = retroDeutsch FL.formRepr "x"
+
+------------------------------------------------------------------------------
 -- Deutsch Jozsa
 
 deutschJozsaConstant0, deutschJozsaConstant1 :: [Bool] -> [Bool]
@@ -225,6 +116,11 @@ retroDeutschJozsa fr base n f = print $ runST $ do
               }
   readSTRef y
 
+runRetroDeutschJozsa :: Int -> ([Bool] -> [Bool]) -> IO ()
+runRetroDeutschJozsa = retroDeutschJozsa FL.formRepr "x"
+
+
+------------------------------------------------------------------------------
 -- Bernstein-Vazirani
 -- n=8, hidden=92 [00111010]
 
@@ -244,6 +140,10 @@ retroBernsteinVazirani fr = print $ runST $ do
               }
   readSTRef y
 
+runRetroBernsteinVazirani :: IO ()
+runRetroBernsteinVazirani = retroBernsteinVazirani FL.formRepr
+
+------------------------------------------------------------------------------
 -- Simon
 -- n=2, a=3
 
@@ -263,6 +163,10 @@ retroSimon fr = print $ runST $ do
               }
   mapM readSTRef as
 
+runRetroSimon :: IO ()
+runRetroSimon = retroSimon FL.formRepr
+
+------------------------------------------------------------------------------
 -- Grover
 
 retroGrover :: (Show f, Value f) =>
@@ -280,5 +184,85 @@ retroGrover fr base n w = print $ runST $ do
   where
     groverOracle n w = uf (== xw) where xw = fromInt n w
 
-----------------------------------------------------------------------------------------
+runRetroGrover :: Int -> Integer -> IO ()
+runRetroGrover = retroGrover FL.formRepr "x"
+
+------------------------------------------------------------------------------
+-- Small manually optimized Shor 21
+
+retroShor21 :: (Show f, Value f) =>
+               FormulaRepr f r -> r -> Integer -> IO ()
+retroShor21 fr base w = print $ runST $ do
+  cs <- newVars (fromVars fr 3 base)
+  qs <- newVars (fromInt 2 w)
+  run Circuit { op = op (cs !! 0) (cs !! 1) (cs !! 2) (qs !! 0) (qs !! 1)
+              , xs = cs
+              , ancillaIns = qs
+              , ancillaOuts = qs
+              , ancillaVals = undefined
+              }
+  mapM readSTRef qs
+  where
+    op c0 c1 c2 q0 q1 = fromList
+      [ cx c2 q1
+      , cx c1 q1
+      , cx q1 q0
+      , ccx c1 q0 q1
+      , cx q1 q0
+      , cncx c0 q1 q0
+      , cx q1 q0
+      , ccx c0 q0 q1
+      , cx q1 q0
+      ]
+
+-- observed input is 2 bits
+
+runRetroShor21 :: Integer -> IO ()
+runRetroShor21 = retroShor21 FL.formRepr "x"
+
+------------------------------------------------------------------------------
+-- Shor
+
+-- expMod circuit a^x `mod` m
+-- r is observed result 
+
+expModCircuit :: (Show f, Value f) =>
+            FormulaRepr f r -> r -> Int -> Integer -> Integer -> Integer -> 
+            ST s ([(f,f)], [(Int,Int)])
+expModCircuit fr base n a m r = do
+  circ <- expm n a m
+  mapM_ (uncurry writeSTRef) (zip (xs circ) (fromVars fr (n+1) base))
+  mapM_ (uncurry writeSTRef) (zip (ancillaOuts circ) (fromInt (n+1) r))
+  run circ
+  result <- mapM readSTRef (ancillaIns circ)
+  let eqs = zip result (ancillaVals circ)
+  return (eqs, sizeOP $ op circ)
+
+-- can choose seed or let system choose
+-- can choose 'a' or let system choose
+-- can choose observed result or use 1
+
+retroShor :: (Show f, Value f) => FormulaRepr f r -> r ->
+             Maybe Int -> Maybe Integer -> Maybe Integer -> Integer -> IO ()
+retroShor fr base seed maybea mayber m = do
+      gen <- mkGen seed
+      a <- case maybea of
+             Nothing -> uniformRM (2,m-1) gen
+             Just a' -> return a'
+      let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
+      let r = case mayber of
+                Nothing -> 1
+                Just r' -> r'
+      let gma = gcd m a 
+      if gma /= 1 
+        then putStrLn (printf "Lucky guess %d = %d * %d\n" m gma (m `div` gma))
+        else do putStrLn (printf "n=%d; a=%d\n" n a)
+                let res = runST $ expModCircuit fr base n a m r
+                printResult res
+
+-- seed a r m
+
+runRetroShor :: Maybe Int -> Maybe Integer -> Maybe Integer -> Integer -> IO ()
+runRetroShor = retroShor FB.formRepr 0
+
 ----------------------------------------------------------------------------------------
