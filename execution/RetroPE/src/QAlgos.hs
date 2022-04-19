@@ -4,7 +4,7 @@ module QAlgos where
 
 import Data.STRef (readSTRef,writeSTRef)
 import Data.List (intercalate,group,sort,sortBy)
-import Data.Sequence (fromList)
+import Data.Sequence (fromList,Seq)
 
 import Control.Monad.ST (runST,ST)
 import Control.Monad.IO.Class (MonadIO)
@@ -18,6 +18,7 @@ import Text.Printf (printf)
 import Value (Var, Value(..), newVar, newVars, fromInt)
 import Circuits (Circuit(..), cx, ccx, cncx, showSizes, sizeOP, OP)
 import ArithCirc (expm)
+import qualified EvalZ (interp,ZValue(..))
 import PE (run)
 import Synthesis (synthesis)
 import QNumeric (toInt)
@@ -188,22 +189,10 @@ runRetroGrover :: Int -> Integer -> IO ()
 runRetroGrover = retroGrover FL.formRepr "x"
 
 ------------------------------------------------------------------------------
--- Small manually optimized Shor 21
+-- Small manually optimized Shor 21 from the IBM paper
 
-retroShor21 :: (Show f, Value f) =>
-               FormulaRepr f r -> r -> Integer -> IO ()
-retroShor21 fr base w = print $ runST $ do
-  cs <- newVars (fromVars fr 3 base)
-  qs <- newVars (fromInt 2 w)
-  run Circuit { op = op (cs !! 0) (cs !! 1) (cs !! 2) (qs !! 0) (qs !! 1)
-              , xs = cs
-              , ancillaIns = qs
-              , ancillaOuts = qs
-              , ancillaVals = undefined
-              }
-  mapM readSTRef qs
-  where
-    op c0 c1 c2 q0 q1 = fromList
+shor21 :: Var s v -> Var s v -> Var s v -> Var s v -> Var s v -> OP s v
+shor21 c0 c1 c2 q0 q1 = fromList
       [ cx c2 q1
       , cx c1 q1
       , cx q1 q0
@@ -214,6 +203,27 @@ retroShor21 fr base w = print $ runST $ do
       , ccx c0 q0 q1
       , cx q1 q0
       ]
+
+retroShor21 :: (Show f, Value f) =>
+               FormulaRepr f r -> r -> Integer -> IO ()
+retroShor21 fr base w = print $ runST $ do
+  cs <- newVars (fromVars fr 3 base)
+  qs <- newVars (fromInt 2 w)
+  run Circuit { op = shor21 (cs !! 0) (cs !! 1) (cs !! 2) (qs !! 0) (qs !! 1)
+              , xs = cs
+              , ancillaIns = qs
+              , ancillaOuts = qs
+              , ancillaVals = undefined
+              }
+  mapM readSTRef qs
+
+runShor21 :: Integer -> Integer -> Integer
+runShor21 c w = runST $ do
+  cs <- newVars (fromInt 3 c)
+  qs <- newVars (fromInt 2 w)
+  EvalZ.interp (shor21 (cs !! 0) (cs !! 1) (cs !! 2) (qs !! 0) (qs !! 1))
+  q <-  mapM readSTRef qs
+  return (toInt (map (\(EvalZ.ZValue b) -> b) q))
 
 -- observed input is 2 bits
 
