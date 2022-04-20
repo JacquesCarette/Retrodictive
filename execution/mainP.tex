@@ -538,7 +538,9 @@ Fig.~\ref{fig:shor21} consists of just three gates; its retrodictive
 execution produces two equations: $x_0=0$ and $x_0 \neq 2$, setting
 $x_0=0$ and leaving $x_1$ unconstrained. The matching values in the
 qutrit system as 00, 10, 20 or in decimal 0, 3, 6 clearly identifying
-the period to be 3.
+the period to be 3. The idea of adapting the computation to simplify
+the circuit and equations is inspired by the fact that entanglement is
+relative to a particular tensor product decomposition (Methods).
 
 \printbibliography[heading=subbibliography]
 \end{refsection}
@@ -550,47 +552,13 @@ the period to be 3.
 \begin{refsection}
 \section*{Methods}
 
-hybrid classical / quantum
+partial eval
 
-adaptive computation: factor 21
+anf
 
+entanglement
 
-\todo{
-  major insight 0: the idea of retro QC mixed with symbolic execution
-  and post-selection leading to equational representation
-
-  major insight I: in many quantum algorithms, we only need equations on
-  the classical sub-circuit; rich enough to express wavefunctions with
-  entanglement
-
-  major insight II: we don't need to completely solve the equations in
-  many algorithms; just need to extract a global pattern
-
-  limitations; size of equations can get exponential; Jozsa
-  paper. Single representation will sometimes blow up; change
-  representation can reduce size but leave this for further
-  investigation; can we dynamically change representation???
-}
-
-
-\todo{
-
-  Shor 21: state 0 + 3 + 6 + 9 + 12 + 15
-  in binary big (and maximally entangled)
-    0000 + 0011 + 0110 + 1001 + 1100 + 1111
-  in ternary nice and small (and unentangled)
-       000 + 010 + 020 + 100 + 110 + 120 ...
-       = (00 + 01 + 02 + 10 + 11 + 12 ...) 0 
-       = (0+1+2) (0+1+2) 0
-  true for equations?
-  here are equations when state is binary
-  here are equations when state is ternary x0 = 0
-}
-
-\todo{
-  equational representation of partially specified wave functions
-  de-mystifies some algorithms
-}
+software
 
 \todo{
   on the way back with retro, we do post-selection on initial condition!!!
@@ -601,19 +569,6 @@ adaptive computation: factor 21
 
   try retro with impossible measurement; how happens with the equations:
   retroShor 15 with ancilla=0 produces equation: 0 = 1
-
-  with post selection can we solve SAT ??
-
-  what is know about complexity of converting a circuit to ANF?
-
-  for Shor we construct Uf as part of the algorithm so the cost of
-  generating the circuit is part of the complexity analysis
-
-  for the other algos Uf is given to us: if given to us as an ANF
-  formula we can answer questions directly with minimal evaluation; so
-  the challenge is to convert the Uf box to ANF; exponential in
-  general ??? but for the particular functions of interest could be
-  efficient
 
   run Shor backwards from QFT measurement; the state right before QFT
   is a periodic state that approximates the state we would have
