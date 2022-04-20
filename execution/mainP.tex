@@ -227,10 +227,9 @@ with the initial conditions yielding the constraints $x_1=x_2$ and $1
 \end{figure}
 
 These insights are robust and can be implemented in software (Methods)
-to analyze circuits with tens of thousands of gates for the quantum
-algorithms that match the template in Fig.~\ref{fig:templateQC}
-(including Deutsch, Deutsch-Jozsa, Bernstein-Vazirani, Simon, Grover,
-and Shor's
+to analyze circuits with millions of gates for the quantum algorithms
+that match the template in Fig.~\ref{fig:templateQC} (including
+Deutsch, Deutsch-Jozsa, Bernstein-Vazirani, Simon, Grover, and Shor's
 algorithms~\cite{doi:10.1137/S0097539796300921,deutsch,deutschJozsa,365701,doi:10.1137/S0097539795293172,nielsen_chuang_2010,10.1145/237814.237866}). The
 software is completely classical, performing mixed mode executions of
 the classical core of the circuits, i.e., the $U_f$ block defined as
@@ -256,7 +255,7 @@ Simon, Grover, and Shor. We highlight the salient results for the
 first five algorithms, and then discuss the most interesting case of
 Shor's algorithm in detail.
 
-\begin{wrapfigure}{r}{7cm}
+\begin{wrapfigure}{r}{6cm}
   \centering
 \begin{tikzpicture}[scale=1.2]
    \begin{yquant*}
@@ -273,21 +272,21 @@ Shor's algorithm in detail.
 \caption{\label{fig:deutsch}Quantum Circuit for the Deutsch-Jozsa
   Algorithm $(n=1)$}
 \end{wrapfigure}
-\paragraph*{De-Quantization of the Deutsch-Jozsa Algorithm.} 
-Let $\finset{n}$ denote the finite set $\{ 0,1,\ldots,(n-1)\}$. We are
-given a function $\finset{2^n} \rightarrow \finset{2}$ that is
-promised to be constant or balanced and we need to distinguish the two
-cases. The quantum circuit Fig.~\ref{fig:deutsch} shows the algorithm
-for the case $n=1$. Instead of the conventional execution, we perform
-a retrodictive execution of the $U_f$ block with an ancilla
-measurement~$0$, i.e., with the state $\ket{x_{n-1}\cdots x_1x_00}$.
-The result of the execution is a symbolic formula $r$ that determines
-the conditions under which $f(x_{n-1},\cdots,x_0) = 0$. When the
-function is constant, the results are $0=0$ (always) or $1=0$
-(never). When the function is balanced, we get a formula that mentions
-the relevant variables. For example, here are the results of three
-executions for balanced functions $\finset{2^6} \rightarrow
-\finset{2}$:
+\paragraph*{De-Quantization.}
+We abbreviate the set $\{ 0,1,\ldots,(n-1)\}$ as~$\finset{n}$. In the
+Deutsch-Jozsa problem, we are given a function $\finset{2^n}
+\rightarrow \finset{2}$ that is promised to be constant or balanced
+and we need to distinguish the two cases. The quantum circuit
+Fig.~\ref{fig:deutsch} shows the algorithm for the case $n=1$. Instead
+of the conventional execution, we perform a retrodictive execution of
+the $U_f$ block with an ancilla measurement~$0$, i.e., with the state
+$\ket{x_{n-1}\cdots x_1x_00}$.  The result of the execution is a
+symbolic formula $r$ that determines the conditions under which
+$f(x_{n-1},\cdots,x_0) = 0$. When the function is constant, the
+results are $0=0$ (always) or $1=0$ (never). When the function is
+balanced, we get a formula that mentions the relevant variables. For
+example, here are the results of three executions for balanced
+functions $\finset{2^6} \rightarrow \finset{2}$:
 \begin{itemize}
 \item $x_0 = 0$,
 \item $x_0 \oplus x_1 \oplus x_2 \oplus x_3 \oplus
@@ -361,13 +360,12 @@ $u=15$ &
 \caption{\label{fig:Grover}Result of retrodictive execution for the Grover oracle ($n=4$, $w$ in the range $\{0..15\}$). The highlighted red subformula is the binary representation of the hidden input $u$.}
 \end{figure}
 
-\paragraph*{Gleaning the Equations.}
 The discussion above suggests that the details of the equations may
 not be particularly relevant for some algorithms. This would be
 crucial as the satisfiability of general boolean equations is, in
 general, an NP-complete
 problem~\cite{4640789,Karp1972,10.1145/800157.805047}. Fortunately,
-this observation holds for other algorithms as well including the
+this observation does hold for other algorithms as well including the
 Bernstein-Vazirani algorithm and Grover's algorithm. In both cases,
 the result can be immediately read from the formula. In the
 Bernstein-Vazirani case, formulae are guaranteed to be of the form
@@ -376,7 +374,7 @@ binary number that has a 1 at the indices of the relevant variables
 $\{ 1,3,4,5 \}$. In the case for Grover, because there is a unique
 input $u$ for which $f(u) = 1$, the ANF formula must include a
 subformula matching the binary representation of $u$, and in fact that
-subformula is guaranteed to be the shortest one as shown in 
+subformula is guaranteed to be the shortest one as shown in
 Fig.~\ref{fig:Grover}.
 
 \begin{figure}
@@ -457,13 +455,34 @@ Fig.~\ref{fig:shor15}. In our implementation, modular exponentiation
 circuits are constructed from first principles using adders and
 multipliers~\cite{PhysRevA.54.147}. In the case of $f(x) = 4^x
 \mod{15}$, although the unoptimized constructed circuit uses 9 qubits
-and has 56538 generalized Toffoli gates, the execution results in just
-two simple equations: $x_0 = 0$ and $1 \oplus x_0 = 1$. Furthermore,
-as shown in Fig.~\ref{fig:shor-eqs}, the shape and size of the
-equations is largely insensitive to the choice of 4 as the base of the
-exponent, leading in all cases to the immediate conclusion that the
-period is either 2 or 4. When the solution is $x_0=0$, the period is
-2. When the solution is $x_0=x_1=0$, the period is 4.
+and has 56,538 generalized Toffoli gates (controlled$^{n}$-not gates
+for all $n$), the execution results in just two simple equations: $x_0
+= 0$ and $1 \oplus x_0 = 1$. Furthermore, as shown in
+Fig.~\ref{fig:shor-eqs}, the shape and size of the equations is
+largely insensitive to the choice of 4 as the base of the exponent,
+leading in all cases to the immediate conclusion that the period is
+either 2 or 4. When the solution is $x_0=0$, the period is 2, and when
+it is $x_0=x_1=0$, the period is~4.
+
+The remarkable effectiveness of retrodictive computation of the Shor
+instance for factoring 15 is due to a coincidence: a period that is a
+power of 2 is clearly trivial to represent in the binary number system
+which, after all is expressly designed for that purpose. That
+coincidence repeats itself when factoring products of the (known)
+Fermat primes: 3, 5, 17, 257, and 65537, and leads to small
+circuits~\cite{shorFermat}. This is confirmed with our implementation
+which smoothly deals with unoptimized circuits for factoring such
+products. Factoring 3*17=51 using the unoptimized circuit of 12 qubits
+and 177,450 generalized Toffoli gates produces just the 4 equations: $1
+\oplus x_1 = 1$, $x_0 = 0$, $x_0 \oplus x_0x_1 = 0$, and $x_1 \oplus
+x0x1 = 0$. Even for 3*65537=196611 whose circuit uses 36 qubits and
+has 4,328,778 generalized Toffoli gates, the execution produces 16 small
+equations that refer to just the four variables $x_0$, $x_1$, $x_2$,
+and $x_3$ constraining them to be all 0, i.e., asserting that the
+period is 16.
+
+
+
 
 \todo{
 51, Fermat primes
@@ -768,107 +787,11 @@ if groups get too big switch to another basis that makes the representation smal
 related to p-adics ???
 }
 
-
-\todo{
-retroShor 51
-n=12; a=49
-
-Generalized Toffoli Gates with 3 controls = 8788
-Generalized Toffoli Gates with 2 controls = 86866
-Generalized Toffoli Gates with 1 controls = 81796
-
-$1 \oplus x_2 \oplus x_0x_2 = 1$
-
-$x_0x_1 \oplus x_0x_2 = 0$
-
-$x_1 \oplus x_0x_1 = 0$
-
-$x_0 \oplus x_1 \oplus x_1x_2 \oplus x_0x_1x_2 = 0$
-
-$x_0 \oplus x_2 \oplus x_1x_2 = 0$
-
-$x_0x_2 = 0$
-
-----
-
-$x_0=x_1=x_2=0$; period = 8
-}
-
-\todo{
-retroShor 85
-n=13; a=57
-
-Generalized Toffoli Gates with 3 controls = 10976
-Generalized Toffoli Gates with 2 controls = 109368
-Generalized Toffoli Gates with 1 controls = 102704
-
-$1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_1x_2x_3 \oplus x_1x_3 \oplus x_2x_3 \oplus x_3 = 1$
-
-$x_0 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_2 \oplus x_0x_3 \oplus x_1x_3 = 0$
-
-$x_0x_1x_2 \oplus x_0x_1x_3 \oplus x_1x_2x_3 \oplus x_2x_3 = 0$
-
-$x_0x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_2 \oplus x_1 \oplus x_1x_2 = 0$
-
-$x_0x_1 \oplus x_0x_1x_2x_3 \oplus x_0x_2 \oplus x_0x_2x_3 \oplus x_2 \oplus x_2x_3 \oplus x_3 = 0$
-
-$x_0x_3 \oplus x_1x_2 \oplus x_1x_3 = 0$
-
-$x_1x_2 \oplus x_1x_2x_3 \oplus x_2 \oplus x_2x_3 = 0$
-
-period = 16
-}
-
-\todo{
-
-retroShor 771
-n=20; a=769
-
-Generalized Toffoli Gates with 3 controls = 37044
-Generalized Toffoli Gates with 2 controls = 381906
-Generalized Toffoli Gates with 1 controls = 354564
-
-$1 \oplus x_0x_3 \oplus x_3 = 1$
-
-$x_0x_1x_2 \oplus x_0x_3 = 0$
-
-$x_0x_1x_2 \oplus x_1x_2 = 0$
-
-$x_0x_1x_2x_3 \oplus x_0x_2 \oplus x_1x_2 \oplus x_1x_2x_3 = 0$
-
-$x_0x_2 \oplus x_0x_2x_3 \oplus x_1x_2x_3 \oplus x_2 = 0$
-
-$x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3 \oplus x_0x_2 \oplus x_2 \oplus x_2x_3 = 0$
-
-$x_0x_1 \oplus x_0x_1x_2 \oplus x_0x_1x_3 \oplus x_0x_2 \oplus x_1 \oplus x_1x_2 \oplus x_2 \oplus x_2x_3 = 0$
-
-$x_0 \oplus x_0x_1x_2x_3 \oplus x_1 \oplus x_1x_2 \oplus x_1x_2x_3 \oplus x_1x_3 \oplus x_2 \oplus x_2x_3 = 0$
-
-$x_0 \oplus x_0x_1x_3 \oplus x_0x_2x_3 \oplus x_1x_2x_3 \oplus x_1x_3 \oplus x_2x_3 \oplus x_3 = 0$
-
-$x_0x_3 = 0$
-
-period = 16
-}
-
 \todo{ longest clause gives period; basically we have constraints on
   all the vars in the longest clause; $2^i$ where i is the index of
   the next variable is the period
 
 Try: 1285, 196611, 327685
-}
-
-\todo{
-
-  Known Fermat primes: 3, 5, 17, 257, 65537
-
-  some equations are bigger; these are sweet
-
-  is it ever the case that we have an even number of clauses that are 1 in
-  the formula for Shor
-
-  it should $a^x mod N = 1$ for two different $x$ ???
-
 }
 
 \todo{
