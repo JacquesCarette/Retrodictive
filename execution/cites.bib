@@ -292,3 +292,142 @@ keywords = {static analysis, software testing, Symbolic execution, concolic exec
  year = {2003}
 }
 
+
+@article{10.1145/3341106,
+author = {Komargodski, Ilan and Naor, Moni and Yogev, Eylon},
+title = {White-Box vs. Black-Box Complexity of Search Problems: Ramsey and Graph Property Testing},
+year = {2019},
+issue_date = {October 2019},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {66},
+number = {5},
+issn = {0004-5411},
+url = {https://doi.org/10.1145/3341106},
+doi = {10.1145/3341106},
+abstract = {Ramsey theory assures us that in any graph there is a clique or independent set of a certain size, roughly logarithmic in the graph size. But how difficult is it to find the clique or independent set? If the graph is given explicitly, then it is possible to do so while examining a linear number of edges. If the graph is given by a black-box, where to figure out whether a certain edge exists the box should be queried, then a large number of queries must be issued. But what if one is given a program or circuit for computing the existence of an edge? This problem was raised by Buss and Goldberg and Papadimitriou in the context of TFNP, search problems with a guaranteed solution.We examine the relationship between black-box complexity and white-box complexity for search problems with guaranteed solution such as the above Ramsey problem. We show that under the assumption that collision-resistant hash function exists (which follows from the hardness of problems such as factoring, discrete-log, and learning with errors) the white-box Ramsey problem is hard and this is true even if one is looking for a much smaller clique or independent set than the theorem guarantees. This is also true for the colorful Ramsey problem where one is looking, say, for a monochromatic triangle.In general, one cannot hope to translate all black-box hardness for TFNP into white-box hardness: we show this by adapting results concerning the random oracle methodology and the impossibility of instantiating it.Another model we consider is that of succinct black-box, where the complexity of an algorithm is measured as a function of the description size of the object in the box (and no limitation on the computation time). In this case, we show that for all TFNP problems there is an efficient algorithm with complexity proportional to the description size of the object in the box times the solution size. However, for promise problems this is not the case.Finally, we consider the complexity of graph property testing in the white-box model. We show a property that is hard to test even when one is given the program for computing the graph (under the appropriate assumptions such as hardness of Decisional Diffie-Hellman). The hard property is whether the graph is a two-source extractor.},
+journal = {J. ACM},
+month = {jul},
+articleno = {34},
+numpages = {28},
+keywords = {black-box hardness, Ramsey theory, white-box hardness}
+}
+
+@inproceedings{10.1145/800157.805047,
+author = {Cook, Stephen A.},
+title = {The Complexity of Theorem-Proving Procedures},
+year = {1971},
+isbn = {9781450374644},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/800157.805047},
+doi = {10.1145/800157.805047},
+abstract = {It is shown that any recognition problem solved by a polynomial time-bounded nondeterministic Turing machine can be “reduced” to the problem of determining whether a given propositional formula is a tautology. Here “reduced” means, roughly speaking, that the first problem can be solved deterministically in polynomial time provided an oracle is available for solving the second. From this notion of reducible, polynomial degrees of difficulty are defined, and it is shown that the problem of determining tautologyhood has the same polynomial degree as the problem of determining whether the first of two given graphs is isomorphic to a subgraph of the second. Other examples are discussed. A method of measuring the complexity of proof procedures for the predicate calculus is introduced and discussed.},
+booktitle = {Proceedings of the Third Annual ACM Symposium on Theory of Computing},
+pages = {151–158},
+numpages = {8},
+location = {Shaker Heights, Ohio, USA},
+series = {STOC '71}
+}
+
+@Inbook{Karp1972,
+author="Karp, Richard M.",
+editor="Miller, Raymond E.
+and Thatcher, James W.
+and Bohlinger, Jean D.",
+title="Reducibility among Combinatorial Problems",
+bookTitle="Complexity of Computer Computations: Proceedings of a symposium on the Complexity of Computer Computations, held March 20--22, 1972, at the IBM Thomas J. Watson Research Center, Yorktown Heights, New York, and sponsored by the Office of Naval Research, Mathematics Program, IBM World Trade Corporation, and the IBM Research Mathematical Sciences Department",
+year="1972",
+publisher="Springer US",
+address="Boston, MA",
+pages="85--103",
+abstract="A large class of computational problems involve the determination of properties of graphs, digraphs, integers, arrays of integers, finite families of finite sets, boolean formulas and elements of other countable domains. Through simple encodings from such domains into the set of words over a finite alphabet these problems can be converted into language recognition problems, and we can inquire into their computational complexity. It is reasonable to consider such a problem satisfactorily solved when an algorithm for its solution is found which terminates within a number of steps bounded by a polynomial in the length of the input. We show that a large number of classic unsolved problems of covering, matching, packing, routing, assignment and sequencing are equivalent, in the sense that either each of them possesses a polynomial-bounded algorithm or none of them does.",
+isbn="978-1-4684-2001-2",
+doi="10.1007/978-1-4684-2001-2_9",
+url="https://doi.org/10.1007/978-1-4684-2001-2_9"
+}
+
+@ARTICLE{4640789,  author={Trakhtenbrot, B.A.},  journal={Annals of the History of Computing},   title={A Survey of Russian Approaches to Perebor (Brute-Force Searches) Algorithms},   year={1984},  volume={6},  number={4},  pages={384-400},  doi={10.1109/MAHC.1984.10036}}
+
+@book{nielsen_chuang_2010, place={Cambridge}, title={Quantum Computation and Quantum Information: 10th Anniversary Edition}, DOI={10.1017/CBO9780511976667}, publisher={Cambridge University Press}, author={Nielsen, Michael A. and Chuang, Isaac L.}, year={2010}}
+
+
+@article{doi:10.1137/S0097539795293172,
+author = {Shor, Peter W.},
+title = {Polynomial-Time Algorithms for Prime Factorization and Discrete Logarithms on a Quantum Computer},
+journal = {SIAM Journal on Computing},
+volume = {26},
+number = {5},
+pages = {1484-1509},
+year = {1997},
+doi = {10.1137/S0097539795293172},
+
+URL = { 
+        https://doi.org/10.1137/S0097539795293172
+    
+},
+eprint = { 
+        https://doi.org/10.1137/S0097539795293172
+    
+}
+,
+    abstract = { A digital computer is generally believed to be an efficient universal computing device; that is, it is believed able to simulate any physical computing device with an increase in computation time by at most a polynomial factor. This may not be true when quantum mechanics is taken into consideration. This paper considers factoring integers and finding discrete logarithms, two problems which are generally thought to be hard on a classical computer and which have been used as the basis of several proposed cryptosystems. Efficient randomized algorithms are given for these two problems on a hypothetical quantum computer. These algorithms take a number of steps polynomial in the input size, e.g., the number of digits of the integer to be factored. }
+}
+
+
+@inproceedings{10.1145/237814.237866,
+author = {Grover, Lov K.},
+title = {A Fast Quantum Mechanical Algorithm for Database Search},
+year = {1996},
+isbn = {0897917855},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/237814.237866},
+doi = {10.1145/237814.237866},
+booktitle = {Proceedings of the Twenty-Eighth Annual ACM Symposium on Theory of Computing},
+pages = {212–219},
+numpages = {8},
+location = {Philadelphia, Pennsylvania, USA},
+series = {STOC '96}
+}
+
+
+@INPROCEEDINGS{365701,  author={Simon, D.R.},  booktitle={Proceedings 35th Annual Symposium on Foundations of Computer Science},   title={On the power of quantum computation},   year={1994},  volume={},  number={},  pages={116-123},  doi={10.1109/SFCS.1994.365701}}
+
+
+@Article{deutsch,
+  author = 	 {David Deutsch},
+  title = 	 {Quantum theory, the Church–Turing principle and the universal quantum computer},
+  journal = 	 {Proc. R. Soc. Lond. A 400},
+  year = 	 1985}
+
+@Article{deutschJozsa,
+  author = 	 {David Deutsch and Richard Jozsa},
+  title = 	 {Rapid solution of problems by quantum computation},
+  journal = 	 {Proc. R. Soc. Lond. A 439},
+  year = 	 1992}
+
+
+@article{doi:10.1137/S0097539796300921,
+author = {Bernstein, Ethan and Vazirani, Umesh},
+title = {Quantum Complexity Theory},
+journal = {SIAM Journal on Computing},
+volume = {26},
+number = {5},
+pages = {1411-1473},
+year = {1997},
+doi = {10.1137/S0097539796300921},
+
+URL = { 
+        https://doi.org/10.1137/S0097539796300921
+    
+},
+eprint = { 
+        https://doi.org/10.1137/S0097539796300921
+    
+}
+,
+    abstract = { In this paper we study quantum computation from a complexity theoretic viewpoint. Our first result is the existence of an efficient universal quantum Turing machine in Deutsch's model of a quantum Turing machine (QTM) [Proc. Roy. Soc. London Ser. A, 400 (1985), pp. 97--117]. This construction is substantially more complicated than the corresponding construction for classical Turing machines (TMs); in fact, even simple primitives such as looping, branching, and composition are not straightforward in the context of quantum Turing machines. We establish how these familiar primitives can be implemented and introduce some new, purely quantum mechanical primitives, such as changing the computational basis and carrying out an arbitrary unitary transformation of polynomially bounded dimension.We also consider the precision to which the transition amplitudes of a quantum Turing machine need to be specified. We prove that \$O(\log T)\$ bits of precision suffice to support a T step computation. This justifies the claim that the quantum Turing machine model should be regarded as a discrete model of computation and not an analog one. We give the first formal evidence that quantum Turing machines violate the modern (complexity theoretic) formulation of the Church--Turing thesis. We show the existence of a problem, relative to an oracle, that can be solved in polynomial time on a quantum Turing machine, but requires superpolynomial time on a bounded-error probabilistic Turing machine, and thus not in the class \$\BPP\$. The class \$\BQP\$ of languages that are efficiently decidable (with small error-probability) on a quantum Turing machine satisfies \$\BPP \subseteq \BQP \subseteq \Ptime^{\SP}\$. Therefore, there is no possibility of giving a mathematical proof that quantum Turing machines are more powerful than classical probabilistic Turing machines (in the unrelativized setting) unless there is a major breakthrough in complexity theory. }
+}
+
+

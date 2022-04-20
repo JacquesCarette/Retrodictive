@@ -30,6 +30,7 @@ dependencies:
 - random >= 1.2.1
 - multiset
 - bitwise
+- mtl
 
 library:
   source-dirs:
