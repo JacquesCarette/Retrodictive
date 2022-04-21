@@ -16,6 +16,8 @@
 \ExecuteBibliographyOptions{sorting=nyt,maxbibnames=100,doi=false,isbn=false,url=false}
 \addbibresource{cites.bib}
 
+\newcommand{\h}[1]{\mintinline{haskell}{#1}}
+
 \newcommand{\x}{\textsc{x}}
 \newcommand{\cx}{\textsc{cx}}
 \newcommand{\ccx}{\textsc{ccx}}
@@ -364,7 +366,7 @@ $u=15$ &
 The discussion above suggests that the details of the equations may
 not be particularly relevant for some algorithms. This would be
 crucial as the satisfiability of general boolean equations is, in
-general, an NP-complete
+general, an $\mathit{NP}$-complete
 problem~\cite{4640789,Karp1972,10.1145/800157.805047}. Fortunately,
 this observation does hold for other algorithms as well including the
 Bernstein-Vazirani algorithm and Grover's algorithm. In both cases,
@@ -553,49 +555,6 @@ relative to a particular tensor product decomposition (Methods).
 \begin{refsection}
 \section*{Methods}
 
-\paragraph*{Lazy Evaluation.}
-Consider a program that searches for three different numbers $x$, $y$,
-and $z$ each in the range $[1..n]$ and that sum to $s$. A
-well-established design principle for solving such problems is the
-\emph{generate-and-test} computational paradigm. Following this
-principle, a simple program to solve this problem in the programming
-language Haskell is:
-
-\begin{minted}{haskell}
-generate :: Int -> [(Int,Int,Int)]
-generate n =  [(x,y,z) | x <- [1..n], y <- [1..n], z <- [1..n]]
-
-test :: Int -> [(Int,Int,Int)] -> [(Int,Int,Int)]
-test s nums = [(x,y,z) | (x,y,z) <- nums, x /= y, x /= z, y /= z, x+y+z == s]
-
-find :: Int -> Int -> (Int,Int,Int)
-find s =  head . test s . generate
-\end{minted}
-
-\noindent The program consists of three functions: \verb|generate| that produces
-all triples \verb|(x,y,z)| from \verb|(1,1,1)| to \verb|(n,n,n)|;
-\verb|test| that checks that the numbers are different and that their
-sum is equal to \verb|s|; and \verb|find| that composes the two
-functions: generating all triples, testing the ones that satisfy the
-condition, and returning the first solution. Running this program to
-find numbers in the range $[1..6]$ that sum to 15 immediately produces
-$(4,5,6)$ as expected.
-
-But what if the range of interest was $[1..10000000]$ ? A na\"\i ve
-execution of the generate-and-test method would be prohibitively
-expensive as it would spend all its time generating an enormous number
-of triples that are un-needed. Lazy demand-driven evaluation as
-implemented in Haskell succeeds in a few seconds with the result
-$(1,2,12)$, however. The idea is simple: instead of eagerly generating
-all the triples, generate a process that, when queried, produces one
-triple at a time on demand. Conceptually the execution starts from the
-observer site which is asking for the first element of a list; this
-demand is propagated to the function \verb|test| which itself
-propagates the demand to the function \verb|generate|. As each triple
-is generated, it is tested until one triple passes the test. This
-triple is immediately returned without having to generate any
-additional values.
-
 \paragraph*{Symbolic Execution of Classical Programs.}
 A well-established technique to simultaneously explore multiple paths
 that a classical program could take under different inputs is
@@ -606,83 +565,9 @@ initially unconstrained. As the execution proceeds, the symbols
 interact with program constructs and this typically introduces
 constraints on the possible values that the symbols represent. At the
 end of the execution, these constraints can be solved to infer
-properties of the program under consideration. The idea is also
-applicable to quantum circuits as the following example illustrates.
+properties of the program under consideration. 
 
-\paragraph*{Partial Evaluation.}
-Below is a Haskell program that computes $a^n$ by repeated squaring:
-\begin{minted}{haskell}
-power :: Int -> Int -> Int
-power a n
-  | n == 0     = 1
-  | n == 1     = a
-  | even n     = let r = power a (n `div` 2) in r * r 
-  | otherwise  = a * power a (n-1)
-\end{minted}
-When both inputs are known, e.g., \verb|a = 3| and \verb|n = 5|, the
-program evaluates as follows:
-\begin{minted}{haskell}
-   power 3 5
-=  3 * power 3 4
-=  3 * (let r1 = power 3 2 in r1 * r1)
-=  3 * (let r1 = (let r2 = power 3 1 in r2 * r2) in r1 * r1)
-=  3 * (let r1 = (let r2 = 3 in r2 * r2) in r1 * r1)
-=  3 * (let r1 = 9 in r1 * r1)
-=  243
-\end{minted}
-
-Partial evaluation is used when we only have partial information about
-the inputs. Say we only know $n=5$. A partial evaluator then attempts
-to evaluate \verb|power| with symbolic input \verb|a| and actual input
-\verb|n=5|. This evaluation proceeds as follows:
-\begin{minted}{haskell}
-   power a 5 
-=  a * power a 4 
-=  a * (let r1 = power a 2 in r1 * r1)
-=  a * (let r1 = (let r2 = power a 1 in r2 * r2) in r1 * r1)
-=  a * (let r1 = (let r2 = a in r2 * r2) in r1 * r1)
-=  a * (let r1 = a * a in r1 * r1)
-=  let r1 = a * a in a * r1 * r1
-\end{minted}
-All of this evaluation, simplification, and specialization happens
-without knowledge of \verb|a|. Just knowing \verb|n| was enough to
-produce a residual program that is much simpler. 
-
-The evolution of a quantum system is typically understood as
-proceeding forwards in time --- from the present to the future. As
-shown in Fig.~\ref{fig:templateQC}(a), 
-
-Since the conventional execution starts with complete ignorance about
-the future, the initial state is prepared as a superposition that
-includes every possibility. In a well-designed algorithm, , by the
-time the computation reaches the measurement stages, the relative
-phases and probability amplitudes in that enormous superposition have
-become biased towards states of interest which are projected to
-produce the final answer.
-
-\paragraph*{Algebraic Normal Form (ANF).}
-\label{para:anf}
-
-~
-
-\todo{
-circuits have generalized toffoli gates: semantics (and of controls;
-xor with target); ANF uses exactly those two primitives; explain
-
-The resulting
-expressions are in algebraic normal form~\cite{TOKAREVA20151} where
-$+$ denotes exclusive-or. 
-
-instances with no 'and' easy to solve
-
-if only x and cx then symbolic execution is efficient; no need for last batch of H
-
-can solve problem classically
-
-connect with Gottsman-Knill
-}
-
-\begin{wrapfigure}{r}{5cm}
+\begin{wrapfigure}{r}{7cm}
 \begin{center}
 \begin{tikzpicture}[scale=0.6]
    \begin{yquant*}[register/minimum height=1.3cm]
@@ -692,6 +577,7 @@ connect with Gottsman-Knill
    cnot y | x;
   \end{yquant*}
 \end{tikzpicture}
+\qquad
 \begin{tikzpicture}[scale=0.6]
    \begin{yquant*}[register/minimum height=1.3cm]
    qubit {$\ket0$} x;
@@ -711,19 +597,138 @@ this is similar to a qubit in a superposition $(1/\sqrt{2}) (\ket{0}
 \pm \ket{1})$. Thus, it appears that $H\ket{0}$ could be represented
 by a symbol~$x$ to denote the uncertainty. Surprisingly, this idea
 scales to even represent maximally entangled
-states. Fig.~\ref{fig:bell2}(left) shows a circuit to generate the Bell
+states. Fig.~\ref{fig:bell2} (left) shows a circuit to generate the Bell
 state $(1/\sqrt{2}) (\ket{00} + \ket{11})$. By using the symbol $x$
 for $H\ket{0}$, the input to the \cx-gate is $\ket{x0}$ which
 evolves to $\ket{xx}$. By sharing the same symbol in two positions,
 the symbolic state accurately represents the entangled Bell
-state. Similarly, for the circuit in Fig.~\ref{fig:bell}(right), the
+state. Similarly, for the circuit in Fig.~\ref{fig:bell2} (right), the
 state after the Hadamard gate is $\ket{x00}$ which evolves to
 $\ket{xx0}$ and then to $\ket{xxx}$ again accurately capturing the
 entanglement correlations.
 
-need for entanglement~\cite{10.2307/3560059}
+Given a maximally entangled state defined with respect to a particular
+tensor product decomposition, the same state may become unentangled in
+a different tensor product decomposition. Given the state:
+\[
+ \ket{\Psi} =\ket{0}+\ket{3}+\ket{6}+\ket{9}+\ket{12}+\ket{15},
+\]
+one can find a 4-qubit representation (${\cal H}=\bigotimes_{i=1}^4
+\mathbb{C}^2$)
+\[
+ \ket{\Psi} = \ket{0000}+\ket{0011}+\ket{0110} 
+  + \ket{1001}+\ket{1100}+\ket{1111},
+\]
+where we used the following map $\ket{m}=\sum_{i=0}^3 x_i 2^i$, with
+$m \in \mathbb{Z}$ and $x_i=0,1$.  One can use the purity~\cite{GE2004}
+\[
+ P_{\ket{\Psi} }=\frac{1}{4}\sum_{i=1}^4\sum_{\mu=x,y,z}\langle \Psi |
+ \sigma^\mu_i \ket{\Psi}^2
+\]
+and confirm that the state $\ket{\Psi}$ is maximally entangled, i.e.,
+has $P_{\ket{\Psi}} =0$. In contrast, in a qutrit basis (${\cal
+  H}=\bigotimes_{i=1}^4 \mathbb{C}^3$), given the map
+$\ket{m}=\sum_{i=0}^3 x_i 3^i$, with $x_i=0,1,2$, the state
+\begin{eqnarray}
+ \ket{\Psi} &=&\ket{0000}+\ket{0010}+\ket{0020} 
+  + \ket{0100}+\ket{0110}+\ket{0120} \nonumber \\
+ &=&\ket{0}\otimes(\ket{0}+\ket{1})\otimes(\ket{0}+\ket{1}+\ket{2})\otimes\ket{0}, \nonumber
+\end{eqnarray}
+is a product (unentangled) state. 
 
-\begin{wrapfigure}{r}{5cm}
+\paragraph*{Lazy Evaluation.}
+Consider a program that searches for three different numbers $x$, $y$,
+and $z$ each in the range $[1..n]$ and that sum to $s$. A
+well-established design principle for solving such problems is the
+\emph{generate-and-test} computational paradigm. Following this
+principle, a simple program to solve this problem in the programming
+language Haskell is:
+
+\begin{minted}{haskell}
+generate :: Int -> [(Int,Int,Int)]
+generate n =  [(x,y,z) | x <- [1..n], y <- [1..n], z <- [1..n]]
+
+test :: Int -> [(Int,Int,Int)] -> [(Int,Int,Int)]
+test s nums = [(x,y,z) | (x,y,z) <- nums, x /= y, x /= z, y /= z, x+y+z == s]
+
+find :: Int -> Int -> (Int,Int,Int)
+find s =  head . test s . generate
+\end{minted}
+
+\noindent The program consists of three functions: \h{generate} that
+produces all triples \h{(x,y,z)} from \h{(1,1,1)} to \h{(n,n,n)};
+\h{test} that checks that the numbers are different and that their sum
+is equal to \h{s}; and \h{find} that composes the two functions
+generating all triples, testing the ones that satisfy the condition,
+and returning the first solution. Running this program to find numbers
+in the range $[1..6]$ that sum to 15 immediately produces $(4,5,6)$ as
+expected.
+
+But what if the range of interest was $[1..10000000]$ ? A na\"\i ve
+execution of the generate-and-test method would be prohibitively
+expensive as it would spend all its time generating an enormous number
+of triples that are un-needed. Lazy demand-driven evaluation as
+implemented in Haskell succeeds in a few seconds with the result
+$(1,2,12)$, however. The idea is simple: instead of eagerly generating
+all the triples, generate a process that, when queried, produces one
+triple at a time on demand. Conceptually the execution starts from the
+observer site which is asking for the first element of a list; this
+demand is propagated to the function \h{test} which itself
+propagates the demand to the function \h{generate}  As each triple
+is generated, it is tested until one triple passes the test. This
+triple is immediately returned without having to generate any
+additional values.
+
+\paragraph*{Partial Evaluation.}
+Below is a Haskell program that computes $a^n$ by repeated squaring:
+\begin{minted}{haskell}
+power :: Int -> Int -> Int
+power a n
+  | n == 0     = 1
+  | n == 1     = a
+  | even n     = let r = power a (n `div` 2) in r * r 
+  | otherwise  = a * power a (n-1)
+\end{minted}
+When both inputs are known, e.g., \h{a = 3} and \h{n = 5}  the
+program evaluates as follows:
+\begin{minted}{haskell}
+   power 3 5
+=  3 * power 3 4
+=  3 * (let r1 = power 3 2 in r1 * r1)
+=  3 * (let r1 = (let r2 = power 3 1 in r2 * r2) in r1 * r1)
+=  3 * (let r1 = (let r2 = 3 in r2 * r2) in r1 * r1)
+=  3 * (let r1 = 9 in r1 * r1)
+=  243
+\end{minted}
+
+Partial evaluation is used when we only have partial information about
+the inputs. Say we only know $n=5$. A partial evaluator then attempts
+to evaluate \h{power} with symbolic input \h{a} and actual input
+\h{n=5}  This evaluation proceeds as follows:
+\begin{minted}{haskell}
+   power a 5 
+=  a * power a 4 
+=  a * (let r1 = power a 2 in r1 * r1)
+=  a * (let r1 = (let r2 = power a 1 in r2 * r2) in r1 * r1)
+=  a * (let r1 = (let r2 = a in r2 * r2) in r1 * r1)
+=  a * (let r1 = a * a in r1 * r1)
+=  let r1 = a * a in a * r1 * r1
+\end{minted}
+All of this evaluation, simplification, and specialization happens
+without knowledge of \h{a}. Just knowing \h{n} was enough to
+produce a residual program that is much simpler. 
+
+\paragraph*{Algebraic Normal Form (ANF).}
+The semantics of a generalized Toffoli gate with $n$ control qubits:
+$a_{n_1},\cdots,c_0$ and one target qubit $b$ is $b \oplus \bigwedge_i
+a_i$, the exclusive-or of the target $b$ with the conjunction of all
+the control qubits. That is precisely the definition of the algebraic
+normal form of boolean expressions. We note that circuits that only
+use \x\ and \cx-gates never generate any conjunctions and hence lead
+to formulae that efficiently solvable
+classically~\cite{10.5555/35517,TOKAREVA20151}.
+
+\begin{wrapfigure}{r}{7cm}
 \begin{center}
 \begin{tikzpicture}[scale=0.7]
 \draw (0,0) ellipse (1cm and 2cm);
@@ -744,7 +749,7 @@ need for entanglement~\cite{10.2307/3560059}
 \end{center}
 \caption{\label{fig:preimage}The pre-image of 4 under $f(x) = 7^x \mod 15$.}
 \end{wrapfigure}
-\paragraph*{Retrodictive Executions and Function Pre-images.}
+\paragraph*{Complexity Analysis.}
 Given finite sets $A$ and $B$, a function $f : A \rightarrow B$ and an
 element $y \in B$, we define $\preim{f}{y}$, the pre-image of~$y$
 under~$f$, as the set $\{ x \in A ~|~ f(x) = y \}$. For example, let
@@ -759,17 +764,15 @@ execution might generate the formulae $x_1=1$ and $x_0=0$. The
 2, 6, 10, 14 \}$. The critical points to note, however, are that: (i)
 solving the equations describing the pre-image is in general an
 intractable (even for quantum computers) $\mathit{NP}$-complete
-problem, and (ii) solving the equations is not needed for the quantum
-algorithms in the previous section. \emph{Only some global properties
-  of the pre-image are needed!} Indeed, we have already seen that for
-solving the Deutsch-Jozsa problem, the only thing needed was whether
-the formula contains some variables. Also for the Bernstein-Vazirani
-problem, the only thing needed was the indices of the variables
-occurring in the formula. For Grover's algorithm, we only need to
-extract the singleton element in the pre-image and for Shor's
-algorithm we only need to extract the periodicity of the elements in
-the pre-image but retrodictive execution as presented so far is only
-able to de-quantize some rare instances of algorithms.
+problem, and (ii) solving the equations is not needed for typical
+quantum algorithms. \emph{Only some global properties of the pre-image
+  are needed!} Indeed, we have already seen that for solving the
+Deutsch-Jozsa problem, the only thing needed was whether the formula
+contains some variables. For the Bernstein-Vazirani problem, the only
+thing needed was the indices of the variables occurring in the
+formula. For Grover's algorithm, we only need to extract the singleton
+element in the pre-image and for Shor's algorithm we ``only'' need to
+extract the periodicity of the elements in the pre-image.
 
 To appreciate the difficulty of computing pre-images in general, note
 that finding the pre-image of a function subsumes several challenging
@@ -786,22 +789,31 @@ of one-way functions which itself implies $\mathit{P} \neq
 \mathit{NP}$, all these pre-images calculations are believed to be
 computationally intractable in their most general setting.
 
+The bottleneck in retrodictive execution, as we presented it, is
+therefore in the symbolic execution of circuits in the ANF domain. Not
+only does the execution scale with the number of gates in the circuit
+but also with the size of the intermediate ANF formulae, which could
+become exponential in the number of variables.
+
 \paragraph*{Software.}
+The entire suite of programs including synthesis of reversible
+circuits, standard evaluation, retrodictive evaluation under various
+modes, testing, debugging, and alternative representations off ANF
+formulae is only ~1,500 lines of Haskell. The heart of the
+implementation is this simple function:
 
-\paragraph*{Complexity Analysis.}
-
-\paragraph*{Speculation.}
-
-observer 1 measures wires a,b; obs2 measures wires b,c; not commuting;
-each obs gives partial solution to equations; but partial solutions
-cannot lead to a global solution
- 
-KS suggests that equations do not have unique solutions; only
-materialize when you measure;
-
-can associate a probability with each variable in a equation: look at
-all solutions and see the contribution of each variable to these
-solutions.
+\begin{minted}{haskell}
+peG :: Value v => GToffoli s v -> ST s ()
+peG (GToffoli bs cs t) = do
+  controls <- mapM readSTRef cs
+  tv <- readSTRef t
+  let funs = map (\b -> if b then id else snot) bs
+  let r = sxor tv (foldr sand one (zipWith ($) funs controls))
+  writeSTRef t r
+\end{minted}
+The function performs symbolic evaluation of one generalized Toffoli
+gates, reading the current ANF formulae for each control and producing
+an appropriate ANF formula for the target.
 
 \paragraph*{Data Availability.}
 All execution results will be made available and can be replicated by
@@ -830,9 +842,11 @@ The corresponding author is Gerardo Ortiz.
 \paragraph*{Supplementary Information.} 
 \label{par:shor21}
 
-\paragraph*{Equations for Optimized Shor 21 Circuit.}
-Equations generated by retrodictive execution of $4^x \mod{21}$
-starting from observed result 1 and unknown $x$. 
+The equations generated by retrodictive execution of the optimized
+circuit for $4^x \mod{21}$ starting from observed result 1 and unknown
+$x$ are:
+
+\bigskip
 
 $1 \oplus x_0 \oplus x_1 \oplus x_2 \oplus x_0x_2 \oplus x_0x_1x_2
 \oplus x_3 \oplus x_1x_3 \oplus x_0x_1x_3 \oplus x_0x_2x_3 \oplus
@@ -875,11 +889,15 @@ x_1x_2x_4x_5 \oplus x_0x_1x_2x_4x_5 \oplus x_0x_3x_4x_5 \oplus
 x_1x_3x_4x_5 \oplus x_2x_3x_4x_5 \oplus x_0x_2x_3x_4x_5 \oplus
 x_0x_1x_2x_3x_4x_5 = 0$
 
-\paragraph*{Equations for Unoptimized Shor 21 Circuit.}
-Equations generated by retrodictive execution of $4^x \mod{21}$
-starting from observed result 1 and unknown $x$. The circuit consists
-of 36400 \cx-gates, 38200 \ccx-gates, and 4000 \cccx-gates. There are
-only three equations but each equation is exponentially large.
+\bigskip
+
+The equations generated by retrodictive execution of the unoptimized
+$4^x \mod{21}$ starting from observed result 1 and unknown $x$. The
+circuit consists of 36,400 \cx-gates, 38,200 \ccx-gates, and 4,000
+\cccx-gates. There are only three equations but each equation is
+exponentially large:
+
+\bigskip
 
 $1 \oplus x0 \oplus x_1 \oplus x_2 \oplus x_0x_2 \oplus x_0x_1x_2
 \oplus x_3 \oplus x_1x_3 \oplus x_0x_1x_3 \oplus x_0x_2x_3 \oplus
