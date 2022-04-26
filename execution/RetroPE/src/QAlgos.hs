@@ -199,8 +199,8 @@ timeRetroGrover n w = do
   let bigN = toInteger $ 2^n
   (time,form) <- timeItT (stToIO (do run circ
                                      readSTRef (head (ancillaIns circ))))
-  printf "Grover: N=%d,\tu=%d;\tformula is %d characters long; time = %.2f seconds\n"
-    bigN w (length (show form)) time
+  printf "Grover: N=%d,\tu=%d;\tformula is %s; time = %.2f seconds\n"
+    bigN w (head (words (show form))) time
 timings :: [Int] -> IO ()
 timings = mapM_ (\n -> timeRetroGrover n (2 ^ n - 1))
 
