@@ -197,11 +197,12 @@ timeRetroGrover :: Int -> Integer -> IO ()
 timeRetroGrover n w = do
   circ <- stToIO (groverCircuit FB.formRepr 0 n w)
   let bigN = toInteger $ 2^n
-  (t,_) <- timeItT (stToIO (run circ))
-  printf "Grover: N=%d,\tu=%d;\tt = %.2f seconds\n" bigN w t
-
+  (time,form) <- timeItT (stToIO (do run circ
+                                     readSTRef (head (ancillaIns circ))))
+  printf "Grover: N=%d,\tu=%d;\tformula is %d characters long; time = %.2f seconds\n"
+    bigN w (length (show form)) time
 timings :: [Int] -> IO ()
-timings = mapM_ (\n -> timeRetroGrover n 0)
+timings = mapM_ (\n -> timeRetroGrover n (2 ^ n - 1))
 
 ------------------------------------------------------------------------------
 -- Small manually optimized Shor 21 from the IBM paper
