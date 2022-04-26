@@ -1,3 +1,5 @@
+{-# LANGUAGE ViewPatterns #-}
+
 module Synthesis where
 
 import Data.List (elemIndices, intersect)
@@ -6,12 +8,15 @@ import Data.Sequence ((><))
 
 import GToffoli (GToffoli(GToffoli))
 import Circuits (OP)
-import Value (Var)
+import Value (Var,fromInt)
 
 ------------------------------------------------------------------------------
 -- Synthesis algorithm from https://msoeken.github.io/papers/2016_rc_1.pdf
 
 -- Simple helpers
+
+viewL :: [a] -> ([a],a)
+viewL xs = (init xs, last xs)
 
 -- negate bit i 
 
@@ -100,4 +105,13 @@ n=3    70
 n=4 12870
 
 --}
+------------------------------------------------------------------------------
+-- Special synthesis for Grover functions that are guaranteed to have
+-- just one entry u such thaat f(u) = 1
+
+synthesisGrover :: Int -> [Var s v] -> Integer -> OP s v
+synthesisGrover n (viewL -> (xs,y)) u =
+  S.singleton $ GToffoli (fromInt n u) xs y
+  
+
 ------------------------------------------------------------------------------

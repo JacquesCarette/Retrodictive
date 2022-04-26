@@ -21,7 +21,7 @@ import Circuits (Circuit(..), cx, ccx, cncx, showSizes, sizeOP, OP)
 import ArithCirc (expm)
 import qualified EvalZ (interp,ZValue(..))
 import PE (run)
-import Synthesis (synthesis)
+import Synthesis (viewL,synthesis,synthesisGrover)
 import QNumeric (toInt)
 import FormulaRepr (FormulaRepr(..))
 import qualified FormAsLists as FL
@@ -48,9 +48,6 @@ mkGen Nothing = return globalStdGen
 mkGen (Just seed) = newAtomicGenM (mkStdGen seed)
 
 -- Generic quantum oracle construction
-
-viewL :: [a] -> ([a],a)
-viewL xs = (init xs, last xs)
 
 uf :: ([Bool] -> Bool) -> ([Bool] -> [Bool])
 uf f (viewL -> (xs,y)) = xs ++ [f xs /= y]
@@ -177,14 +174,12 @@ groverCircuit fr base n w = do
   xs <- newVars (fromVars fr n base)
   y <- newVar zero
   return $ 
-   Circuit { op = synthesis (n+1) (xs ++ [y]) (groverOracle n w)
+   Circuit { op = synthesisGrover (n+1) (xs ++ [y]) w
            , xs = xs
            , ancillaIns = [y]
            , ancillaOuts = [y]
            , ancillaVals = undefined
            }
-    where
-      groverOracle n w = uf (== xw) where xw = fromInt n w
 
 retroGrover :: (Show f, Value f) =>
   FormulaRepr f r -> r -> Int -> Integer -> IO ()
@@ -201,12 +196,12 @@ runRetroGrover = retroGrover FB.formRepr 0
 timeRetroGrover :: Int -> Integer -> IO ()
 timeRetroGrover n w = do
   circ <- stToIO (groverCircuit FB.formRepr 0 n w)
-  let u = toInteger $ 2^n - 1
+  let bigN = toInteger $ 2^n
   (t,_) <- timeItT (stToIO (run circ))
-  printf "Grover: N=%d,\tu=%d;\tt = %.2f seconds\n" (u+1) u t
+  printf "Grover: N=%d,\tu=%d;\tt = %.2f seconds\n" bigN w t
 
 timings :: [Int] -> IO ()
-timings = mapM_ (\n -> timeRetroGrover n (2^n - 1))
+timings = mapM_ (\n -> timeRetroGrover n 0)
 
 ------------------------------------------------------------------------------
 -- Small manually optimized Shor 21 from the IBM paper
