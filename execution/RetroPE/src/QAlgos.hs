@@ -5,6 +5,7 @@ module QAlgos where
 import Data.STRef (readSTRef,writeSTRef)
 import Data.List (intercalate,group,sort,sortBy)
 import Data.Sequence (fromList,Seq)
+import qualified Data.Sequence as S (reverse)
 
 import Control.Monad.ST -- (runST,ST)
 import Control.Monad.IO.Class (MonadIO)
@@ -191,6 +192,16 @@ retroGrover fr base n w = print $ runST $ do
 runRetroGrover :: Int -> Integer -> IO ()
 runRetroGrover = retroGrover FB.formRepr 0
 
+predictGrover :: (Show f, Value f) =>
+  FormulaRepr f r -> r -> Int -> Integer -> IO ()
+predictGrover fr base n w = print $ runST $ do
+  circ <- groverCircuit fr base n w
+  run circ { op = S.reverse (op circ) } -- reverse twice
+  readSTRef (head (ancillaIns circ))
+
+runGrover :: Int -> Integer -> IO ()
+runGrover = predictGrover FB.formRepr 0
+
 --
 
 timeRetroGrover :: Int -> Integer -> IO ()
@@ -201,6 +212,7 @@ timeRetroGrover n w = do
                                      readSTRef (head (ancillaIns circ))))
   printf "Grover: N=%d,\tu=%d;\tformula is %s; time = %.2f seconds\n"
     bigN w (head (words (show form))) time
+    
 timings :: [Int] -> IO ()
 timings = mapM_ (\n -> timeRetroGrover n (2 ^ n - 1))
 
