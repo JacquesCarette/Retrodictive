@@ -6,10 +6,11 @@ import Data.STRef (readSTRef,writeSTRef)
 import Data.List (intercalate,group,sort,sortBy)
 import Data.Sequence (fromList,Seq)
 
-import Control.Monad.ST (runST,ST)
+import Control.Monad.ST -- (runST,ST)
 import Control.Monad.IO.Class (MonadIO)
 
 import System.Random.Stateful (uniformRM, newIOGenM, mkStdGen, getStdGen, newAtomicGenM, globalStdGen, applyAtomicGen, AtomicGenM, StdGen)
+import System.TimeIt
 
 import Numeric (readHex)
 import GHC.Show (intToDigit)
@@ -170,23 +171,42 @@ runRetroSimon = retroSimon FL.formRepr
 ------------------------------------------------------------------------------
 -- Grover
 
-retroGrover :: (Show f, Value f) =>
-               FormulaRepr f r -> r -> Int -> Integer -> IO ()
-retroGrover fr base n w = print $ runST $ do
+groverCircuit :: Value f =>
+  FormulaRepr f r -> r -> Int -> Integer -> ST s (Circuit s f)
+groverCircuit fr base n w = do
   xs <- newVars (fromVars fr n base)
   y <- newVar zero
-  run Circuit { op = synthesis (n+1) (xs ++ [y]) (groverOracle n w)
-              , xs = xs
-              , ancillaIns = [y]
-              , ancillaOuts = [y]
-              , ancillaVals = undefined
-              }
-  readSTRef y
-  where
-    groverOracle n w = uf (== xw) where xw = fromInt n w
+  return $ 
+   Circuit { op = synthesis (n+1) (xs ++ [y]) (groverOracle n w)
+           , xs = xs
+           , ancillaIns = [y]
+           , ancillaOuts = [y]
+           , ancillaVals = undefined
+           }
+    where
+      groverOracle n w = uf (== xw) where xw = fromInt n w
+
+retroGrover :: (Show f, Value f) =>
+  FormulaRepr f r -> r -> Int -> Integer -> IO ()
+retroGrover fr base n w = print $ runST $ do
+  circ <- groverCircuit fr base n w
+  run circ
+  readSTRef (head (ancillaIns circ))
 
 runRetroGrover :: Int -> Integer -> IO ()
-runRetroGrover = retroGrover FL.formRepr "x"
+runRetroGrover = retroGrover FB.formRepr 0
+
+--
+
+timeRetroGrover :: Int -> Integer -> IO ()
+timeRetroGrover n w = do
+  circ <- stToIO (groverCircuit FB.formRepr 0 n w)
+  let u = toInteger $ 2^n - 1
+  (t,_) <- timeItT (stToIO (run circ))
+  printf "Grover: N=%d,\tu=%d;\tt = %.2f seconds\n" (u+1) u t
+
+timings :: [Int] -> IO ()
+timings = mapM_ (\n -> timeRetroGrover n (2^n - 1))
 
 ------------------------------------------------------------------------------
 -- Small manually optimized Shor 21 from the IBM paper

@@ -31,6 +31,7 @@ dependencies:
 - multiset
 - bitwise
 - mtl
+- timeit
 
 library:
   source-dirs:
