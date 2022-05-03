@@ -17,6 +17,10 @@ class (Show v, Enum v) => Value v where
   sand :: v -> v -> v
   sxor :: v -> v -> v
 
+  -- has a default implementation
+  snand :: [v] -> v -- n-ary and
+  snand = foldr sand one
+
 -- The default implementation of value is Bool
 
 instance Value Bool where

@@ -22,7 +22,7 @@ peG g@(GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   tv <- readSTRef t
   let funs = map (\b -> if b then id else snot) bs
-  let r = sxor tv (foldr sand one (zipWith ($) funs controls))
+  let r = sxor tv (snand (zipWith ($) funs controls))
   traceM (printf "\tWriting %s\n" (show r)) 
   writeSTRef t r
   
