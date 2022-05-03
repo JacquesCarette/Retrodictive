@@ -6,6 +6,7 @@ import Data.STRef (readSTRef,writeSTRef)
 import Data.List (intercalate,group,sort,sortBy)
 import Data.Sequence (fromList,Seq)
 import qualified Data.Sequence as S (reverse)
+import qualified Data.MultiSet as MS
 
 import Control.Monad.ST -- (runST,ST)
 import Control.Monad.IO.Class (MonadIO)
@@ -183,14 +184,17 @@ groverCircuit fr base n w = do
            }
 
 retroGrover :: (Show f, Value f) =>
-  FormulaRepr f r -> r -> Int -> Integer -> IO ()
-retroGrover fr base n w = print $ runST $ do
+  FormulaRepr f r -> r -> Int -> Integer -> ST a f
+retroGrover fr base n w = do
   circ <- groverCircuit fr base n w
   run circ
   readSTRef (head (ancillaIns circ))
 
 runRetroGrover :: Int -> Integer -> IO ()
-runRetroGrover = retroGrover FB.formRepr 0
+runRetroGrover n w = do
+  let c = runST (retroGrover FB.formRepr 0 n w)
+  let d = MS.findMin $ FB.ands c
+  print d
 
 predictGrover :: (Show f, Value f) =>
   FormulaRepr f r -> r -> Int -> Integer -> IO ()
