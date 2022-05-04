@@ -13,7 +13,8 @@ main = do
   -- should be fast: 15, 51, 83, 771; slower: 21, 35
   -- runRetroShor (Just 42) 15 1
   -- mapM_ (retroGrover 5) [0..31]
-  mapM_ grover [0..30]
+  -- runRetroGrover' 25 0
+  mapM_ grover [0..28]
 
 
 grover n = do

@@ -1,7 +1,7 @@
 module PEO (run) where
 
 import Data.STRef (readSTRef, writeSTRef)
-import Data.List (partition, subsequences)
+import Data.List (partition, subsequences, sort)
 import qualified Data.MultiSet as MS
 import qualified Data.Sequence as S
 import Data.Bits ((.|.))
@@ -58,8 +58,8 @@ normalize bs cs = res
     nega' = subsequences nega
     -- then prepend all the 'same' variables
     res' :: [FB.Ands]
-    res' = map (\x -> FB.Ands $ same .|. (foldr (.|.) 0 x)) nega'
+    res' = map FB.Ands $ sort $ map (\x -> same .|. (foldr (.|.) 0 x)) nega'
     -- and finally, make a big xor
     res :: FB.Formula
-    res = FB.Formula $ MS.fromList res'
+    res = FB.Formula $ MS.fromDistinctAscList res'
 ------------------------------------------------------------------------------
