@@ -17,12 +17,12 @@ import FormulaRepr (FormulaRepr(FR))
 -- Values can static or symbolic formulae
 -- Formulae are in "algebraic normal form"
 
-type Literal = Int
+type Literal = Natural
 
 -- Ands 0     = True
 -- Ands 01011 = x0 & x1 & x3
 
-newtype Ands = Ands { lits :: Natural }
+newtype Ands = Ands { lits :: Literal }
 
 instance Eq Ands where
   (Ands a1) == (Ands a2) = a1 == a2

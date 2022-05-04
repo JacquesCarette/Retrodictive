@@ -23,6 +23,7 @@ import Circuits (Circuit(..), cx, ccx, cncx, showSizes, sizeOP, OP)
 import ArithCirc (expm)
 import qualified EvalZ (interp,ZValue(..))
 import PE (run)
+import qualified PEO (run) -- for Grover
 import Synthesis (viewL,synthesis,synthesisGrover)
 import QNumeric (toInt)
 import FormulaRepr (FormulaRepr(..))
@@ -193,6 +194,18 @@ retroGrover fr base n w = do
 runRetroGrover :: Int -> Integer -> IO ()
 runRetroGrover n w = do
   let c = runST (retroGrover FB.formRepr 0 n w)
+  let d = MS.findMin $ FB.ands c
+  print d
+
+retroGrover' :: FormulaRepr FB.Formula r -> r -> Int -> Integer -> ST a FB.Formula 
+retroGrover' fr base n w = do
+  circ <- groverCircuit fr base n w
+  PEO.run circ
+  readSTRef (head (ancillaIns circ))
+
+runRetroGrover' :: Int -> Integer -> IO ()
+runRetroGrover' n w = do
+  let c = runST (retroGrover' FB.formRepr 0 n w)
   let d = MS.findMin $ FB.ands c
   print d
 
