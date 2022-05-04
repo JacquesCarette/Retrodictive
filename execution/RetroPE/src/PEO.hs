@@ -4,7 +4,7 @@ import Data.STRef (readSTRef, writeSTRef)
 import Data.List (partition, subsequences, sort)
 import qualified Data.MultiSet as MS
 import qualified Data.Sequence as S
-import Data.Bits ((.|.))
+import Data.Bits ((.|.), bit)
 
 import Control.Monad.ST (ST)
 
@@ -28,7 +28,9 @@ peG g@(GToffoli bs cs t) = do
   tv <- readSTRef t
   -- all the controls ought to be single literals
   let ctrl = map (FB.lits . MS.findMin . FB.ands) controls
-  let r = sxor tv (normalize bs ctrl)
+  let tv' = FB.ands $ tv
+  let nc = normalize bs ctrl
+  let r = myxor tv' nc
   traceM (printf "\tWriting %s\n" (show r)) 
   writeSTRef t r
   
@@ -62,4 +64,16 @@ normalize bs cs = res
     -- and finally, make a big xor
     res :: FB.Formula
     res = FB.Formula $ MS.fromDistinctAscList res'
+
+-- Same with xor, especially when we know it's of a single literal
+myxor :: FB.XORF -> FB.Formula -> FB.Formula
+myxor i form = 
+  if MS.null i then form else FB.Formula $ myxor' (MS.findMin i) m
+  where
+    m :: FB.XORF
+    m = FB.ands form
+
+myxor' :: FB.Ands -> FB.XORF -> FB.XORF
+myxor' j m = if MS.member j m then MS.delete j m else MS.insert j m
 ------------------------------------------------------------------------------
+
