@@ -14,7 +14,8 @@ main = do
   -- runRetroShor (Just 42) 15 1
   -- mapM_ (retroGrover 5) [0..31]
   -- runRetroGrover' 23 0
-  mapM_ grover [0..28]
+  -- mapM_ grover [0..28]
+  grover 28
 
 
 grover n = do
