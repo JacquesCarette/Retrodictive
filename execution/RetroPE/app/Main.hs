@@ -14,13 +14,11 @@ main = do
   -- runRetroShor (Just 42) 15 1
   -- mapM_ (retroGrover 5) [0..31]
   -- runRetroGrover' 23 0
-  -- mapM_ grover [0..28]
-  grover 28
-
-
-grover n = do
-  printf "n = %d\t" n
-  timeIt (runRetroGrover' n 0)
+  mapM_ grover [0..28]
+  where
+    grover n = do
+      printf "n = %d\t" n
+      timeIt (runRetroGrover' n (min 10 (2^n - 1)))
 
 -- Notes for RetroShor:
 -- For 21, 41 and 42 (as seeds) are lucky guesses; 40 'works'
