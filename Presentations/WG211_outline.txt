@@ -4,6 +4,16 @@ Audience: CS people with a strong PL background, focused on generation, DSLs and
 
 Take Home: PE (w/ a touch of symbolic) applied to Quantum Programs can do neat stuff.
 
+=====
+New Outline
+
+Start with Fig.1 from paper. Run through the examples from the paper.
+Explain just enough to read the circuits & don't worry about quantum, since our
+code doesn't!  Show lots of code (circuits and Haskell alike)
+
+=====
+Old Outline
+
 Finer grained items to teach:
 - Quantum
   - weirdo basis notation (gives names to basis so that you can compute with them!)
