@@ -110,7 +110,8 @@ retroDeutschJozsa :: (Show f, Value f) =>
 retroDeutschJozsa fr base n f = print $ runST $ do
   xs <- newVars (fromVars fr n base)
   y <- newVar zero
-  run Circuit { op = synthesis (n+1) (xs ++ [y]) f
+  let circ = synthesis (n+1) (xs ++ [y]) f
+  run Circuit { op = circ
               , xs = xs
               , ancillaIns = [y]
               , ancillaOuts = [y]
