@@ -14,6 +14,11 @@ cabal-dev
 cabal.sandbox.config
 *.prof
 *.aux
+*.log
+*.nav
+*.out
+*.snm
+*.toc
 *.hp
 *.eventlog
 .stack-work/
