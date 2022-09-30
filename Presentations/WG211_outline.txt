@@ -1,0 +1,46 @@
+Audience: CS people with a strong PL background, focused on generation, DSLs and the like.
+  --> they know PE
+  --> they don't know Quantum
+
+Take Home: PE (w/ a touch of symbolic) applied to Quantum Programs can do neat stuff.
+
+=====
+New Outline
+
+Start with Fig.1 from paper. Run through the examples from the paper.
+Explain just enough to read the circuits & don't worry about quantum, since our
+code doesn't!  Show lots of code (circuits and Haskell alike)
+
+=====
+Old Outline
+
+Finer grained items to teach:
+- Quantum
+  - weirdo basis notation (gives names to basis so that you can compute with them!)
+  - bit space = 2 points; qbit space = Bloch sphere
+  - global reversibility
+- Quantum Programs
+  - circuits ~~ all the heap, all the time!
+- Show examples
+
+Outline:
+- Intro to Quantum
+  - bit to qubit (as Bloch sphere)
+    - 1 basis vector + real direction + abs 1 = boolean
+    - 1 basis vector + complex direction + abs 1 = circle
+    - 2 basis vectors + complex direction + abs 1 = sphere
+    - bunch of bits (product) works "the same"
+    - yes, there are qutrits and more generally qudits
+  - measurement of qubit
+  - superposition is no longer mysterious?
+  - physics: global reversibility
+
+- Intro to Quantum Programs
+  - classical reversible bit-level programs: not, cnot, ccnot (Toffoli). (c^k)not.
+  - Hadamard gate = 1/8 turn in 1D
+
+- Partial Evaluation
+  - no really new idea (?) needed beyond "take symbolic seriously"
+  - scales like crazy (huge surprise)
+
+- Examples galore

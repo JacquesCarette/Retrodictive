@@ -7,7 +7,7 @@ import Control.Monad.ST (ST)
 
 import Text.Printf (printf)
 
-import Value (Value(..))
+import Value (Value(snot,sxor,snand))
 import GToffoli (GToffoli(..), showGToffoli)
 import Circuits (OP, Circuit(op))
 import Trace (traceM)
@@ -17,12 +17,17 @@ import Trace (traceM)
 
 peG :: Value v => GToffoli s v -> ST s ()
 peG g@(GToffoli bs cs t) = do
+  -- Setup & debug
   msg <- showGToffoli g
   traceM (printf "Interpreting %s\n" msg) 
   controls <- mapM readSTRef cs
   tv <- readSTRef t
+
+  -- actually "run"
   let funs = map (\b -> if b then id else snot) bs
   let r = sxor tv (snand (zipWith ($) funs controls))
+
+  -- debug and return value
   traceM (printf "\tWriting %s\n" (show r)) 
   writeSTRef t r
   
