@@ -27,11 +27,14 @@
 \newcommand{\red}[1]{{\color{red}{#1}}}
 \newcommand{\todo}[1]{\fbox{\begin{minipage}{40em}{\red{#1}}\end{minipage}}}
 
+\newcommand{\Cplx}{\ensuremath{\mathbb{C}}}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 
 \title{Symbolic Execution of \\
-  Toffoli-Hadamard Quantum Circuits}
+  % Toffoli-Hadamard Quantum Circuits}
+  Circuits with Superposition and Entanglement}
 
 \author{Jacques Carette}
 \affiliation{\institution{McMaster University}\city{Hamilton, ON}\country{Canada}}
@@ -47,11 +50,56 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}
 
+There are three common ways to compute with \emph{unknown} values:
+\begin{enumerate}
+  \item by treating as symbolic variables,
+  \item by using distributions,
+  \item by using unitary operators (i.e. qubits).
+\end{enumerate}
+As a zeroth-order approximation, one can think of the ``unitary operators'' of quantum
+computing as \Cplx-valued distributions. The extra ``phase'' involved allows tracking of
+simple relations between inputs (i.e. \emph{entanglement}).
+
+What we will do is to look at the classical reversible circuits at the heart
+of quantum computation, replacing the qubits by symbolic quantities. We look at a particular
+class of circuits with some \emph{inputs} and some \emph{ancillae} on one side, along
+with some \emph{outputs} and the same ancillae restored to their initial values.
+
+Furthermore, all the circuits look like ???
+
+What a quantum circuit does with H on the ancilla is to transform a known input to
+(the equivalent of) the uniform distribution on all possible values. The result is
+basically \emph{maximally unknown}.
+
+What we do instead is to remove the H, and treat the ancillae as dynamic inputs, i.e.
+fully unknown. However, these circuits are all \emph{reversible}, so we can also 
+start from a partial measurement (static), treating the rest of the state as dynamic.
+We then execute the circuit backwards ``symbolically''.
+
+While this sounds like the perfect setup for partial evaluation (PE) or slicing\footnote{
+These are basically the same idea, but PE propagates known information forwards
+through the program, and slicing propagates it backwards from the exit points}.
+Since our circuits are reversible, for simplicity we're going to look at retrodictive
+execution as forward execution of the reverse program, which puts us in the setup of PE.
+
+Except that in PE, the result is a \emph{residual program} that obeys the Futumura equations.
+In our case, we have ``both sides'', i.e. input, output and ancillae, in our hands. So the
+result is going to be a set of equations constraining the ``possible pasts'' of the output
+to be equal to the actual inputs. So rather than obtaining a residual program as output,
+we obtain a \emph{system of equations}.
+
+It all works because of two key things: we're only dealing with boolean values and with
+circuits with operations (not, CX, CCX, and CCCX) that have simple symbolic forms.
+Furthermore, boolean expressions (over AND and XOR) themselves have a normal form. So
+we can propagate that through.
+
+And now we give actual details.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Symbolic Representation of Quantum States} 
+\section{Symbolic Representation of States} 
  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-\section{Partial Evaluation of Quantum Circuits}
+\section{Partial Evaluation of Circuits}
 
 \begin{verbatim}
 Usually program has variables
