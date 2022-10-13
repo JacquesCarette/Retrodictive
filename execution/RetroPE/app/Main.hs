@@ -3,7 +3,7 @@ module Main where
 import System.TimeIt
 import Text.Printf
 
-import QAlgos (runRetroGrover', runRetroShor)
+import RunQAlgos (runRetroGrover', runRetroShor)
 
 ------------------------------------------------------------------------------
 
