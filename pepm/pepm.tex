@@ -234,6 +234,27 @@ The final code consists of $N$ modules that implement
     a mapping from abstract variables to abstract formulas.
   \item \texttt{Variable} - variables as locations holding values and
     their constructors.
+  \item \texttt{ModularArith} - modular arithmetic utilities useful in
+    implementing certain algorithms, like Shor's.
+  \item \texttt{BoolUtils} - function to interpret a list of booleans as
+    an Integer.
+  \item \texttt{GToffoli} - representation of generalized Toffoli gates
+    and some constructors.
+  \item \texttt{Circuits} - representation of circuits (sequences of gates)
+    and of the special ``wires'' of our circuits.
+  \item \texttt{Synthesis} - synthesis algorithm for circuits with particular
+    properties.
+  \item \texttt{ArithCirc} - creation of arithmetic circuits.
+  \item \texttt{EvalZ} - evaluation of circuits on concrete values
+  \item \texttt{FormAsList} - representation of formulas as xor-lists 
+    of and-lists of literals-as-strings.
+  \item \texttt{FormAsMaps} - representation of formulas as xor-maps
+    of and-maps of literals-as-Int.
+  \item \texttt{FormAsBitmaps} - representation of formulas as xor-maps
+    of bitmaps.
+  \item \texttt{SymbEval} - Symbolic evaluation of circuits
+  \item \texttt{SymbEvalSpecialized} - Symbolic evaluation of circuits
+    specialized to the representation from \texttt{FormAsBitmaps}.
   \item qalgos
 \end{enumerate}
 
