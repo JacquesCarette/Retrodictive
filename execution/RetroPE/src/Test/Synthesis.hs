@@ -4,7 +4,6 @@ import Control.Monad.ST (runST)
 import Data.STRef (newSTRef)
 
 import Value (Value(..), fromInt)
-import Variable (Var, newVar, newVars)
 import FormulaRepr (FormulaRepr(..))
 import Printing.Circuits (showOP)
 import Synthesis (synthesis)
