@@ -2,7 +2,7 @@ module FormAsBitmaps where
 
 import Data.Bits
 import Data.Bits.Bitwise (toListLE)
-import Data.List (intercalate)
+import Data.List (intercalate, partition, subsequences, sort)
 import qualified Data.Map as Map
 import qualified Data.MultiSet as MS
 import Numeric.Natural
@@ -171,3 +171,39 @@ formRepr :: FormulaRepr Formula Int
 formRepr = FR fromVar fromVars
 
 ------------------------------------------------------------------------------
+-- We know a lot more when doing expansion of a single gate.
+-- Rather than wait for 'downstream' to compute it all, do it now.
+
+normalize :: [Bool] -> [Literal] -> Formula
+normalize bs cs = res
+  where
+    -- pair up the bools and variables, then partition
+    -- 'same' are for straight-through variables,
+    -- 'nega' for the negated ones
+    pairs = zip bs cs
+    part = partition fst pairs
+    same :: Literal
+    same = foldr (.|.) 0 $ map snd $ fst part
+    nega :: [ Literal ]
+    nega = map snd $ snd part
+    -- nega' is then all the subsequences (aka powerset)
+    nega' :: [[ Literal ]]
+    nega' = subsequences nega
+    -- then prepend all the 'same' variables
+    res' :: [Ands]
+    res' = map Ands $ sort $ map (\x -> same .|. (foldr (.|.) 0 x)) nega'
+    -- and finally, make a big xor
+    res :: Formula
+    res = Formula $ MS.fromDistinctAscList res'
+
+-- Same with xor, especially when we know it's of a single literal
+xor :: XORF -> Formula -> Formula
+xor i form = 
+  if MS.null i then form else Formula $ myxor' (MS.findMin i) m
+  where
+    m :: XORF
+    m = ands form
+
+myxor' :: Ands -> XORF -> XORF
+myxor' j m = if MS.member j m then MS.delete j m else MS.insert j m
+
