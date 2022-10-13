@@ -6,7 +6,7 @@ import Data.STRef (newSTRef)
 import Value (Value(..), fromInt)
 import Variable (Var, newVar, newVars)
 import FormulaRepr (FormulaRepr(..))
-import Circuits (showOP)
+import Printing.Circuits (showOP)
 import Synthesis (synthesis)
 
 ----------------------------------------------------------------------------------------

@@ -3,10 +3,6 @@ module Circuits where
 import qualified Data.Sequence as S
 import Data.Sequence (Seq)
 
-import Control.Monad.ST (ST)
-
-import Text.Printf (printf)
-
 import Variable (Var)
 import GToffoli (GToffoli(GToffoli))
 import Printing.GToffoli (showGToffoli)
@@ -17,21 +13,6 @@ import Printing.GToffoli (showGToffoli)
 -- A circuit is a sequence of generalized Toffoli gates
 
 type OP s v = Seq (GToffoli s v)
-
-showOP :: Show v => OP s v -> ST s String
-showOP = foldMap showGToffoli
-
-sizeOP :: OP s v -> [(Int,Int)]
-sizeOP = foldr (\(GToffoli cs _ _) -> incR (length cs)) [] 
-  where incR n [] = [(n,1)]
-        incR n ((g,r):gs) | n == g = (g,r+1) : gs
-                          | otherwise = (g,r) : incR n gs
-
-showSizes :: [(Int,Int)] -> String
-showSizes [] = ""
-showSizes ((g,r) : gs) =
-  printf "Generalized Toffoli Gates with %d controls = %d\n" g r
-  ++ showSizes gs
 
 ------------------------------------------------------------------------------
 -- Combinators to grow circuits
