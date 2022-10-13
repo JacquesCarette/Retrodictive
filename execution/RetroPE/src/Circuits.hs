@@ -12,18 +12,18 @@ import Printing.GToffoli (showGToffoli)
 
 -- A circuit is a sequence of generalized Toffoli gates
 
-type OP s v = Seq (GToffoli s v)
+type OP br = Seq (GToffoli br)
 
 ------------------------------------------------------------------------------
 -- Combinators to grow circuits
 
-cop :: Var s v -> OP s v -> OP s v
+cop :: br -> OP br -> OP br
 cop c = fmap (\ (GToffoli bs cs t) -> GToffoli (True:bs) (c:cs) t)
   
-ncop :: Var s v -> OP s v -> OP s v
+ncop :: br -> OP br -> OP br
 ncop c = fmap (\ (GToffoli bs cs t) -> GToffoli (False:bs) (c:cs) t)
 
-ccop :: OP s v -> [Var s v] -> OP s v
+ccop :: OP br -> [br] -> OP br
 ccop = foldr cop
 
 ------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ ccop = foldr cop
 --}
 
 data Circuit s v = Circuit
-  { op          :: OP s v
+  { op          :: OP (Var s v)
   , xs          :: [Var s v]
   , ancillaIns  :: [Var s v]
   , ancillaOuts :: [Var s v]  

@@ -240,7 +240,7 @@ timings = mapM_ (\n -> timeRetroGrover n (2 ^ n - 1))
 ------------------------------------------------------------------------------
 -- Small manually optimized Shor 21 from the IBM paper
 
-shor21 :: Var s v -> Var s v -> Var s v -> Var s v -> Var s v -> OP s v
+shor21 :: Var s v -> Var s v -> Var s v -> Var s v -> Var s v -> OP (Var s v)
 shor21 c0 c1 c2 q0 q1 = fromList
       [ cx c2 q1
       , cx c1 q1

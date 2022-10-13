@@ -5,12 +5,13 @@ import Data.STRef (readSTRef)
 
 import Text.Printf (printf)
 
+import Variable (Var)
 import GToffoli (GToffoli(GToffoli))
 
 ------------------------------------------------------------------------------
 -- Printing Toffoli gates
 
-showGToffoli :: Show v => GToffoli s v -> ST s String
+showGToffoli :: Show v => GToffoli (Var s v) -> ST s String
 showGToffoli (GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   vt <- readSTRef t

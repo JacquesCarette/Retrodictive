@@ -9,6 +9,7 @@ import Control.Monad.ST (ST)
 import Text.Printf (printf)
 
 import Value (Value(..))
+import Variable (Var)
 import GToffoli (GToffoli(..))
 import Printing.GToffoli (showGToffoli)
 import Circuits (OP, Circuit(op))
@@ -19,7 +20,7 @@ import qualified FormAsBitmaps as FB
 -- This is like SymbEval but optimized for working in a very particular
 -- representation, that of FormAsBitmaps
 
-evalGates :: GToffoli s FB.Formula -> ST s ()
+evalGates :: GToffoli (Var s FB.Formula) -> ST s ()
 evalGates (GToffoli bs cs t) = do
   -- setup
   controls <- mapM readSTRef cs
@@ -37,7 +38,7 @@ evalGates (GToffoli bs cs t) = do
 
   writeSTRef t r
 
-evalGatesDebug :: GToffoli s FB.Formula -> ST s ()
+evalGatesDebug :: GToffoli (Var s FB.Formula) -> ST s ()
 evalGatesDebug g@(GToffoli bs cs t) = do
   -- debug
   msg <- showGToffoli g

@@ -1,30 +1,28 @@
 module GToffoli where
 
-import Variable (Var)
-
 ------------------------------------------------------------------------------
 -- Generalized Toffoli gates
 
 -- (Circuits will be made out of these)
 
-data GToffoli s v = GToffoli [Bool] [Var s v] (Var s v)
+data GToffoli br = GToffoli [Bool] [br] br
 
 ------------------------------------------------------------------------------
 -- Basic gates
 
-xop :: Var s v -> GToffoli s v
+xop :: br -> GToffoli br
 xop = GToffoli [] []
 
-cx :: Var s v -> Var s v -> GToffoli s v
+cx :: br -> br -> GToffoli br
 cx a = GToffoli [True] [a]
 
-ncx :: Var s v -> Var s v -> GToffoli s v
+ncx :: br -> br -> GToffoli br
 ncx a = GToffoli [False] [a]
 
-ccx :: Var s v -> Var s v -> Var s v -> GToffoli s v
+ccx :: br -> br -> br -> GToffoli br
 ccx a b = GToffoli [True,True] [a,b]
 
-cncx :: Var s v -> Var s v -> Var s v -> GToffoli s v
+cncx :: br -> br -> br -> GToffoli br
 cncx a b = GToffoli [True,False] [a,b]
 
 ------------------------------------------------------------------------------

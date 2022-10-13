@@ -6,6 +6,7 @@ import Control.Monad (when)
 import Control.Monad.ST (ST, runST)
 
 import Value (Value(..))
+import Variable (Var)
 import GToffoli (GToffoli(GToffoli))
 import Circuits (OP, Circuit(op))
 
@@ -38,13 +39,13 @@ instance Value ZValue where
 controlsActive :: [Bool] -> [ZValue] -> Bool
 controlsActive bs cs = and (zipWith (\ b (ZValue b') -> b == b') bs cs)
 
-interpGT :: GToffoli s ZValue -> ST s ()
+interpGT :: GToffoli (Var s ZValue) -> ST s ()
 interpGT (GToffoli bs cs t) = do
   controls <- mapM readSTRef cs
   tv <- readSTRef t
   when (controlsActive bs controls) $ writeSTRef t (snot tv)
 
-interp :: OP s ZValue -> ST s ()
+interp :: OP (Var s ZValue) -> ST s ()
 interp = foldMap interpGT
 
 run :: Circuit s ZValue -> ST s ()

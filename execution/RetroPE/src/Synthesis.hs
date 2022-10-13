@@ -39,7 +39,7 @@ allBools n = map (False :) bs ++ map (True :) bs
 -- Take two bit sequences x and y and return GToffoli gates to convert x to y
 -- without disturbing any bit sequence that is lexicographically smaller than x
 
-synthesisStep :: [Var s v] -> [Bool] -> [Bool] -> (OP s v, [Bool] -> [Bool])
+synthesisStep :: [br] -> [Bool] -> [Bool] -> (OP br, [Bool] -> [Bool])
 synthesisStep vars xbools ybools
   | xbools == ybools = (S.empty, id)
   | otherwise = 
@@ -68,15 +68,15 @@ synthesisStep vars xbools ybools
 
 -- Initialize; repeat synthesis; extract circuit
 
-synthesisLoop :: [Var s v] -> OP s v -> ([Bool] -> [Bool]) ->
-                 [[Bool]] -> OP s v
+synthesisLoop :: [br] -> OP br -> ([Bool] -> [Bool]) ->
+                 [[Bool]] -> OP br 
 synthesisLoop xs circ f [] = circ
 synthesisLoop xs circ f (xbools : rest) = 
   let ybools = f xbools
       (circg,g) = synthesisStep xs xbools ybools
   in synthesisLoop xs (circg >< circ) (g . f) rest
 
-synthesis :: Int -> [Var s v] -> ([Bool] -> [Bool]) -> OP s v
+synthesis :: Int -> [br] -> ([Bool] -> [Bool]) -> OP br 
 synthesis n xs f = synthesisLoop xs S.empty f (allBools n)
 
 ------------------------------------------------------------------------------
@@ -110,7 +110,7 @@ n=4 12870
 -- Special synthesis for Grover functions that are guaranteed to have
 -- just one entry u such that f(u) = 1
 
-synthesisGrover :: Int -> [Var s v] -> Integer -> OP s v
+synthesisGrover :: Int -> [br] -> Integer -> OP br
 synthesisGrover n (viewL -> (xs,y)) u =
   S.singleton $ GToffoli (fromInt n u) xs y
   

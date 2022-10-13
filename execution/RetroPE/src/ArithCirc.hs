@@ -18,16 +18,16 @@ import Circuits (OP, Circuit(..), cop, ncop, ccop)
 
 -- Addition, multiplication, and modular exponentiation circuits
 
-copyOP :: [Var s v] -> [Var s v] -> OP s v
+copyOP :: [br] -> [br] -> OP br
 copyOP as bs = S.fromList (zipWith cx as bs)
 
-carryOP :: Var s v -> Var s v -> Var s v -> Var s v -> OP s v
+carryOP :: br -> br -> br -> br -> OP br
 carryOP c a b c' = S.fromList [ccx a b c', cx a b, ccx c b c']
 
-sumOP :: Var s v -> Var s v -> Var s v -> OP s v
+sumOP :: br -> br -> br -> OP br
 sumOP c a b = S.fromList [cx a b, cx c b]
   
-makeAdder :: Value v => Int -> [ Var s v ] -> [ Var s v ] -> ST s (OP s v)
+makeAdder :: Value v => Int -> [ Var s v ] -> [ Var s v ] -> ST s (OP (Var s v))
 makeAdder n as bs = do
   cs <- newVars (fromInt n 0)
   return (loop as bs cs)
@@ -41,7 +41,7 @@ makeAdder n as bs = do
             S.reverse (carryOP c a b c') ><
             sumOP c a b
 
-makeAdderMod :: Value v => Int -> Integer -> [ Var s v ] -> [ Var s v ] -> ST s (OP s v)
+makeAdderMod :: Value v => Int -> Integer -> [ Var s v ] -> [ Var s v ] -> ST s (OP (Var s v))
 makeAdderMod n m as bs = do
   ms <- newVars (fromInt (n+1) m)
   ms' <- newVars (fromInt (n+1) m)
@@ -60,7 +60,7 @@ makeAdderMod n m as bs = do
     adderab
 
 makeCMulMod :: Value v => Int -> Integer -> Integer ->
-               Var s v -> [ Var s v ] -> [ Var s v ] -> ST s (OP s v)
+               Var s v -> [ Var s v ] -> [ Var s v ] -> ST s (OP (Var s v))
 makeCMulMod n a m c xs ts = do
   ps <- newVars (fromInt (n+1) 0)
   as <- mapM
@@ -80,7 +80,7 @@ makeCMulMod n a m c xs ts = do
 -- if n even, result is in us
 
 makeExpMod :: Value v => Int -> Integer -> Integer ->
-              [ Var s v ] -> [ Var s v ] -> [ Var s v ] -> ST s (OP s v)
+              [ Var s v ] -> [ Var s v ] -> [ Var s v ] -> ST s (OP (Var s v))
 makeExpMod n a m xs ts us = do
   let sqs = take (n+1) (sqmods a m)
   let invsqs = take (n+1) (invsqmods a m)

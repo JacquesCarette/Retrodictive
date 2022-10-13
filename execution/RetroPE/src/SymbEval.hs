@@ -8,6 +8,7 @@ import Control.Monad.ST (ST)
 import Text.Printf (printf)
 
 import Value (Value(snot,sxor,snand))
+import Variable (Var)
 import GToffoli (GToffoli(..))
 import Printing.GToffoli (showGToffoli)
 import Circuits (OP, Circuit(op))
@@ -16,7 +17,7 @@ import Trace (traceM)
 ------------------------------------------------------------------------------
 -- Evaluate a circuit with symbolic values (aka symbolic evaluation)
 
-evalGates :: Value v => GToffoli s v -> ST s ()
+evalGates :: Value v => GToffoli (Var s v) -> ST s ()
 evalGates (GToffoli bs cs t) = do
   -- setup
   controls <- mapM readSTRef cs
@@ -28,7 +29,7 @@ evalGates (GToffoli bs cs t) = do
 
   writeSTRef t r
 
-evalGatesDebug :: Value v => GToffoli s v -> ST s ()
+evalGatesDebug :: Value v => GToffoli (Var s v) -> ST s ()
 evalGatesDebug g@(GToffoli bs cs t) = do
   -- debug
   msg <- showGToffoli g
