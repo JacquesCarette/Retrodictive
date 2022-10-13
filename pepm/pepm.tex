@@ -34,7 +34,8 @@
 
 \title{Symbolic Execution of \\
   % Toffoli-Hadamard Quantum Circuits}
-  Circuits with Superposition and Entanglement}
+  % Circuits with Superposition and Entanglement}
+  Circuits with Entanglement}
 
 \author{Jacques Carette}
 \affiliation{\institution{McMaster University}\city{Hamilton, ON}\country{Canada}}
@@ -128,7 +129,7 @@ Another try at 'the story'.
   \item The exact circuits we use are \emph{generalized Toffoli} gates (which
     are universal for reversible computation, and also ???)
   \item There exists a normal form for boolean functions ideally suited to our problem:
-    ANF (https://en.wikipedia.org/wiki/Algebraic_normal_form)
+    ANF (\url{https://en.wikipedia.org/wiki/Algebraic_normal_form})
   \item Implementation details:
     \begin{itemize}
       \item tagless for value creation language (true, false, not, xor, and)
@@ -143,14 +144,47 @@ Another try at 'the story'.
     \begin{itemize}
       \item present test cases in more detail
       \item show results of running
+        \begin{itemize}
+          \item semantically
+          \item timings
+        \end{itemize}
     \end{itemize}
 \end{enumerate}
 
+So, all in all, I see the outline (and who seems in good position to write)
+\begin{enumerate}
+  \item Introduction [Amr]
+    \begin{itemize}
+      \item items 1-11 above, but 10-11 will be done in more depth later
+    \end{itemize}
+  \item Circuits and Boolean Functions [Jacques will try]
+    \begin{itemize}
+      \item redo 10 and 11 in more detail. Other background here
+    \end{itemize}
+  \item Symbolic Evaluation of Circuits [Jacques]
+    \begin{itemize}
+      \item Define the problem we're tackling
+    \end{itemize}
+  \item Design and Implementation [Jacques]
+    \begin{itemize}
+      \item Give the design (lots of polymorphism, tagless, etc)
+      \item Talk about dreadful timings
+      \item Design of better data-structures for ANF
+    \end{itemize}
+  \item Evaluation [Amr and Jacques]
+    \begin{itemize}
+      \item Explain each of the circuits we're using [Amr]
+      \item Explain how to 'read off' the answer from the constraints [Amr and Jacques]
+      \item Show some timings [Jacques]
+    \end{itemize}
+  \item Conclusion [?]
+\end{enumerate}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Symbolic Representation of States} 
+\section{Circuits and Boolean Functions}
  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-\section{Partial Evaluation of Circuits}
+\section{Symbolic Evaluation of Circuits}
 
 \begin{verbatim}
 Usually program has variables
@@ -169,6 +203,15 @@ classical wires treated as known
 superpositions |0> + |1> treated as symbols x
 run circuit with known values and symbol for superpositions
 \end{verbatim}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+\section{Design and Implementation}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+\section{Evaluation}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+\section{Conclusion}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Old}
