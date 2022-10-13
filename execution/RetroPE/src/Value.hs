@@ -1,8 +1,6 @@
 module Value where
 
 ------------------------------------------------------------------------------
--- Circuits manipulate locations holding values
-
 -- Values will have different representations that support symbolic
 -- values: each representation must have implementations of zero, one,
 -- negation, conjunction, and exlusive-or

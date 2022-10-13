@@ -27,7 +27,7 @@ import qualified EvalZ (interp,ZValue(..))
 import PE (run)
 import qualified PEO (run) -- for Grover
 import Synthesis (viewL,synthesis,synthesisGrover)
-import QNumeric (toInt)
+import BoolUtils (toInt)
 import FormulaRepr (FormulaRepr(..))
 import qualified FormAsLists as FL
 import qualified FormAsBitmaps as FB

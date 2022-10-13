@@ -1,10 +1,7 @@
-module QNumeric where
+module ModularArith where
   
 ------------------------------------------------------------------------------
--- Numeric computations
-
-toInt :: [Bool] -> Integer
-toInt = foldr (\ b n -> toInteger (fromEnum b) + 2*n) 0
+-- Various modular arithmetic computations on Integer
 
 doublemods :: Integer -> Integer -> [Integer]
 doublemods a m = a : doublemods ((2*a) `mod` m) m

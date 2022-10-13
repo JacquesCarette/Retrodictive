@@ -11,7 +11,7 @@ import GToffoli (GToffoli(GToffoli))
 import Circuits (OP, showSizes, sizeOP, Circuit(..))
 import ArithCirc (expm)
 import Value (Value(..), fromInt)
-import QNumeric (toInt)
+import BoolUtils (toInt)
 
 ------------------------------------------------------------------------------
 -- Evaluate a circuit in the Z basis (the computational basis)
