@@ -1,8 +1,5 @@
 module Value where
 
-import Control.Monad.ST (ST)
-import Data.STRef (STRef, newSTRef)
-
 ------------------------------------------------------------------------------
 -- Circuits manipulate locations holding values
 
@@ -49,16 +46,3 @@ fromInt len n
   where
       bits = bin n
       l = len - length bits
-
--- Variables are locations holding values
-
-type Var s v = STRef s v
-
-newVar :: Value v => v -> ST s (Var s v)
-newVar = newSTRef
-
-newVars :: Value v => [v] -> ST s [Var s v]
-newVars = mapM newVar
-
-------------------------------------------------------------------------------
-

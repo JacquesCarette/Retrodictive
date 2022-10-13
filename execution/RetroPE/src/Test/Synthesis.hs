@@ -3,7 +3,8 @@ module Test.Synthesis where
 import Control.Monad.ST (runST)
 import Data.STRef (newSTRef)
 
-import Value (Var, Value(..), newVar, newVars, fromInt)
+import Value (Value(..), fromInt)
+import Variable (Var, newVar, newVars)
 import FormulaRepr (FormulaRepr(..))
 import Circuits (showOP)
 import Synthesis (synthesis)

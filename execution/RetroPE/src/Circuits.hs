@@ -7,7 +7,7 @@ import Control.Monad.ST (ST)
 
 import Text.Printf (printf)
 
-import Value (Var)
+import Variable (Var)
 import GToffoli (GToffoli(GToffoli), showGToffoli)
 
 ------------------------------------------------------------------------------

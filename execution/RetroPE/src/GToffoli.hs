@@ -5,7 +5,7 @@ import Data.STRef (readSTRef)
 
 import Text.Printf (printf)
 
-import Value (Var)
+import Variable (Var)
 
 ------------------------------------------------------------------------------
 -- Generalized Toffoli gates
