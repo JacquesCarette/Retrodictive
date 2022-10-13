@@ -8,7 +8,8 @@ import Control.Monad.ST (ST)
 import Text.Printf (printf)
 
 import Value (Value(snot,sxor,snand))
-import GToffoli (GToffoli(..), showGToffoli)
+import GToffoli (GToffoli(..))
+import Printing.GToffoli (showGToffoli)
 import Circuits (OP, Circuit(op))
 import Trace (traceM)
 

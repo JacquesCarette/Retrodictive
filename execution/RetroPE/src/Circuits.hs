@@ -8,7 +8,8 @@ import Control.Monad.ST (ST)
 import Text.Printf (printf)
 
 import Variable (Var)
-import GToffoli (GToffoli(GToffoli), showGToffoli)
+import GToffoli (GToffoli(GToffoli))
+import Printing.GToffoli (showGToffoli)
 
 ------------------------------------------------------------------------------
 -- Circuits manipulate locations holding (abstract) values

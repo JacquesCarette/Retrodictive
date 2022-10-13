@@ -12,7 +12,8 @@ import Text.Printf (printf)
 import ModularArith (doublemods, sqmods, invsqmods)
 import Value (Value(zero), fromInt)
 import Variable (Var, newVars, newVar)
-import GToffoli (GToffoli(GToffoli), showGToffoli, cx, ccx, ncx)
+import GToffoli (GToffoli(GToffoli), cx, ccx, ncx)
+import Printing.GToffoli (showGToffoli)
 import Circuits (OP, Circuit(..), cop, ncop, ccop)
 
 ------------------------------------------------------------------------------

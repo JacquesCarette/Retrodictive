@@ -11,7 +11,8 @@ import Control.Monad.ST (ST)
 import Text.Printf (printf)
 
 import Value (Value(..))
-import GToffoli (GToffoli(..), showGToffoli)
+import GToffoli (GToffoli(..))
+import Printing.GToffoli (showGToffoli)
 import Circuits (OP, Circuit(op))
 import Trace (traceM)
 import qualified FormAsBitmaps as FB
