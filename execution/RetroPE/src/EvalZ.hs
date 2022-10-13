@@ -5,14 +5,9 @@ import Data.STRef (readSTRef, writeSTRef)
 import Control.Monad (when)
 import Control.Monad.ST (ST, runST)
 
-import Text.Printf (printf)
-
+import Value (Value(..))
 import GToffoli (GToffoli(GToffoli))
-import Circuits (OP, Circuit(..))
-import Printing.Circuits (showSizes, sizeOP)
-import ArithCirc (expm)
-import Value (Value(..), fromInt)
-import BoolUtils (toInt)
+import Circuits (OP, Circuit(op))
 
 ------------------------------------------------------------------------------
 -- Evaluate a circuit in the Z basis (the computational basis)
@@ -56,19 +51,3 @@ run :: Circuit s ZValue -> ST s ()
 run = interp . op
  
 ------------------------------------------------------------------------------
--- Tests
-
-runExpMod :: Int -> Integer -> Integer -> Integer -> IO ()
-runExpMod n a m x = printResult $ runST $ do
-  circ <- expm n a m
-  mapM_ (uncurry writeSTRef) (zip (ancillaIns circ) (ancillaVals circ))
-  mapM_ (uncurry writeSTRef) (zip (xs circ) (fromInt (n+1) x))
-  run circ
-  result <- mapM readSTRef (ancillaOuts circ)
-  return (toInt (map (\ (ZValue b) -> b) result), showSizes (sizeOP (op circ)))
-  where printResult (res,size) = do
-          putStrLn size
-          putStrLn (printf "Result = %d" res)
-
-------------------------------------------------------------------------------
-
