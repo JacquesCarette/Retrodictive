@@ -8,7 +8,8 @@ import Data.Sequence ((><))
 
 import GToffoli (GToffoli(GToffoli))
 import Circuits (OP)
-import Value (Var,fromInt)
+import Value (fromInt)
+import Variable (Var)
 
 ------------------------------------------------------------------------------
 -- Synthesis algorithm from https://msoeken.github.io/papers/2016_rc_1.pdf

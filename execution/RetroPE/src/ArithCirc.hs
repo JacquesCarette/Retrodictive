@@ -10,9 +10,10 @@ import Control.Monad.ST (ST)
 import Text.Printf (printf)
 
 import QNumeric (doublemods, sqmods, invsqmods)
-import Value (Var, Value, newVars, fromInt, newVar, zero)
-import GToffoli (GToffoli(GToffoli), showGToffoli)
-import Circuits (OP, Circuit(..), cx, ccx, ncx, cop, ncop, ccop)
+import Value (Value(zero), fromInt)
+import Variable (Var, newVars, newVar)
+import GToffoli (GToffoli(GToffoli), showGToffoli, cx, ccx, ncx)
+import Circuits (OP, Circuit(..), cop, ncop, ccop)
 
 ------------------------------------------------------------------------------
 -- Circuits to perform arithmetic
