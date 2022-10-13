@@ -108,7 +108,7 @@ n=4 12870
 --}
 ------------------------------------------------------------------------------
 -- Special synthesis for Grover functions that are guaranteed to have
--- just one entry u such thaat f(u) = 1
+-- just one entry u such that f(u) = 1
 
 synthesisGrover :: Int -> [Var s v] -> Integer -> OP s v
 synthesisGrover n (viewL -> (xs,y)) u =
