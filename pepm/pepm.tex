@@ -1,6 +1,5 @@
 \documentclass[sigplan]{acmart}
 
-\usepackage{wrapfig}
 \usepackage{graphicx,color}
 %%\usepackage{amssymb}
 \usepackage{subcaption}
@@ -33,9 +32,7 @@
 \begin{document}
 
 \title{Symbolic Execution of \\
-  % Toffoli-Hadamard Quantum Circuits}
-  % Circuits with Superposition and Entanglement}
-  Circuits with Entanglement}
+  Toffoli-Hadamard Quantum Circuits}
 
 \author{Jacques Carette}
 \affiliation{\institution{McMaster University}\city{Hamilton, ON}\country{Canada}}
@@ -183,17 +180,18 @@ So, all in all, I see the outline (and who seems in good position to write)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Circuits and Boolean Functions}
  
+\paragraph*{Algebraic Normal Form (ANF).}
+The semantics of a generalized Toffoli gate with $n$ control qubits:
+$a_{n_1},\cdots,c_0$ and one target qubit $b$ is $b \oplus \bigwedge_i
+a_i$, the exclusive-or of the target $b$ with the conjunction of all
+the control qubits. That is precisely the definition of the algebraic
+normal form of boolean expressions. We note that circuits that only
+use \x\ and \cx-gates never generate any conjunctions and hence lead
+to formulae that efficiently solvable
+classically~\cite{10.5555/35517,TOKAREVA20151}.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 \section{Symbolic Evaluation of Circuits}
-
-\begin{verbatim}
-Usually program has variables
-some known now
-some known later
-use actual values for variables known now
-use symbols for variables known later
-run with known values and residualize a program over late variables
-\end{verbatim}
 
 For quantum circuits over $H$, CCX
 restrict to $\ket{0}$ inputs; look at state after the initial group of
@@ -207,8 +205,336 @@ run circuit with known values and symbol for superpositions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 \section{Design and Implementation}
 
+As we experimented with the idea of partial evaluation and symbolic
+execution of circuits, we ended up writing a lot of variants of
+essentially the same code, but with minor differences in representation.
+From these early experiments, we could see the major variation points:
+\begin{itemize}
+  \item representation of \emph{boolean values} and \emph{boolean functions}.
+  \item representation of ANF
+  \item representation of circuits
+\end{itemize}
+We also wanted to write out circuits only once, and have them be valid
+across these representation changes.
+
+There thus became our principal requirements. From those, we can make a
+set of design choices that drive the eventual solution.
+
+\subsection{Requirements}
+
+\subsection{Design}
+
+\subsection{Implementation}
+
+The final code consists of $N$ modules that implement
+\begin{enumerate}
+  \item \texttt{Value} - representation of a \emph{language of values}
+    (as a typeclass) and some constructors,
+  \item \texttt{FormulaRepr} - abstract representation of formulas, as
+    a mapping from abstract variables to abstract formulas.
+  \item \texttt{Variable} - variables as locations holding values and
+    their constructors.
+  \item qalgos
+\end{enumerate}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 \section{Evaluation}
+
+\subsection*{Algorithms.} 
+
+We implement six well-known
+quantum algorithms: Deutsch, Deutsch-Jozsa, Bernstein-Vazirani,
+Simon, Grover, and Shor. We highlight the salient results for the
+first five algorithms, and then discuss the most interesting case of
+Shor's algorithm in detail.
+
+\begin{figure}[ht]
+  \centering
+\begin{tikzpicture}[scale=1.2]
+   \begin{yquant*}
+   qubit {$\ket0$} x;
+   qubit {$\ket1$} y;
+   box {$H$} x;
+   box {$H$} y;
+   box {$U_f$} (x,y);
+   measure y;
+   box {$H$} x;
+   measure x;
+  \end{yquant*}
+\end{tikzpicture}
+\caption{\label{fig:deutsch}Quantum Circuit for the Deutsch-Jozsa
+  Algorithm $(n=1)$}
+\end{figure}
+\paragraph*{De-Quantization.}
+We abbreviate the set $\{ 0,1,\ldots,(n-1)\}$ as~$\finset{n}$. In the
+Deutsch-Jozsa problem, we are given a function $\finset{2^n}
+\rightarrow \finset{2}$ that is promised to be constant or balanced
+and we need to distinguish the two cases. The quantum circuit
+Fig.~\ref{fig:deutsch} shows the algorithm for the case $n=1$. Instead
+of the conventional execution, we perform a retrodictive execution of
+the $U_f$ block with an ancilla measurement~$0$, i.e., with the state
+$\ket{x_{n-1}\cdots x_1x_00}$.  The result of the execution is a
+symbolic formula $r$ that determines the conditions under which
+$f(x_{n-1},\cdots,x_0) = 0$. When the function is constant, the
+results are $0=0$ (always) or $1=0$ (never). When the function is
+balanced, we get a formula that mentions the relevant variables. For
+example, here are the results of three executions for balanced
+functions $\finset{2^6} \rightarrow \finset{2}$:
+\begin{itemize}
+\item $x_0 = 0$,
+\item $x_0 \oplus x_1 \oplus x_2 \oplus x_3 \oplus
+    x_4 \oplus x_5 = 0$, and
+\item $1 \oplus x_3x_5 \oplus x_2x_4 \oplus x_1x_5
+\oplus x_0x_3 \oplus x_0x_2 \oplus x_3x_4x_5 \oplus x_2x_3x_5 \oplus
+x_1x_3x_5 \oplus x_0x_3x_5 \oplus x_0x_1x_4 \oplus x_0x_1x_2 \oplus
+x_2x_3x_4x_5 \oplus x_1x_3x_4x_5 \oplus x_1x_2x_4x_5 \oplus
+x_1x_2x_3x_5 \oplus x_0x_3x_4x_5 \oplus x_0x_2x_4x_5 \oplus
+x_0x_2x_3x_5 \oplus x_0x_1x_4x_5 \oplus x_0x_1x_3x_5 \oplus
+x_0x_1x_3x_4 \oplus x_0x_1x_2x_4 \oplus x_0x_1x_2x_4x_5 \oplus
+x_0x_1x_2x_3x_5 \oplus x_0x_1x_2x_3x_4 = 0$.
+\end{itemize}
+In the first case, the function is balanced because it produces $0$
+exactly when $x_0=0$ which happens half of the time in all possible
+inputs; in the second case the output of the function is the
+exclusive-or of all the input variables which is another easy instance
+of a balanced function. The last case is a cryptographically strong
+balanced function whose output pattern is balanced but, by design,
+difficult to discern~\cite{quteprints21763}.
+
+An important insight is that we actually do not care about the exact
+formula. Indeed, since we are promised that the function is either
+constant or balanced, then any formula that refers to at least one
+variable must indicate a balanced function. In other words, the
+outcome of the algorithm can be immediately decided if the formula is
+anything other than 0 or 1. Indeed, our implementation correctly
+identifies all 12870 balanced functions $\finset{2^4} \rightarrow
+\finset{2}$. This is significant as some of these functions produce
+complicated entangled patterns during quantum evolution and could not
+be de-quantized using previous approaches~\cite{djdeq}. A word of
+caution though: our results assume a ``white-box'' complexity model
+rather than a ``black-box'' complexity model~\cite{10.1145/3341106}.
+
+\begin{figure*}
+\begin{tabular}{ll}
+$u=0$ & 
+  $\red{1} \oplus x_3 \oplus x_2 \oplus x_1 \oplus x_0 \oplus x_2x_3 \oplus x_1x_3 \oplus x_1x_2 \oplus x_0x_3 \oplus x_0x_2 \oplus x_0x_1 \oplus x_1x_2x_3 \oplus x_0x_2x_3$ \\
+   &\quad $\oplus ~x_0x_1x_3 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3$ \\
+$u=1$ & 
+  $\red{x_0} \oplus x_0x_3 \oplus x_0x_2 \oplus x_0x_1 \oplus x_0x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3$ \\
+$u=2$ &
+  $\red{x_1} \oplus x_1x_3 \oplus x_1x_2 \oplus x_0x_1 \oplus x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3$ \\
+$u=3$ &
+  $\red{x_0x_1} \oplus x_0x_1x_3 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3$ \\
+$u=4$ &
+  $\red{x_2} \oplus x_2x_3 \oplus x_1x_2 \oplus x_0x_2 \oplus x_1x_2x_3 \oplus x_0x_2x_3 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3$ \\
+$u=5$ &
+  $\red{x_0x_2} \oplus x_0x_2x_3 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3$ \\
+$u=6$ &
+  $\red{x_1x_2} \oplus x_1x_2x_3 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3$ \\
+$u=7$ &
+  $\red{x_0x_1x_2} \oplus x_0x_1x_2x_3$ \\
+$u=8$ &
+  $\red{x_3} \oplus x_2x_3 \oplus x_1x_3 \oplus x_0x_3 \oplus x_1x_2x_3 \oplus x_0x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_1x_2x_3$ \\
+$u=9$ &
+  $\red{x_0x_3} \oplus x_0x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_1x_2x_3$ \\
+$u=10$ &
+  $\red{x_1x_3} \oplus x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_1x_2x_3$ \\
+$u=11$ &
+  $\red{x_0x_1x_3} \oplus x_0x_1x_2x_3$ \\
+$u=12$ &
+  $\red{x_2x_3} \oplus x_1x_2x_3 \oplus x_0x_2x_3 \oplus x_0x_1x_2x_3$ \\
+$u=13$ &
+  $\red{x_0x_2x_3} \oplus x_0x_1x_2x_3$ \\
+$u=14$ &
+  $\red{x_1x_2x_3} \oplus x_0x_1x_2x_3$ \\
+$u=15$ &
+  $\red{x_0x_1x_2x_3}$
+\end{tabular}
+\caption{\label{fig:Grover}Result of retrodictive execution for the Grover oracle ($n=4$, $w$ in the range $\{0..15\}$). The highlighted red subformula is the binary representation of the hidden input $u$.}
+\end{figure*}
+
+The discussion above suggests that the details of the equations may
+not be particularly relevant for some algorithms. This would be
+crucial as the satisfiability of general boolean equations is, in
+general, an $\mathit{NP}$-complete
+problem~\cite{4640789,Karp1972,10.1145/800157.805047}. Fortunately,
+this observation does hold for other algorithms as well including the
+Bernstein-Vazirani algorithm and Grover's algorithm. In both cases,
+the result can be immediately read from the formula. In the
+Bernstein-Vazirani case, formulae are guaranteed to be of the form
+$x_1 \oplus x_3 \oplus x_4 \oplus x_5$; the secret string is then the
+binary number that has a 1 at the indices of the relevant variables
+$\{ 1,3,4,5 \}$. In the case for Grover, because there is a unique
+input $u$ for which $f(u) = 1$, the ANF formula must include a
+subformula matching the binary representation of $u$, and in fact that
+subformula is guaranteed to be the shortest one as shown in
+Fig.~\ref{fig:Grover}.
+
+\begin{figure*}
+\[\begin{array}{l@{\quad}lllll}
+\textrm{Base} & \multicolumn{4}{c}{\textrm{Equations}} & \textrm{Solution} \\[2ex]
+a=11 & x_0 = 0 &&&& \red{x_0 = 0} \\
+a=4,14 & 1 \oplus x_0 = 1 & x_0 = 0 &&
+  & \red{x_0 = 0} \\
+a=7,13 & 1 \oplus x_1 \oplus x_0x_1 = 1 & x_0x_1 = 0 & x_0 \oplus x_1 \oplus x_0x_1 = 0 &  x_0 \oplus x_0x_1 = 0 & \red{x_0=x_1=0} \\
+a=2,8 & 1 \oplus x_0 \oplus x_1 \oplus x_0x_1 = 1 & x_0x_1 = 0 & x_1 \oplus x_0x_1 = 0 & x_0 \oplus x_0x_1 = 0  & \red{x_0=x_1=0}
+\end{array}\]
+\caption{\label{fig:shor-eqs}Equations generated by retrodictive
+  execution of $a^x \mod{15}$ for different values of $a$, starting
+  from observed result 1 and unknown
+  $x_8x_7x_6x_5x_4x_3x_2x_1x_0$. The solution for the unknown
+  variables is given in the last column.}
+\end{figure*}
+
+\begin{figure}{r}
+\begin{center}
+\begin{tikzpicture}
+\node[scale=0.9]{    
+\begin{quantikz}[row sep=0.005cm,column sep=0.22cm]
+\lstick{$x_2 = \ket{0}$} & \gate{H}& \qw & \qw 
+      & \qw & \gate[wires=3][0.5cm]{QFT} & \meter{} & \cw \\
+\lstick{$x_1 = \ket{0}$} & \gate{H} & \qw & \qw       
+      & \qw & & \meter{} & \cw \\
+\lstick{$x_0 = \ket{0}$} & \gate{H} & \octrl{3} & \ctrl{1}
+      & \qw & & \meter{} & \cw \\
+\lstick{$\ket{0}$} & \qw & \qw & \targ{}
+      & \meter{} & \cw \\
+\lstick{$\ket{0}$} & \qw & \qw  & \qw
+      & \meter{} & \cw \\
+\lstick{$\ket{0}$} & \qw & \targ{} & \qw 
+      & \meter{} & \cw
+\end{quantikz}
+};\end{tikzpicture}
+\end{center}
+\caption{\label{fig:shor15}Finding the period of $4^x \mod{15}$}
+\end{figure}
+\paragraph*{Shor's Algorithm}
+The circuit in Fig.~\ref{fig:shor15} uses a hand-optimized
+implementation of quantum oracle $U_f$ for the modular exponentiation
+function $f(x) = 4^x \mod{15}$ to factor 15 using Shor's
+algorithm. The white dot in the graphical representation of the first
+indicates that the control is active when it is 0. In a conventional
+forward execution, the state before the QFT block is:
+\[
+\frac{1}{2\sqrt{2}} (
+  (\ket{0} + \ket{2} + \ket{4} + \ket{6}) \ket{1} + 
+  (\ket{1} + \ket{3} + \ket{5} + \ket{7}) \ket{4}
+  )
+\]
+At this point, the ancilla register is measured to either $\ket{1}$ or
+$\ket{4}$. In either case, the computational register snaps to a state
+of the form $\sum_{r=0}^3 \ket{a+2r}$ whose QFT has peaks at $\ket{0}$
+or $\ket{4}$ making them the most likely outcomes of measurements of
+the computational register. If we measure $\ket{0}$, we repeat the
+experiment; otherwise we infer that the period is~2.
+
+In the retrodictive execution, we can start with the state
+$\ket{x_2x_1x_0001}$ since 1 is guaranteed to be a possible ancilla
+measurement (corresponding to $f(0)$). The first \cx-gate changes the
+state to $\ket{x_2x_1x_0x_001}$ and the second \cx-gate produces
+$\ket{x_2x_1x_0x_00x_0}$. At that point, we reconcile the retrodictive
+result of the ancilla register $\ket{x_00x_0}$ with the initial
+condition $\ket{000}$ to conclude that $x_0=0$. In other words, in
+order to observe the ancilla at $001$, the computational register must
+be initialized to a superposition of the form $\ket{??0}$ where the
+least significant bit must be 0 and the other two bits are
+unconstrained. Expanding the possibilities, the first register needs
+to be in a superposition of the states $\ket{000}, \ket{010},
+\ket{100}$ or $\ket{110}$ and we have just inferred using purely
+classical but retrodictive reasoning that the period is
+2.
+
+This result does not, in fact, require the small optimized circuit of
+Fig.~\ref{fig:shor15}. In our implementation, modular exponentiation
+circuits are constructed from first principles using adders and
+multipliers~\cite{PhysRevA.54.147}. In the case of $f(x) = 4^x
+\mod{15}$, although the unoptimized constructed circuit has 56,538
+generalized Toffoli gates (controlled$^{n}$-not gates for all $n$),
+the execution results in just two simple equations: $x_0 = 0$ and $1
+\oplus x_0 = 1$. Furthermore, as shown in Fig.~\ref{fig:shor-eqs}, the
+shape and size of the equations is largely insensitive to the choice
+of 4 as the base of the exponent, leading in all cases to the
+immediate conclusion that the period is either 2 or 4. When the
+solution is $x_0=0$, the period is 2, and when it is $x_0=x_1=0$, the
+period is~4.
+
+The remarkable effectiveness of retrodictive computation of the Shor
+instance for factoring 15 is due to a coincidence: a period that is a
+power of 2 is clearly trivial to represent in the binary number system
+which, after all is expressly designed for that purpose. That
+coincidence repeats itself when factoring products of the (known)
+Fermat primes: 3, 5, 17, 257, and 65537, and leads to small
+circuits~\cite{shorFermat}. This is confirmed with our implementation
+which smoothly deals with unoptimized circuits for factoring such
+products. Factoring 3*17=51 using the unoptimized circuit of 177,450
+generalized Toffoli gates produces just the 4 equations: $1 \oplus x_1
+= 1$, $x_0 = 0$, $x_0 \oplus x_0x_1 = 0$, and $x_1 \oplus x0x1 =
+0$. Even for 3*65537=196611 whose circuit has 4,328,778 generalized
+Toffoli gates, the execution produces 16 small equations that refer to
+just the four variables $x_0$, $x_1$, $x_2$, and $x_3$ constraining
+them to be all 0, i.e., asserting that the period is 16.
+
+\begin{figure}
+  \centering
+    \begin{tikzpicture}[scale=1.0]
+   \begin{yquant*}
+   qubit {$\ket{x_1}$} x1;
+   qubit {$\ket{x_0}$} x0;
+   qubit {$a_2 = \ket0$} a2;
+   qubit {$a_1 = \ket0$} a1;
+   qubit {$a_0 = \ket0$} a0;
+   not a0;
+   align -;
+   cnot a1 | ~x0; 
+   cnot a2 | x0; 
+  \end{yquant*}
+\end{tikzpicture}
+\caption{\label{fig:shor21}Finding the period of $4^x \mod{21}$ using
+  qutrits. The three gates are from left to right are the $X$,
+  $\textrm{SUM}$, and $C(X)$ gates for ternary
+  arithmetic~\cite{10.5555/3179473.3179481}. The $X$ gate adds 1
+  modulo 3; the controlled version $C(X)$ only increments when the
+  control is equal to 2, and the \textrm{SUM} gates maps $\ket{a,b}$
+  to $\ket{a,a+b}$.}
+\end{figure}
+Since periods that are powers of 2 are rare and special, we turn our
+attention to factoring problems with other periods. The simplest such
+problem is that of factoring 21 with an underlying function $f(x) =
+4^x \mod{21}$ of period 3. The unoptimized circuit constructed from
+the first principles has 78,600 generalized Toffoli gates; its
+execution generates just three equations. But even in this rather
+trivial situation, the equations span 5 pages of text!  (Supplementary
+Material). A small optimization reducing the number of qubits results
+in a circuit of 15,624 generalized Toffoli gates whose execution
+produces still quite large, but more reasonable, equations
+(Supplementary Material). To understand the reason for these unwieldy
+equations, we examine a general ANF formula of the form $ X_1 \oplus
+X_2 \oplus X_3 \oplus \ldots = 0$ where each $X_i$ is a conjunction of
+some boolean variables, i.e., the variables in each $X$ exhibit
+constructive interference as they must all be true to enable that
+$X=1$. Since the entire formula must equal to 0, every $X_i = 1$ must
+be offset by another $X_j = 1$, thus exhibiting negative interference
+among $X_i$ and $X_j$. Generally speaking, arbitrary interference
+patterns can be encoded in the formulae at the cost of making the size
+of the formulae exponential in the number of variables. This
+exponential blowup is actually a necessary condition for any quantum
+algorithm that can offer an exponential speed-up over classical
+computation~\cite{10.2307/3560059}.
+
+It would however be incorrect to conclude that factoring 21 is
+inherently harder than factoring 15. The issue is simply that the
+binary number system is well-tuned to expressing patterns over powers
+of 2 but a very poor match for expressing patterns over powers of
+3. Indeed, we show that by just using qutrits, the circuit and
+equations for factoring 21 become trivial while those for factoring 15
+become unwieldy. The manually optimized circuit in
+Fig.~\ref{fig:shor21} consists of just three gates; its retrodictive
+execution produces two equations: $x_0=0$ and $x_0 \neq 2$, setting
+$x_0=0$ and leaving $x_1$ unconstrained. The matching values in the
+qutrit system as 00, 10, 20 or in decimal 0, 3, 6 clearly identifying
+the period to be 3. The idea of adapting the computation to simplify
+the circuit and equations is inspired by the fact that entanglement is
+relative to a particular tensor product decomposition (Methods).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 \section{Conclusion}
@@ -418,301 +744,6 @@ $w$ at barrier (2) and perform a symbolic retrodictive execution with
 a state $\ket{xw}$ going backwards to collect the constraints on $x$
 that enable us to solve the problem in question.
 
-\subsection*{Algorithms.} 
-
-The accompanying code includes retrodictive implementations of six
-major quantum algorithms: Deutsch, Deutsch-Jozsa, Bernstein-Vazirani,
-Simon, Grover, and Shor. We highlight the salient results for the
-first five algorithms, and then discuss the most interesting case of
-Shor's algorithm in detail.
-
-\begin{wrapfigure}{r}{6cm}
-  \centering
-\begin{tikzpicture}[scale=1.2]
-   \begin{yquant*}
-   qubit {$\ket0$} x;
-   qubit {$\ket1$} y;
-   box {$H$} x;
-   box {$H$} y;
-   box {$U_f$} (x,y);
-   measure y;
-   box {$H$} x;
-   measure x;
-  \end{yquant*}
-\end{tikzpicture}
-\caption{\label{fig:deutsch}Quantum Circuit for the Deutsch-Jozsa
-  Algorithm $(n=1)$}
-\end{wrapfigure}
-\paragraph*{De-Quantization.}
-We abbreviate the set $\{ 0,1,\ldots,(n-1)\}$ as~$\finset{n}$. In the
-Deutsch-Jozsa problem, we are given a function $\finset{2^n}
-\rightarrow \finset{2}$ that is promised to be constant or balanced
-and we need to distinguish the two cases. The quantum circuit
-Fig.~\ref{fig:deutsch} shows the algorithm for the case $n=1$. Instead
-of the conventional execution, we perform a retrodictive execution of
-the $U_f$ block with an ancilla measurement~$0$, i.e., with the state
-$\ket{x_{n-1}\cdots x_1x_00}$.  The result of the execution is a
-symbolic formula $r$ that determines the conditions under which
-$f(x_{n-1},\cdots,x_0) = 0$. When the function is constant, the
-results are $0=0$ (always) or $1=0$ (never). When the function is
-balanced, we get a formula that mentions the relevant variables. For
-example, here are the results of three executions for balanced
-functions $\finset{2^6} \rightarrow \finset{2}$:
-\begin{itemize}
-\item $x_0 = 0$,
-\item $x_0 \oplus x_1 \oplus x_2 \oplus x_3 \oplus
-    x_4 \oplus x_5 = 0$, and
-\item $1 \oplus x_3x_5 \oplus x_2x_4 \oplus x_1x_5
-\oplus x_0x_3 \oplus x_0x_2 \oplus x_3x_4x_5 \oplus x_2x_3x_5 \oplus
-x_1x_3x_5 \oplus x_0x_3x_5 \oplus x_0x_1x_4 \oplus x_0x_1x_2 \oplus
-x_2x_3x_4x_5 \oplus x_1x_3x_4x_5 \oplus x_1x_2x_4x_5 \oplus
-x_1x_2x_3x_5 \oplus x_0x_3x_4x_5 \oplus x_0x_2x_4x_5 \oplus
-x_0x_2x_3x_5 \oplus x_0x_1x_4x_5 \oplus x_0x_1x_3x_5 \oplus
-x_0x_1x_3x_4 \oplus x_0x_1x_2x_4 \oplus x_0x_1x_2x_4x_5 \oplus
-x_0x_1x_2x_3x_5 \oplus x_0x_1x_2x_3x_4 = 0$.
-\end{itemize}
-In the first case, the function is balanced because it produces $0$
-exactly when $x_0=0$ which happens half of the time in all possible
-inputs; in the second case the output of the function is the
-exclusive-or of all the input variables which is another easy instance
-of a balanced function. The last case is a cryptographically strong
-balanced function whose output pattern is balanced but, by design,
-difficult to discern~\cite{quteprints21763}.
-
-An important insight is that we actually do not care about the exact
-formula. Indeed, since we are promised that the function is either
-constant or balanced, then any formula that refers to at least one
-variable must indicate a balanced function. In other words, the
-outcome of the algorithm can be immediately decided if the formula is
-anything other than 0 or 1. Indeed, our implementation correctly
-identifies all 12870 balanced functions $\finset{2^4} \rightarrow
-\finset{2}$. This is significant as some of these functions produce
-complicated entangled patterns during quantum evolution and could not
-be de-quantized using previous approaches~\cite{djdeq}. A word of
-caution though: our results assume a ``white-box'' complexity model
-rather than a ``black-box'' complexity model~\cite{10.1145/3341106}.
-
-\begin{figure}
-\begin{tabular}{ll}
-$u=0$ & 
-  $\red{1} \oplus x_3 \oplus x_2 \oplus x_1 \oplus x_0 \oplus x_2x_3 \oplus x_1x_3 \oplus x_1x_2 \oplus x_0x_3 \oplus x_0x_2 \oplus x_0x_1 \oplus x_1x_2x_3 \oplus x_0x_2x_3$ \\
-   &\quad $\oplus ~x_0x_1x_3 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3$ \\
-$u=1$ & 
-  $\red{x_0} \oplus x_0x_3 \oplus x_0x_2 \oplus x_0x_1 \oplus x_0x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3$ \\
-$u=2$ &
-  $\red{x_1} \oplus x_1x_3 \oplus x_1x_2 \oplus x_0x_1 \oplus x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3$ \\
-$u=3$ &
-  $\red{x_0x_1} \oplus x_0x_1x_3 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3$ \\
-$u=4$ &
-  $\red{x_2} \oplus x_2x_3 \oplus x_1x_2 \oplus x_0x_2 \oplus x_1x_2x_3 \oplus x_0x_2x_3 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3$ \\
-$u=5$ &
-  $\red{x_0x_2} \oplus x_0x_2x_3 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3$ \\
-$u=6$ &
-  $\red{x_1x_2} \oplus x_1x_2x_3 \oplus x_0x_1x_2 \oplus x_0x_1x_2x_3$ \\
-$u=7$ &
-  $\red{x_0x_1x_2} \oplus x_0x_1x_2x_3$ \\
-$u=8$ &
-  $\red{x_3} \oplus x_2x_3 \oplus x_1x_3 \oplus x_0x_3 \oplus x_1x_2x_3 \oplus x_0x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_1x_2x_3$ \\
-$u=9$ &
-  $\red{x_0x_3} \oplus x_0x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_1x_2x_3$ \\
-$u=10$ &
-  $\red{x_1x_3} \oplus x_1x_2x_3 \oplus x_0x_1x_3 \oplus x_0x_1x_2x_3$ \\
-$u=11$ &
-  $\red{x_0x_1x_3} \oplus x_0x_1x_2x_3$ \\
-$u=12$ &
-  $\red{x_2x_3} \oplus x_1x_2x_3 \oplus x_0x_2x_3 \oplus x_0x_1x_2x_3$ \\
-$u=13$ &
-  $\red{x_0x_2x_3} \oplus x_0x_1x_2x_3$ \\
-$u=14$ &
-  $\red{x_1x_2x_3} \oplus x_0x_1x_2x_3$ \\
-$u=15$ &
-  $\red{x_0x_1x_2x_3}$
-\end{tabular}
-\caption{\label{fig:Grover}Result of retrodictive execution for the Grover oracle ($n=4$, $w$ in the range $\{0..15\}$). The highlighted red subformula is the binary representation of the hidden input $u$.}
-\end{figure}
-
-The discussion above suggests that the details of the equations may
-not be particularly relevant for some algorithms. This would be
-crucial as the satisfiability of general boolean equations is, in
-general, an $\mathit{NP}$-complete
-problem~\cite{4640789,Karp1972,10.1145/800157.805047}. Fortunately,
-this observation does hold for other algorithms as well including the
-Bernstein-Vazirani algorithm and Grover's algorithm. In both cases,
-the result can be immediately read from the formula. In the
-Bernstein-Vazirani case, formulae are guaranteed to be of the form
-$x_1 \oplus x_3 \oplus x_4 \oplus x_5$; the secret string is then the
-binary number that has a 1 at the indices of the relevant variables
-$\{ 1,3,4,5 \}$. In the case for Grover, because there is a unique
-input $u$ for which $f(u) = 1$, the ANF formula must include a
-subformula matching the binary representation of $u$, and in fact that
-subformula is guaranteed to be the shortest one as shown in
-Fig.~\ref{fig:Grover}.
-
-\begin{figure}
-\[\begin{array}{l@{\quad}lllll}
-\textrm{Base} & \multicolumn{4}{c}{\textrm{Equations}} & \textrm{Solution} \\[2ex]
-a=11 & x_0 = 0 &&&& \red{x_0 = 0} \\
-a=4,14 & 1 \oplus x_0 = 1 & x_0 = 0 &&
-  & \red{x_0 = 0} \\
-a=7,13 & 1 \oplus x_1 \oplus x_0x_1 = 1 & x_0x_1 = 0 & x_0 \oplus x_1 \oplus x_0x_1 = 0 &  x_0 \oplus x_0x_1 = 0 & \red{x_0=x_1=0} \\
-a=2,8 & 1 \oplus x_0 \oplus x_1 \oplus x_0x_1 = 1 & x_0x_1 = 0 & x_1 \oplus x_0x_1 = 0 & x_0 \oplus x_0x_1 = 0  & \red{x_0=x_1=0}
-\end{array}\]
-\caption{\label{fig:shor-eqs}Equations generated by retrodictive
-  execution of $a^x \mod{15}$ for different values of $a$, starting
-  from observed result 1 and unknown
-  $x_8x_7x_6x_5x_4x_3x_2x_1x_0$. The solution for the unknown
-  variables is given in the last column.}
-\end{figure}
-\begin{wrapfigure}{r}{7cm}
-\begin{center}
-\begin{tikzpicture}
-\node[scale=0.9]{    
-\begin{quantikz}[row sep=0.005cm,column sep=0.22cm]
-\lstick{$x_2 = \ket{0}$} & \gate{H}& \qw & \qw 
-      & \qw & \gate[wires=3][0.5cm]{QFT} & \meter{} & \cw \\
-\lstick{$x_1 = \ket{0}$} & \gate{H} & \qw & \qw       
-      & \qw & & \meter{} & \cw \\
-\lstick{$x_0 = \ket{0}$} & \gate{H} & \octrl{3} & \ctrl{1}
-      & \qw & & \meter{} & \cw \\
-\lstick{$\ket{0}$} & \qw & \qw & \targ{}
-      & \meter{} & \cw \\
-\lstick{$\ket{0}$} & \qw & \qw  & \qw
-      & \meter{} & \cw \\
-\lstick{$\ket{0}$} & \qw & \targ{} & \qw 
-      & \meter{} & \cw
-\end{quantikz}
-};\end{tikzpicture}
-\end{center}
-\caption{\label{fig:shor15}Finding the period of $4^x \mod{15}$}
-\end{wrapfigure}
-\paragraph*{Shor's Algorithm}
-The circuit in Fig.~\ref{fig:shor15} uses a hand-optimized
-implementation of quantum oracle $U_f$ for the modular exponentiation
-function $f(x) = 4^x \mod{15}$ to factor 15 using Shor's
-algorithm. The white dot in the graphical representation of the first
-indicates that the control is active when it is 0. In a conventional
-forward execution, the state before the QFT block is:
-\[
-\frac{1}{2\sqrt{2}} (
-  (\ket{0} + \ket{2} + \ket{4} + \ket{6}) \ket{1} + 
-  (\ket{1} + \ket{3} + \ket{5} + \ket{7}) \ket{4}
-  )
-\]
-At this point, the ancilla register is measured to either $\ket{1}$ or
-$\ket{4}$. In either case, the computational register snaps to a state
-of the form $\sum_{r=0}^3 \ket{a+2r}$ whose QFT has peaks at $\ket{0}$
-or $\ket{4}$ making them the most likely outcomes of measurements of
-the computational register. If we measure $\ket{0}$, we repeat the
-experiment; otherwise we infer that the period is~2.
-
-In the retrodictive execution, we can start with the state
-$\ket{x_2x_1x_0001}$ since 1 is guaranteed to be a possible ancilla
-measurement (corresponding to $f(0)$). The first \cx-gate changes the
-state to $\ket{x_2x_1x_0x_001}$ and the second \cx-gate produces
-$\ket{x_2x_1x_0x_00x_0}$. At that point, we reconcile the retrodictive
-result of the ancilla register $\ket{x_00x_0}$ with the initial
-condition $\ket{000}$ to conclude that $x_0=0$. In other words, in
-order to observe the ancilla at $001$, the computational register must
-be initialized to a superposition of the form $\ket{??0}$ where the
-least significant bit must be 0 and the other two bits are
-unconstrained. Expanding the possibilities, the first register needs
-to be in a superposition of the states $\ket{000}, \ket{010},
-\ket{100}$ or $\ket{110}$ and we have just inferred using purely
-classical but retrodictive reasoning that the period is
-2.
-
-This result does not, in fact, require the small optimized circuit of
-Fig.~\ref{fig:shor15}. In our implementation, modular exponentiation
-circuits are constructed from first principles using adders and
-multipliers~\cite{PhysRevA.54.147}. In the case of $f(x) = 4^x
-\mod{15}$, although the unoptimized constructed circuit has 56,538
-generalized Toffoli gates (controlled$^{n}$-not gates for all $n$),
-the execution results in just two simple equations: $x_0 = 0$ and $1
-\oplus x_0 = 1$. Furthermore, as shown in Fig.~\ref{fig:shor-eqs}, the
-shape and size of the equations is largely insensitive to the choice
-of 4 as the base of the exponent, leading in all cases to the
-immediate conclusion that the period is either 2 or 4. When the
-solution is $x_0=0$, the period is 2, and when it is $x_0=x_1=0$, the
-period is~4.
-
-The remarkable effectiveness of retrodictive computation of the Shor
-instance for factoring 15 is due to a coincidence: a period that is a
-power of 2 is clearly trivial to represent in the binary number system
-which, after all is expressly designed for that purpose. That
-coincidence repeats itself when factoring products of the (known)
-Fermat primes: 3, 5, 17, 257, and 65537, and leads to small
-circuits~\cite{shorFermat}. This is confirmed with our implementation
-which smoothly deals with unoptimized circuits for factoring such
-products. Factoring 3*17=51 using the unoptimized circuit of 177,450
-generalized Toffoli gates produces just the 4 equations: $1 \oplus x_1
-= 1$, $x_0 = 0$, $x_0 \oplus x_0x_1 = 0$, and $x_1 \oplus x0x1 =
-0$. Even for 3*65537=196611 whose circuit has 4,328,778 generalized
-Toffoli gates, the execution produces 16 small equations that refer to
-just the four variables $x_0$, $x_1$, $x_2$, and $x_3$ constraining
-them to be all 0, i.e., asserting that the period is 16.
-
-\begin{wrapfigure}{r}{7cm}
-  \centering
-    \begin{tikzpicture}[scale=1.0]
-   \begin{yquant*}
-   qubit {$\ket{x_1}$} x1;
-   qubit {$\ket{x_0}$} x0;
-   qubit {$a_2 = \ket0$} a2;
-   qubit {$a_1 = \ket0$} a1;
-   qubit {$a_0 = \ket0$} a0;
-   not a0;
-   align -;
-   cnot a1 | ~x0; 
-   cnot a2 | x0; 
-  \end{yquant*}
-\end{tikzpicture}
-\caption{\label{fig:shor21}Finding the period of $4^x \mod{21}$ using
-  qutrits. The three gates are from left to right are the $X$,
-  $\textrm{SUM}$, and $C(X)$ gates for ternary
-  arithmetic~\cite{10.5555/3179473.3179481}. The $X$ gate adds 1
-  modulo 3; the controlled version $C(X)$ only increments when the
-  control is equal to 2, and the \textrm{SUM} gates maps $\ket{a,b}$
-  to $\ket{a,a+b}$.}
-\end{wrapfigure}
-Since periods that are powers of 2 are rare and special, we turn our
-attention to factoring problems with other periods. The simplest such
-problem is that of factoring 21 with an underlying function $f(x) =
-4^x \mod{21}$ of period 3. The unoptimized circuit constructed from
-the first principles has 78,600 generalized Toffoli gates; its
-execution generates just three equations. But even in this rather
-trivial situation, the equations span 5 pages of text!  (Supplementary
-Material). A small optimization reducing the number of qubits results
-in a circuit of 15,624 generalized Toffoli gates whose execution
-produces still quite large, but more reasonable, equations
-(Supplementary Material). To understand the reason for these unwieldy
-equations, we examine a general ANF formula of the form $ X_1 \oplus
-X_2 \oplus X_3 \oplus \ldots = 0$ where each $X_i$ is a conjunction of
-some boolean variables, i.e., the variables in each $X$ exhibit
-constructive interference as they must all be true to enable that
-$X=1$. Since the entire formula must equal to 0, every $X_i = 1$ must
-be offset by another $X_j = 1$, thus exhibiting negative interference
-among $X_i$ and $X_j$. Generally speaking, arbitrary interference
-patterns can be encoded in the formulae at the cost of making the size
-of the formulae exponential in the number of variables. This
-exponential blowup is actually a necessary condition for any quantum
-algorithm that can offer an exponential speed-up over classical
-computation~\cite{10.2307/3560059}.
-
-It would however be incorrect to conclude that factoring 21 is
-inherently harder than factoring 15. The issue is simply that the
-binary number system is well-tuned to expressing patterns over powers
-of 2 but a very poor match for expressing patterns over powers of
-3. Indeed, we show that by just using qutrits, the circuit and
-equations for factoring 21 become trivial while those for factoring 15
-become unwieldy. The manually optimized circuit in
-Fig.~\ref{fig:shor21} consists of just three gates; its retrodictive
-execution produces two equations: $x_0=0$ and $x_0 \neq 2$, setting
-$x_0=0$ and leaving $x_1$ unconstrained. The matching values in the
-qutrit system as 00, 10, 20 or in decimal 0, 3, 6 clearly identifying
-the period to be 3. The idea of adapting the computation to simplify
-the circuit and equations is inspired by the fact that entanglement is
-relative to a particular tensor product decomposition (Methods).
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section*{Methods}
 
@@ -728,7 +759,7 @@ constraints on the possible values that the symbols represent. At the
 end of the execution, these constraints can be solved to infer
 properties of the program under consideration. 
 
-\begin{wrapfigure}{r}{7cm}
+\begin{figure}[ht]
 \begin{center}
 \begin{tikzpicture}[scale=0.6]
    \begin{yquant*}[register/minimum height=1.3cm]
@@ -751,7 +782,7 @@ properties of the program under consideration.
 \end{tikzpicture}
 \end{center}
 \caption{\label{fig:bell2}Bell and GHZ States}
-\end{wrapfigure}
+\end{figure}
 \paragraph*{Entanglement.}
 A symbolic variable represents a boolean value that can be 0 or 1;
 this is similar to a qubit in a superposition $(1/\sqrt{2}) (\ket{0}
@@ -797,99 +828,7 @@ $\ket{m}=\sum_{i=0}^3 x_i 3^i$, with $x_i=0,1,2$, the state
 \end{eqnarray}
 is a product (unentangled) state. 
 
-\paragraph*{Lazy Evaluation.}
-Consider a program that searches for three different numbers $x$, $y$,
-and $z$ each in the range $[1..n]$ and that sum to $s$. A
-well-established design principle for solving such problems is the
-\emph{generate-and-test} computational paradigm. Following this
-principle, a simple program to solve this problem in the programming
-language Haskell is:
-
-\begin{minted}{haskell}
-generate :: Int -> [(Int,Int,Int)]
-generate n =  [(x,y,z) | x <- [1..n], y <- [1..n], z <- [1..n]]
-
-test :: Int -> [(Int,Int,Int)] -> [(Int,Int,Int)]
-test s nums = [(x,y,z) | (x,y,z) <- nums, x /= y, x /= z, y /= z, x+y+z == s]
-
-find :: Int -> Int -> (Int,Int,Int)
-find s =  head . test s . generate
-\end{minted}
-
-\noindent The program consists of three functions: \h{generate} that
-produces all triples \h{(x,y,z)} from \h{(1,1,1)} to \h{(n,n,n)};
-\h{test} that checks that the numbers are different and that their sum
-is equal to \h{s}; and \h{find} that composes the two functions
-generating all triples, testing the ones that satisfy the condition,
-and returning the first solution. Running this program to find numbers
-in the range $[1..6]$ that sum to 15 immediately produces $(4,5,6)$ as
-expected.
-
-But what if the range of interest was $[1..10000000]$ ? A na\"\i ve
-execution of the generate-and-test method would be prohibitively
-expensive as it would spend all its time generating an enormous number
-of triples that are un-needed. Lazy demand-driven evaluation as
-implemented in Haskell succeeds in a few seconds with the result
-$(1,2,12)$, however. The idea is simple: instead of eagerly generating
-all the triples, generate a process that, when queried, produces one
-triple at a time on demand. Conceptually the execution starts from the
-observer site which is asking for the first element of a list; this
-demand is propagated to the function \h{test} which itself
-propagates the demand to the function \h{generate}  As each triple
-is generated, it is tested until one triple passes the test. This
-triple is immediately returned without having to generate any
-additional values.
-
-\paragraph*{Partial Evaluation.}
-Below is a Haskell program that computes $a^n$ by repeated squaring:
-\begin{minted}{haskell}
-power :: Int -> Int -> Int
-power a n
-  | n == 0     = 1
-  | n == 1     = a
-  | even n     = let r = power a (n `div` 2) in r * r 
-  | otherwise  = a * power a (n-1)
-\end{minted}
-When both inputs are known, e.g., \h{a = 3} and \h{n = 5}  the
-program evaluates as follows:
-\begin{minted}{haskell}
-   power 3 5
-=  3 * power 3 4
-=  3 * (let r1 = power 3 2 in r1 * r1)
-=  3 * (let r1 = (let r2 = power 3 1 in r2 * r2) in r1 * r1)
-=  3 * (let r1 = (let r2 = 3 in r2 * r2) in r1 * r1)
-=  3 * (let r1 = 9 in r1 * r1)
-=  243
-\end{minted}
-
-Partial evaluation is used when we only have partial information about
-the inputs. Say we only know $n=5$. A partial evaluator then attempts
-to evaluate \h{power} with symbolic input \h{a} and actual input
-\h{n=5}  This evaluation proceeds as follows:
-\begin{minted}{haskell}
-   power a 5 
-=  a * power a 4 
-=  a * (let r1 = power a 2 in r1 * r1)
-=  a * (let r1 = (let r2 = power a 1 in r2 * r2) in r1 * r1)
-=  a * (let r1 = (let r2 = a in r2 * r2) in r1 * r1)
-=  a * (let r1 = a * a in r1 * r1)
-=  let r1 = a * a in a * r1 * r1
-\end{minted}
-All of this evaluation, simplification, and specialization happens
-without knowledge of \h{a}. Just knowing \h{n} was enough to
-produce a residual program that is much simpler. 
-
-\paragraph*{Algebraic Normal Form (ANF).}
-The semantics of a generalized Toffoli gate with $n$ control qubits:
-$a_{n_1},\cdots,c_0$ and one target qubit $b$ is $b \oplus \bigwedge_i
-a_i$, the exclusive-or of the target $b$ with the conjunction of all
-the control qubits. That is precisely the definition of the algebraic
-normal form of boolean expressions. We note that circuits that only
-use \x\ and \cx-gates never generate any conjunctions and hence lead
-to formulae that efficiently solvable
-classically~\cite{10.5555/35517,TOKAREVA20151}.
-
-\begin{wrapfigure}{r}{7cm}
+\begin{figure}[ht]
 \begin{center}
 \begin{tikzpicture}[scale=0.7]
 \draw (0,0) ellipse (1cm and 2cm);
@@ -909,7 +848,7 @@ classically~\cite{10.5555/35517,TOKAREVA20151}.
 \end{tikzpicture}
 \end{center}
 \caption{\label{fig:preimage}The pre-image of 4 under $f(x) = 7^x \mod 15$.}
-\end{wrapfigure}
+\end{figure}
 \paragraph*{Complexity Analysis.}
 Given finite sets $A$ and $B$, a function $f : A \rightarrow B$ and an
 element $y \in B$, we define $\preim{f}{y}$, the pre-image of~$y$
@@ -975,30 +914,6 @@ peG (GToffoli bs cs t) = do
 The function performs symbolic evaluation of one generalized Toffoli
 gates, reading the current ANF formulae for each control and producing
 an appropriate ANF formula for the target.
-
-\paragraph*{Data Availability.}
-All execution results will be made available and can be replicated by
-executing the associated software.
-
-\paragraph*{Code Availability.}
-The computer programs used to generate the circuits and symbolically
-execute the quantum algorithms retrodictively will be made publicly
-available.
-
-\paragraph*{Author Contributions.}
-The idea of symbolic evaluation is due to A.S. The connection to
-retrodictive quantum mechanics is due to G.O. The connection to
-partial evaluation is due to J.C. Both A.S. and J.C. contributed to
-the software code to run the experiments. Both A.S. and
-G.O. contributed to the analysis of the quantum algorithms and their
-de-quantization. All authors contributed to the writing of the
-document.
-
-\paragraph*{Competing Interests.}
-No competing interests.
-
-\paragraph*{Materials \& Correspondence.}
-The corresponding author is Gerardo Ortiz. 
 
 \paragraph*{Supplementary Information.} 
 \label{par:shor21}
