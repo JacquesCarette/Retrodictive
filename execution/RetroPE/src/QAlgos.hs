@@ -69,19 +69,8 @@ deutschNot [x,y] = [x,y /= not x]
 deutsch0 [x,y]   = [x,y]
 deutsch1 [x,y]   = [x,not y]
 
-retroDeutsch :: (Show f, Value f) => FormulaRepr f r -> r -> ([Bool] -> [Bool]) -> IO ()
-retroDeutsch fr base f = print $ runST $ do
-  x <- newVar (fromVar fr base)
-  y <- newVar zero
-  run Circuit { op = synthesis 2 [x,y] f
-              , xs = [x]
-              , ancillaIns = [y]
-              , ancillaOuts = [y]
-              , ancillaVals = undefined
-              }
-  readSTRef y
-
-runRetroDeutsch = retroDeutsch FL.formRepr "x"
+deutschCircuit :: ([Bool] -> [Bool]) -> br -> br -> OP br
+deutschCircuit f x y = synthesis 2 [x, y] f
 
 ------------------------------------------------------------------------------
 -- Deutsch Jozsa
@@ -108,69 +97,32 @@ deutschJozsaBal3 = uf f
         sbin = map (== '0') $ concatMap h2Str shex
         f xs = sbin !! fromInteger (toInt xs)
 
-retroDeutschJozsa :: (Show f, Value f) =>
-                     FormulaRepr f r -> r -> Int -> ([Bool] -> [Bool]) -> IO ()
-retroDeutschJozsa fr base n f = print $ runST $ do
-  xs <- newVars (fromVars fr n base)
-  y <- newVar zero
-  let circ = synthesis (n+1) (xs ++ [y]) f
-  run Circuit { op = circ
-              , xs = xs
-              , ancillaIns = [y]
-              , ancillaOuts = [y]
-              , ancillaVals = undefined
-              }
-  readSTRef y
-
-runRetroDeutschJozsa :: Int -> ([Bool] -> [Bool]) -> IO ()
-runRetroDeutschJozsa = retroDeutschJozsa FL.formRepr "x"
-
+deutschJozsaCircuit :: Int -> ([Bool] -> [Bool]) -> [br] -> OP br
+deutschJozsaCircuit n f l = synthesis (n+1) l f
 
 ------------------------------------------------------------------------------
 -- Bernstein-Vazirani
 -- n=8, hidden=92 [00111010]
 
-retroBernsteinVazirani fr = print $ runST $ do
-  xs <- newVars (fromVars fr 8 "x")
-  y <- newVar zero
-  let op = fromList [ cx (xs !! 1) y
-                    , cx (xs !! 3) y
-                    , cx (xs !! 4) y
-                    , cx (xs !! 5) y
-                    ]
-  run Circuit { op = op
-              , xs = xs
-              , ancillaIns = [y]
-              , ancillaOuts = [y]
-              , ancillaVals = undefined
-              }
-  readSTRef y
-
-runRetroBernsteinVazirani :: IO ()
-runRetroBernsteinVazirani = retroBernsteinVazirani FL.formRepr
+retroBernsteinVaziraniCircuit :: [ br ] -> br -> OP br
+retroBernsteinVaziraniCircuit xs y =
+  fromList [ cx (xs !! 1) y
+           , cx (xs !! 3) y
+           , cx (xs !! 4) y
+           , cx (xs !! 5) y
+           ]
 
 ------------------------------------------------------------------------------
 -- Simon
 -- n=2, a=3
 
-retroSimon fr = print $ runST $ do
-  xs <- newVars (fromVars fr 2 "x")
-  as <- newVars (fromInt 2 0)
-  let op = fromList [ cx (head xs) (head as)
-                    , cx (head xs) (as !! 1)
-                    , cx (xs !! 1) (head as)
-                    , cx (xs !! 1) (as !! 1)
-                    ]
-  run Circuit { op = op
-              , xs = xs
-              , ancillaIns = as
-              , ancillaOuts = as
-              , ancillaVals = undefined
-              }
-  mapM readSTRef as
-
-runRetroSimon :: IO ()
-runRetroSimon = retroSimon FL.formRepr
+simonCircuit23 :: [ br ] -> [ br ] -> OP br
+simonCircuit23 xs as =
+  fromList [ cx (head xs) (head as)
+           , cx (head xs) (as !! 1)
+           , cx (xs !! 1) (head as)
+           , cx (xs !! 1) (as !! 1)
+           ]
 
 ------------------------------------------------------------------------------
 -- Grover
@@ -240,7 +192,7 @@ timings = mapM_ (\n -> timeRetroGrover n (2 ^ n - 1))
 ------------------------------------------------------------------------------
 -- Small manually optimized Shor 21 from the IBM paper
 
-shor21 :: Var s v -> Var s v -> Var s v -> Var s v -> Var s v -> OP (Var s v)
+shor21 :: br -> br -> br -> br -> br -> OP br
 shor21 c0 c1 c2 q0 q1 = fromList
       [ cx c2 q1
       , cx c1 q1
@@ -325,3 +277,73 @@ runRetroShor :: Maybe Int -> Maybe Integer -> Maybe Integer -> Integer -> IO ()
 runRetroShor = retroShor FB.formRepr 0
 
 ----------------------------------------------------------------------------------------
+--  Set up the circuits and run them
+----------------------------------------------------------------------------------------
+
+retroDeutsch :: (Show f, Value f) => FormulaRepr f r -> r -> ([Bool] -> [Bool]) -> IO ()
+retroDeutsch fr base f = print $ runST $ do
+  x <- newVar (fromVar fr base)
+  y <- newVar zero
+  run Circuit { op = deutschCircuit f x y
+              , xs = [x]
+              , ancillaIns = [y]
+              , ancillaOuts = [y]
+              , ancillaVals = undefined
+              }
+  readSTRef y
+
+runRetroDeutsch = retroDeutsch FL.formRepr "x"
+
+----------------------------------------------------------------------------------------
+
+retroDeutschJozsa :: (Show f, Value f) =>
+                     FormulaRepr f r -> r -> Int -> ([Bool] -> [Bool]) -> IO ()
+retroDeutschJozsa fr base n f = print $ runST $ do
+  xs <- newVars (fromVars fr n base)
+  y <- newVar zero
+  let circ = synthesis (n+1) (xs ++ [y]) f
+  run Circuit { op = circ
+              , xs = xs
+              , ancillaIns = [y]
+              , ancillaOuts = [y]
+              , ancillaVals = undefined
+              }
+  readSTRef y
+
+runRetroDeutschJozsa :: Int -> ([Bool] -> [Bool]) -> IO ()
+runRetroDeutschJozsa = retroDeutschJozsa FL.formRepr "x"
+
+----------------------------------------------------------------------------------------
+
+retroBernsteinVazirani fr = print $ runST $ do
+  xs <- newVars (fromVars fr 8 "x")
+  y <- newVar zero
+  let op = retroBernsteinVaziraniCircuit xs y
+  run Circuit { op = op
+              , xs = xs
+              , ancillaIns = [y]
+              , ancillaOuts = [y]
+              , ancillaVals = undefined
+              }
+  readSTRef y
+
+runRetroBernsteinVazirani :: IO ()
+runRetroBernsteinVazirani = retroBernsteinVazirani FL.formRepr
+
+----------------------------------------------------------------------------------------
+
+retroSimon fr = print $ runST $ do
+  xs <- newVars (fromVars fr 2 "x")
+  as <- newVars (fromInt 2 0)
+  let op = simonCircuit23 xs as
+  run Circuit { op = op
+              , xs = xs
+              , ancillaIns = as
+              , ancillaOuts = as
+              , ancillaVals = undefined
+              }
+  mapM readSTRef as
+
+runRetroSimon :: IO ()
+runRetroSimon = retroSimon FL.formRepr
+
