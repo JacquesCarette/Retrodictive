@@ -181,6 +181,10 @@ So, all in all, I see the outline (and who seems in good position to write)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Circuits and Boolean Functions}
  
+TODO: Make sure to document the ``Circuit Abstraction'' that's in comments
+at the top of \texttt{Circuits.hs}, along with the picture. Either here or
+ensure it occurs before.
+
 \paragraph*{Algebraic Normal Form (ANF).}
 The semantics of a generalized Toffoli gate with $n$ control qubits:
 $a_{n_1},\cdots,c_0$ and one target qubit $b$ is $b \oplus \bigwedge_i
@@ -236,7 +240,7 @@ We need to be able to deal with the following variabilities:
   \item different evaluation means (directly and symbolically),
 \end{enumerate}
 
-It must also be possible to implement the following:
+\noindent It must also be possible to implement the following:
 \begin{enumerate}[resume]
   \item a reusable representation of circuits composed of generalized Toffoli gates,
   \item a reusable representation of the inputs, outputs and ancillas associated to
@@ -246,12 +250,12 @@ It must also be possible to implement the following:
   \item a reusable library of circuits (such as
     Deutsch, Deutsch-Jozsa, Bernstein-Vazirani, Simon, Grover, and Shor). 
 \end{enumerate}
-From those, we can make a
+\noindent From those, we can make a
 set of design choices that drive the eventual solution.
 
 We eventually want some non-functional characteristics to hold:
 \begin{enumerate}[resume]
-  \item evaluation of reasonably-sized circuits should be relatively efficient
+  \item evaluation of reasonably-sized circuits should be relatively efficient.
 \end{enumerate}
 
 \subsection{Design}
@@ -288,8 +292,27 @@ data FormulaRepr f r = FR
 and how to insert them into the current \emph{formula representation} \texttt{f},
 singly or $n$ at once.
 
+A Generalized Toffoli gates can be represented by a list of representation of
+value accessors \texttt{br} (short for boolean representation) along with a list
+of \emph{controls} that tell us whether to use the bit directly or negated,
+along with which value will potentially be flipped. The implementation of very 
+common gates (negation and controlled not) are also shown.
+\begin{minted}{haskell}
+data GToffoli br = GToffoli [Bool] [br] br
+
+xop :: br -> GToffoli br
+xop = GToffoli [] []
+
+cx :: br -> br -> GToffoli br
+cx a = GToffoli [True] [a]
+\end{minted}
+\noindent The core of a circuit (requirement $4$) is then implemented as a 
+sequence of these (where \texttt{Seq} is from {Data.Sequence}).
+\begin{minted}{haskell}
+type OP br = Seq (GToffoli br)
+\end{minted}
+
 \begin{itemize}
-  \item GToffoli and OP for req 4
   \item Circuit for req 5
   \item synthesis for req 6
   \item ArithCirc, QAlgos for req 7
