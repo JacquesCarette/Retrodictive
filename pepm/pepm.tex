@@ -1,12 +1,12 @@
 \documentclass[sigplan]{acmart}
 
 \usepackage{graphicx,color}
-%%\usepackage{amssymb}
 \usepackage{subcaption}
 \usepackage{braket}
 \usepackage{minted}
-%%\usepackage{physics}
 \usepackage{yquant}
+\usepackage{multirow}
+\usepackage{enumitem}
 \usepackage{tikz}
 \usetikzlibrary{quantikz,fit,quotes,svg.path}
 %%\usepackage[backend=biber,citestyle=numeric-comp]{biblatex}
@@ -229,69 +229,90 @@ This leads us to the requirements our code must fulfill.
 
 \subsection{Requirements}
 
-We need to be able to deal with the following changes:
+We need to be able to deal with the following variabilities:
 \begin{enumerate}
   \item multiple representations of \emph{boolean values},
   \item multiple representations of \emph{boolean formulas},
-  \item a reusable representation of circuits composed of generalized Toffoli gates,
-  \item a reusable representation of the inputs, outputs and ancillas associated to
-    a circuit,
+  \item different evaluation means (directly and symbolically),
 \end{enumerate}
 
 It must also be possible to implement the following:
-\begin{enumerate}
+\begin{enumerate}[resume]
+  \item a reusable representation of circuits composed of generalized Toffoli gates,
+  \item a reusable representation of the inputs, outputs and ancillas associated to
+    a circuit,
   \item a \emph{synthesis} algorithm for circuits implementing a certain boolean
     function,
+  \item a reusable library of circuits (such as
+    Deutsch, Deutsch-Jozsa, Bernstein-Vazirani, Simon, Grover, and Shor). 
 \end{enumerate}
 From those, we can make a
 set of design choices that drive the eventual solution.
 
 \subsection{Design}
 
+To meet the first requirement, we use \emph{finally tagless}~\cite{tagless}
+to encode a \emph{language of values}:
+\begin{minted}{haskell}
+  class (Show v, Enum v) => Value v where
+  zero :: v
+  one  :: v
+  snot :: v -> v
+  sand :: v -> v -> v
+  sxor :: v -> v -> v
+\end{minted}
+
 \subsection{Implementation}
 
-The final code consists of $N$ modules that implement
-\begin{enumerate}
-  \item \texttt{Value} - representation of a \emph{language of values}
-    (as a typeclass) and some constructors,
-  \item \texttt{FormulaRepr} - abstract representation of formulas, as
-    a mapping from abstract variables to abstract formulas.
-  \item \texttt{Variable} - variables as locations holding values and
-    their constructors.
-  \item \texttt{ModularArith} - modular arithmetic utilities useful in
-    implementing certain algorithms, like Shor's.
-  \item \texttt{BoolUtils} - function to interpret a list of booleans as
-    an Integer.
-  \item \texttt{GToffoli} - representation of generalized Toffoli gates
-    and some constructors.
-  \item \texttt{Circuits} - representation of circuits (sequences of gates)
-    and of the special ``wires'' of our circuits.
-  \item \texttt{Synthesis} - synthesis algorithm for circuits with particular
-    properties.
-  \item \texttt{ArithCirc} - creation of arithmetic circuits.
-  \item \texttt{EvalZ} - evaluation of circuits on concrete values
-  \item \texttt{FormAsList} - representation of formulas as xor-lists 
-    of and-lists of literals-as-strings.
-  \item \texttt{FormAsMaps} - representation of formulas as xor-maps
-    of and-maps of literals-as-Int.
-  \item \texttt{FormAsBitmaps} - representation of formulas as xor-maps
-    of bitmaps.
-  \item \texttt{SymbEval} - Symbolic evaluation of circuits
-  \item \texttt{SymbEvalSpecialized} - Symbolic evaluation of circuits
-    specialized to the representation from \texttt{FormAsBitmaps}.
-  \item \texttt{QAlgos} - generating the circuits themselves
-  \item \texttt{RunQAlgos} - running the actual circuits
-  \item qalgos
-\end{enumerate}
+The final code consists of $18$ modules that implement various
+services Fig.~\ref{fig:modules}
+
+\begin{figure*}[t]
+  \label{fig:modules}
+\begin{tabular}{l | p{13cm}}
+  \textbf{Module} & \textbf{Service} \\ \hline
+  \texttt{Value} & representation of a \emph{language of values}
+    (as a typeclass) and some constructors\\
+  \texttt{FormulaRepr} & abstract representation of formulas, as
+    a mapping from abstract variables to abstract formulas\\
+  \texttt{Variable} & variables as locations holding values and
+    their constructors\\
+  \texttt{ModularArith} & modular arithmetic utilities useful in
+    implementing certain algorithms, like Shor's\\
+  \texttt{BoolUtils} & function to interpret a list of booleans as
+    an Integer\\
+  \texttt{GToffoli} & representation of generalized Toffoli gates
+    and some constructors\\
+  \texttt{Circuits} & representation of circuits (sequences of gates)
+    and of the special ``wires'' of our circuits\\
+  \texttt{Synthesis} & synthesis algorithm for circuits with particular
+    properties\\
+  \texttt{ArithCirc} & creation of arithmetic circuits\\
+  \texttt{EvalZ} & evaluation of circuits on concrete values\\
+  \texttt{FormAsList} & representation of formulas as xor-lists 
+    of and-lists of literals-as-strings\\
+  \texttt{FormAsMaps} & representation of formulas as xor-maps
+    of and-maps of literals-as-Int\\
+  \texttt{FormAsBitmaps} & representation of formulas as xor-maps
+    of bitmaps\\
+  \texttt{SymbEval} & Symbolic evaluation of circuits\\
+  \texttt{SymbEvalSpecialized} & Symbolic evaluation of circuits
+    specialized to the representation from \texttt{FormAsBitmaps}\\
+  \texttt{QAlgos} & generating the circuits themselves\\
+  \texttt{RunQAlgos} & running the actual circuits \\
+  \texttt{Trace} & utilities for tracing and debugging 
+\end{tabular}
+  \caption{Modules and their services}
+\end{figure*}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 \section{Evaluation}
 
 \subsection*{Algorithms.} 
 
-We implement six well-known
-quantum algorithms: Deutsch, Deutsch-Jozsa, Bernstein-Vazirani,
-Simon, Grover, and Shor. We highlight the salient results for the
+We implement six well-known quantum algorithms: 
+Deutsch, Deutsch-Jozsa, Bernstein-Vazirani, Simon, Grover, and Shor. 
+We highlight the salient results for the
 first five algorithms, and then discuss the most interesting case of
 Shor's algorithm in detail.
 
