@@ -9,7 +9,6 @@ import Data.Sequence ((><))
 import GToffoli (GToffoli(GToffoli))
 import Circuits (OP)
 import Value (fromInt)
-import Variable (Var)
 
 ------------------------------------------------------------------------------
 -- Synthesis algorithm from https://msoeken.github.io/papers/2016_rc_1.pdf
@@ -114,5 +113,4 @@ synthesisGrover :: Int -> [br] -> Integer -> OP br
 synthesisGrover n (viewL -> (xs,y)) u =
   S.singleton $ GToffoli (fromInt n u) xs y
   
-
 ------------------------------------------------------------------------------
