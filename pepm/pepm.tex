@@ -312,10 +312,34 @@ sequence of these (where \texttt{Seq} is from {Data.Sequence}).
 type OP br = Seq (GToffoli br)
 \end{minted}
 
+\noindent Mainly for efficiency reasons, we model circuits as manipulating
+\emph{locations holding values} rather than directly acting on values. We
+use \texttt{STRef}s (aliased to \texttt{Var}) for that purpose. Putting this
+together with the model of circuits of \ref{sec:circuitmodel}, we get
+\begin{minted}{haskell}
+data Circuit s v = Circuit
+  { op          :: OP (Var s v)
+  , xs          :: [Var s v]
+  , ancillaIns  :: [Var s v]
+  , ancillaOuts :: [Var s v]  
+  , ancillaVals :: [v]
+  }
+\end{minted}
+\noindent which lets us achieve requirement $5$.
+
+For requirement $6$, we implement a straightforward version of 
+the algorithm of~\cite{SoekenEtAl2016}. Our implementation is
+\emph{language agnostic}, in other words it works via the \texttt{Value}
+interface, so that the resulting circuits are all of type \texttt{OP br}
+for a free representation \texttt{br}. As circuit synthesis is only
+done for generating examples, we are not worried about its efficiency.
+
+The arithmetic circuit generators are also based on classical algorithms, and are
+not optimized in any way, neither for running time nor for gate count. Neither are
+the code for the classical quantum algorithms. They are, however, representation
+polymorphic.
+
 \begin{itemize}
-  \item Circuit for req 5
-  \item synthesis for req 6
-  \item ArithCirc, QAlgos for req 7
   \item FormAsMap and FormAsBitmap for req 8
 \end{itemize}
 
