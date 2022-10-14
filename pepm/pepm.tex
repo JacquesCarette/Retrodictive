@@ -249,6 +249,11 @@ It must also be possible to implement the following:
 From those, we can make a
 set of design choices that drive the eventual solution.
 
+We eventually want some non-functional characteristics to hold:
+\begin{enumerate}[resume]
+  \item evaluation of reasonably-sized circuits should be relatively efficient
+\end{enumerate}
+
 \subsection{Design}
 
 To meet the first requirement, we use \emph{finally tagless}~\cite{tagless}
@@ -260,7 +265,36 @@ to encode a \emph{language of values}:
   snot :: v -> v
   sand :: v -> v -> v
   sxor :: v -> v -> v
+
+  -- has a default implementation
+  snand :: [v] -> v -- n-ary and
+  snand = foldr sand one
 \end{minted}
+\noindent which is then implemented $4$ times, once for $\texttt{Bool}$
+and then multiple times for different symbolic variations. As a side-effect,
+this gives us requirement $3$ ``for free'' if we can write a sufficiently
+polymorphic evaluator (which we will present below).
+
+Unlike for value representation which can be computed from context, we want
+to explicitly choose formula representation (requirement 2) ourselves. Thus we
+use an explicit record instead of an implicit dictionary:
+\begin{minted}{haskell}
+data FormulaRepr f r = FR 
+  { fromVar  :: r -> f
+  , fromVars :: Int -> r -> [ f ]
+  }
+\end{minted}
+\noindent The main methods are about \emph{variable representation} \texttt{r}
+and how to insert them into the current \emph{formula representation} \texttt{f},
+singly or $n$ at once.
+
+\begin{itemize}
+  \item GToffoli and OP for req 4
+  \item Circuit for req 5
+  \item synthesis for req 6
+  \item ArithCirc, QAlgos for req 7
+  \item FormAsMap and FormAsBitmap for req 8
+\end{itemize}
 
 \subsection{Implementation}
 
@@ -268,7 +302,6 @@ The final code consists of $18$ modules that implement various
 services Fig.~\ref{fig:modules}
 
 \begin{figure*}[t]
-  \label{fig:modules}
 \begin{tabular}{l | p{13cm}}
   \textbf{Module} & \textbf{Service} \\ \hline
   \texttt{Value} & representation of a \emph{language of values}
@@ -303,9 +336,20 @@ services Fig.~\ref{fig:modules}
   \texttt{Trace} & utilities for tracing and debugging 
 \end{tabular}
   \caption{Modules and their services}
+  \label{fig:modules}
 \end{figure*}
 
+Comment on
+\begin{itemize}
+  \item \texttt{snand} being in the class instead of outside.
+  \item GToffoli leaving some invariant un-expressed
+  \item $1471$ LOC, of which about $\frac{1}{3}$ is imports and comments.
+  \item largest files are for running the examples, implementing formulas
+    symbolically in ANF, code for arithmetic circuits, synthesis algorithm,
+    and the library of algorithms.
+\end{itemize}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
 \section{Evaluation}
 
 \subsection*{Algorithms.} 
