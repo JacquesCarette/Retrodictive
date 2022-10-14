@@ -27,6 +27,7 @@
 \newcommand{\todo}[1]{\fbox{\begin{minipage}{40em}{\red{#1}}\end{minipage}}}
 
 \newcommand{\Cplx}{\ensuremath{\mathbb{C}}}
+\newcommand{\Bool}{\ensuremath{\mathbb{B}}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
@@ -210,17 +211,40 @@ execution of circuits, we ended up writing a lot of variants of
 essentially the same code, but with minor differences in representation.
 From these early experiments, we could see the major variation points:
 \begin{itemize}
-  \item representation of \emph{boolean values} and \emph{boolean functions}.
-  \item representation of ANF
-  \item representation of circuits
+  \item representation of \emph{boolean values} and \emph{boolean functions},
+  \item representation of ANF,
+  \item representation of circuits.
 \end{itemize}
 We also wanted to write out circuits only once, and have them be valid
 across these representation changes.
 
-There thus became our principal requirements. From those, we can make a
-set of design choices that drive the eventual solution.
+A number of our examples involve arbitrary boolean functions (given as black
+boxes at ``compile time'') for which we want to, offline, generate an
+equivalent reversible circuit. In other words for $f : \Bool^n \rightarrow\Bool$,
+we wish to generate the circuit for $g : \Bool^{n+1} \rightarrow \Bool^{n+1}$ such
+that for $\overline{x} : \Bool^n$, then 
+$g(\overline{x},y) = (\overline{x}, y \oplus f(\overline{x}))$.
+
+This leads us to the requirements our code must fulfill.
 
 \subsection{Requirements}
+
+We need to be able to deal with the following changes:
+\begin{enumerate}
+  \item multiple representations of \emph{boolean values},
+  \item multiple representations of \emph{boolean formulas},
+  \item a reusable representation of circuits composed of generalized Toffoli gates,
+  \item a reusable representation of the inputs, outputs and ancillas associated to
+    a circuit,
+\end{enumerate}
+
+It must also be possible to implement the following:
+\begin{enumerate}
+  \item a \emph{synthesis} algorithm for circuits implementing a certain boolean
+    function,
+\end{enumerate}
+From those, we can make a
+set of design choices that drive the eventual solution.
 
 \subsection{Design}
 
