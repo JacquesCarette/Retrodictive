@@ -11,7 +11,7 @@ import Printing.Circuits (showSizes, sizeOP)
 import ArithCirc (expm)
 import Value (Value(..), fromInt)
 import BoolUtils (toInt)
-import EvalZ (ZValue(ZValue),run)
+import EvalZ (run)
 
 ------------------------------------------------------------------------------
 -- Test: run expm, in the Z basis.
@@ -23,7 +23,7 @@ runExpMod n a m x = printResult $ runST $ do
   mapM_ (uncurry writeSTRef) (zip (xs circ) (fromInt (n+1) x))
   run circ
   result <- mapM readSTRef (ancillaOuts circ)
-  return (toInt (map (\ (ZValue b) -> b) result), showSizes (sizeOP (op circ)))
+  return (toInt result, showSizes (sizeOP (op circ)))
   where printResult (res,size) = do
           putStrLn size
           putStrLn (printf "Result = %d" res)

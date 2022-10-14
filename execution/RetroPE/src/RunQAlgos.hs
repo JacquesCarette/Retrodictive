@@ -20,7 +20,7 @@ import Variable (newVar, newVars)
 import ArithCirc (expm)
 import Circuits (Circuit(..))
 import Printing.Circuits (showSizes, sizeOP)
-import qualified EvalZ (interp,ZValue(..))
+import qualified EvalZ (interp)
 import SymbEval (run)
 import qualified SymbEvalSpecialized (run) -- for Grover
 import BoolUtils (toInt)
@@ -218,7 +218,7 @@ runShor21 c w = runST $ do
   qs <- newVars (fromInt 2 w)
   EvalZ.interp (shor21 (cs !! 0) (cs !! 1) (cs !! 2) (qs !! 0) (qs !! 1))
   q <-  mapM readSTRef qs
-  return (toInt (map (\(EvalZ.ZValue b) -> b) q))
+  return (toInt q)
 
 -- observed input is 2 bits
 

@@ -1,12 +1,12 @@
 \documentclass[sigplan]{acmart}
 
 \usepackage{graphicx,color}
-%%\usepackage{amssymb}
 \usepackage{subcaption}
 \usepackage{braket}
 \usepackage{minted}
-%%\usepackage{physics}
 \usepackage{yquant}
+\usepackage{multirow}
+\usepackage{enumitem}
 \usepackage{tikz}
 \usetikzlibrary{quantikz,fit,quotes,svg.path}
 %%\usepackage[backend=biber,citestyle=numeric-comp]{biblatex}
@@ -27,6 +27,7 @@
 \newcommand{\todo}[1]{\fbox{\begin{minipage}{40em}{\red{#1}}\end{minipage}}}
 
 \newcommand{\Cplx}{\ensuremath{\mathbb{C}}}
+\newcommand{\Bool}{\ensuremath{\mathbb{B}}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
@@ -180,6 +181,10 @@ So, all in all, I see the outline (and who seems in good position to write)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Circuits and Boolean Functions}
  
+TODO: Make sure to document the ``Circuit Abstraction'' that's in comments
+at the top of \texttt{Circuits.hs}, along with the picture. Either here or
+ensure it occurs before.
+
 \paragraph*{Algebraic Normal Form (ANF).}
 The semantics of a generalized Toffoli gate with $n$ control qubits:
 $a_{n_1},\cdots,c_0$ and one target qubit $b$ is $b \oplus \bigwedge_i
@@ -210,64 +215,171 @@ execution of circuits, we ended up writing a lot of variants of
 essentially the same code, but with minor differences in representation.
 From these early experiments, we could see the major variation points:
 \begin{itemize}
-  \item representation of \emph{boolean values} and \emph{boolean functions}.
-  \item representation of ANF
-  \item representation of circuits
+  \item representation of \emph{boolean values} and \emph{boolean functions},
+  \item representation of ANF,
+  \item representation of circuits.
 \end{itemize}
 We also wanted to write out circuits only once, and have them be valid
 across these representation changes.
 
-There thus became our principal requirements. From those, we can make a
-set of design choices that drive the eventual solution.
+A number of our examples involve arbitrary boolean functions (given as black
+boxes at ``compile time'') for which we want to, offline, generate an
+equivalent reversible circuit. In other words for $f : \Bool^n \rightarrow\Bool$,
+we wish to generate the circuit for $g : \Bool^{n+1} \rightarrow \Bool^{n+1}$ such
+that for $\overline{x} : \Bool^n$, then 
+$g(\overline{x},y) = (\overline{x}, y \oplus f(\overline{x}))$.
+
+This leads us to the requirements our code must fulfill.
 
 \subsection{Requirements}
 
+We need to be able to deal with the following variabilities:
+\begin{enumerate}
+  \item multiple representations of \emph{boolean values},
+  \item multiple representations of \emph{boolean formulas},
+  \item different evaluation means (directly and symbolically),
+\end{enumerate}
+
+\noindent It must also be possible to implement the following:
+\begin{enumerate}[resume]
+  \item a reusable representation of circuits composed of generalized Toffoli gates,
+  \item a reusable representation of the inputs, outputs and ancillas associated to
+    a circuit,
+  \item a \emph{synthesis} algorithm for circuits implementing a certain boolean
+    function,
+  \item a reusable library of circuits (such as
+    Deutsch, Deutsch-Jozsa, Bernstein-Vazirani, Simon, Grover, and Shor). 
+\end{enumerate}
+\noindent From those, we can make a
+set of design choices that drive the eventual solution.
+
+We eventually want some non-functional characteristics to hold:
+\begin{enumerate}[resume]
+  \item evaluation of reasonably-sized circuits should be relatively efficient.
+\end{enumerate}
+
 \subsection{Design}
+
+To meet the first requirement, we use \emph{finally tagless}~\cite{tagless}
+to encode a \emph{language of values}:
+\begin{minted}{haskell}
+  class (Show v, Enum v) => Value v where
+  zero :: v
+  one  :: v
+  snot :: v -> v
+  sand :: v -> v -> v
+  sxor :: v -> v -> v
+
+  -- has a default implementation
+  snand :: [v] -> v -- n-ary and
+  snand = foldr sand one
+\end{minted}
+\noindent which is then implemented $4$ times, once for $\texttt{Bool}$
+and then multiple times for different symbolic variations. As a side-effect,
+this gives us requirement $3$ ``for free'' if we can write a sufficiently
+polymorphic evaluator (which we will present below).
+
+Unlike for value representation which can be computed from context, we want
+to explicitly choose formula representation (requirement 2) ourselves. Thus we
+use an explicit record instead of an implicit dictionary:
+\begin{minted}{haskell}
+data FormulaRepr f r = FR 
+  { fromVar  :: r -> f
+  , fromVars :: Int -> r -> [ f ]
+  }
+\end{minted}
+\noindent The main methods are about \emph{variable representation} \texttt{r}
+and how to insert them into the current \emph{formula representation} \texttt{f},
+singly or $n$ at once.
+
+A Generalized Toffoli gates can be represented by a list of representation of
+value accessors \texttt{br} (short for boolean representation) along with a list
+of \emph{controls} that tell us whether to use the bit directly or negated,
+along with which value will potentially be flipped. The implementation of very 
+common gates (negation and controlled not) are also shown.
+\begin{minted}{haskell}
+data GToffoli br = GToffoli [Bool] [br] br
+
+xop :: br -> GToffoli br
+xop = GToffoli [] []
+
+cx :: br -> br -> GToffoli br
+cx a = GToffoli [True] [a]
+\end{minted}
+\noindent The core of a circuit (requirement $4$) is then implemented as a 
+sequence of these (where \texttt{Seq} is from {Data.Sequence}).
+\begin{minted}{haskell}
+type OP br = Seq (GToffoli br)
+\end{minted}
+
+\begin{itemize}
+  \item Circuit for req 5
+  \item synthesis for req 6
+  \item ArithCirc, QAlgos for req 7
+  \item FormAsMap and FormAsBitmap for req 8
+\end{itemize}
 
 \subsection{Implementation}
 
-The final code consists of $N$ modules that implement
-\begin{enumerate}
-  \item \texttt{Value} - representation of a \emph{language of values}
-    (as a typeclass) and some constructors,
-  \item \texttt{FormulaRepr} - abstract representation of formulas, as
-    a mapping from abstract variables to abstract formulas.
-  \item \texttt{Variable} - variables as locations holding values and
-    their constructors.
-  \item \texttt{ModularArith} - modular arithmetic utilities useful in
-    implementing certain algorithms, like Shor's.
-  \item \texttt{BoolUtils} - function to interpret a list of booleans as
-    an Integer.
-  \item \texttt{GToffoli} - representation of generalized Toffoli gates
-    and some constructors.
-  \item \texttt{Circuits} - representation of circuits (sequences of gates)
-    and of the special ``wires'' of our circuits.
-  \item \texttt{Synthesis} - synthesis algorithm for circuits with particular
-    properties.
-  \item \texttt{ArithCirc} - creation of arithmetic circuits.
-  \item \texttt{EvalZ} - evaluation of circuits on concrete values
-  \item \texttt{FormAsList} - representation of formulas as xor-lists 
-    of and-lists of literals-as-strings.
-  \item \texttt{FormAsMaps} - representation of formulas as xor-maps
-    of and-maps of literals-as-Int.
-  \item \texttt{FormAsBitmaps} - representation of formulas as xor-maps
-    of bitmaps.
-  \item \texttt{SymbEval} - Symbolic evaluation of circuits
-  \item \texttt{SymbEvalSpecialized} - Symbolic evaluation of circuits
-    specialized to the representation from \texttt{FormAsBitmaps}.
-  \item \texttt{QAlgos} - generating the circuits themselves
-  \item \texttt{RunQAlgos} - running the actual circuits
-  \item qalgos
-\end{enumerate}
+The final code consists of $18$ modules that implement various
+services Fig.~\ref{fig:modules}
 
+\begin{figure*}[t]
+\begin{tabular}{l | p{13cm}}
+  \textbf{Module} & \textbf{Service} \\ \hline
+  \texttt{Value} & representation of a \emph{language of values}
+    (as a typeclass) and some constructors\\
+  \texttt{FormulaRepr} & abstract representation of formulas, as
+    a mapping from abstract variables to abstract formulas\\
+  \texttt{Variable} & variables as locations holding values and
+    their constructors\\
+  \texttt{ModularArith} & modular arithmetic utilities useful in
+    implementing certain algorithms, like Shor's\\
+  \texttt{BoolUtils} & function to interpret a list of booleans as
+    an Integer\\
+  \texttt{GToffoli} & representation of generalized Toffoli gates
+    and some constructors\\
+  \texttt{Circuits} & representation of circuits (sequences of gates)
+    and of the special ``wires'' of our circuits\\
+  \texttt{Synthesis} & synthesis algorithm for circuits with particular
+    properties\\
+  \texttt{ArithCirc} & creation of arithmetic circuits\\
+  \texttt{EvalZ} & evaluation of circuits on concrete values\\
+  \texttt{FormAsList} & representation of formulas as xor-lists 
+    of and-lists of literals-as-strings\\
+  \texttt{FormAsMaps} & representation of formulas as xor-maps
+    of and-maps of literals-as-Int\\
+  \texttt{FormAsBitmaps} & representation of formulas as xor-maps
+    of bitmaps\\
+  \texttt{SymbEval} & Symbolic evaluation of circuits\\
+  \texttt{SymbEvalSpecialized} & Symbolic evaluation of circuits
+    specialized to the representation from \texttt{FormAsBitmaps}\\
+  \texttt{QAlgos} & generating the circuits themselves\\
+  \texttt{RunQAlgos} & running the actual circuits \\
+  \texttt{Trace} & utilities for tracing and debugging 
+\end{tabular}
+  \caption{Modules and their services}
+  \label{fig:modules}
+\end{figure*}
+
+Comment on
+\begin{itemize}
+  \item \texttt{snand} being in the class instead of outside.
+  \item GToffoli leaving some invariant un-expressed
+  \item $1471$ LOC, of which about $\frac{1}{3}$ is imports and comments.
+  \item largest files are for running the examples, implementing formulas
+    symbolically in ANF, code for arithmetic circuits, synthesis algorithm,
+    and the library of algorithms.
+\end{itemize}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
 \section{Evaluation}
 
 \subsection*{Algorithms.} 
 
-We implement six well-known
-quantum algorithms: Deutsch, Deutsch-Jozsa, Bernstein-Vazirani,
-Simon, Grover, and Shor. We highlight the salient results for the
+We implement six well-known quantum algorithms: 
+Deutsch, Deutsch-Jozsa, Bernstein-Vazirani, Simon, Grover, and Shor. 
+We highlight the salient results for the
 first five algorithms, and then discuss the most interesting case of
 Shor's algorithm in detail.
 
