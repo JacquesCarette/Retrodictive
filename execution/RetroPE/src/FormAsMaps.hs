@@ -115,10 +115,6 @@ true = Formula $ MS.singleton $ Ands IS.empty
 isStatic :: Formula -> Bool
 isStatic f = f == false || f == true
 
-fromBool :: Bool -> Formula
-fromBool False = false
-fromBool True  = true
-
 fromVar :: Int -> Formula
 fromVar s = Formula $ MS.singleton $ Ands (IS.singleton s)
 

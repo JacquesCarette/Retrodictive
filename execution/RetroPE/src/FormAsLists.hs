@@ -84,10 +84,6 @@ true = Formula [ Ands [] ]
 isStatic :: Formula -> Bool
 isStatic f = f == false || f == true
 
-fromBool :: Bool -> Formula
-fromBool False = false
-fromBool True  = true
-
 fromVar :: String -> Formula
 fromVar s = Formula [ Ands [s] ]
 
