@@ -69,7 +69,7 @@ synthesisStep vars xbools ybools
 
 synthesisLoop :: [br] -> OP br -> ([Bool] -> [Bool]) ->
                  [[Bool]] -> OP br 
-synthesisLoop xs circ f [] = circ
+synthesisLoop _  circ _ [] = circ
 synthesisLoop xs circ f (xbools : rest) = 
   let ybools = f xbools
       (circg,g) = synthesisStep xs xbools ybools

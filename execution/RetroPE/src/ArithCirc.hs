@@ -3,14 +3,14 @@ module ArithCirc where
 import Prelude hiding (seq)
 
 import qualified Data.Sequence as S
-import Data.Sequence (Seq, singleton, viewl, ViewL(..), (><))
+import Data.Sequence (singleton, (><))
 
 import Control.Monad.ST (ST)
 
 import ModularArith (doublemods, sqmods, invsqmods)
 import Value (Value(zero), fromInt)
 import Variable (Var, newVars, newVar)
-import GToffoli (GToffoli(GToffoli), cx, ccx, ncx)
+import GToffoli (cx, ccx, ncx)
 import Circuits (OP, Circuit(..), cop, ncop, ccop)
 
 ------------------------------------------------------------------------------
@@ -68,7 +68,7 @@ makeCMulMod n a m c xs ts = do
           (take (n+1) (doublemods a m))
   adderPT <- makeAdderMod n m ps ts
   return (loop adderPT as xs ps)
-    where loop adderPT [] [] ps =
+    where loop _ [] [] _ =
             ncop c (copyOP xs ts) 
           loop adderPT (a:as) (x:xs) ps =
             ccop (copyOP a ps) [c,x] ><
@@ -86,7 +86,8 @@ makeExpMod n a m xs ts us = do
   let invsqs = take (n+1) (invsqmods a m)
   makeStages 0 n sqs invsqs m xs ts us
     where
-      makeStages i n [] [] m [] ts us = return S.empty
+      makeStages :: Value v => Integer -> Int -> [Integer] -> [Integer] -> Integer -> [Var s v] -> [Var s v] -> [Var s v] -> ST s (OP (Var s v))
+      makeStages _ _ [] [] _ [] _ _ = return S.empty
       makeStages i n (sq:sqs) (invsq:invsqs) m (c:cs) ts us
         | even i = do
             mulsqMod <- makeCMulMod n sq m c ts us

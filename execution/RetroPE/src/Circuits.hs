@@ -1,11 +1,9 @@
 module Circuits where
 
-import qualified Data.Sequence as S
 import Data.Sequence (Seq)
 
 import Variable (Var)
 import GToffoli (GToffoli(GToffoli))
-import Printing.GToffoli (showGToffoli)
 
 ------------------------------------------------------------------------------
 -- Circuits manipulate locations holding (abstract) values

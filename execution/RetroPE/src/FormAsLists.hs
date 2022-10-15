@@ -1,6 +1,6 @@
 module FormAsLists where
 
-import Data.List (intercalate,group,sort,sortBy)
+import Data.List (intercalate,group,sort)
 
 import Value (Value(..))
 import FormulaRepr (FormulaRepr(FR))
@@ -65,8 +65,7 @@ normalizeLits = map head . group . sort
 -- a XOR a = 0
 
 normalizeAnds :: [Ands] -> [Ands]
-normalizeAnds = map head . filter (odd . length) . group . sort -- (sortBy f)
-  where f (Ands xs) (Ands ys) = compare (length xs) (length ys)
+normalizeAnds = map head . filter (odd . length) . group . sort
 
 -- Convert to ANF
 
@@ -81,14 +80,11 @@ false = Formula []
 true :: Formula
 true = Formula [ Ands [] ]
 
-isStatic :: Formula -> Bool
-isStatic f = f == false || f == true
-
 fromVar :: String -> Formula
 fromVar s = Formula [ Ands [s] ]
 
 fromVars :: Int -> String -> [Formula]
-fromVars n s = map (fromVar . (\ n -> s ++ "_" ++ show n)) [0..(n-1)]
+fromVars n s = map (fromVar . (\ m -> s ++ "_" ++ show m)) [0..(n-1)]
 
 --
 

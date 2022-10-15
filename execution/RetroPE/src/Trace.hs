@@ -5,6 +5,7 @@ import qualified Debug.Trace as Debug
 ----------------------------------------------------------------------------------------
 -- Simple helpers for debugging
 
+debug :: Bool
 debug = False
 
 trace :: String -> a -> a

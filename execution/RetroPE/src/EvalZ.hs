@@ -3,7 +3,7 @@ module EvalZ where
 import Data.STRef (readSTRef, writeSTRef)
 
 import Control.Monad (when)
-import Control.Monad.ST (ST, runST)
+import Control.Monad.ST (ST)
 
 import Value (Value(..))
 import Variable (Var)

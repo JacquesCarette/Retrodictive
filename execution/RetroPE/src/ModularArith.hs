@@ -11,7 +11,7 @@ sqmods a m = am : sqmods (am * am) m
   where am = a `mod` m
 
 invmod :: Integer -> Integer -> Integer
-invmod x m = loop x m 0 1
+invmod z m = loop z m 0 1
   where
     loop 0 1 a _ = a `mod` m
     loop 0 _ _ _ = error "Panic: Inputs not coprime"
