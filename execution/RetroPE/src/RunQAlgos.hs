@@ -7,9 +7,8 @@ import qualified Data.Sequence as S (reverse)
 import qualified Data.MultiSet as MS
 
 import Control.Monad.ST -- (runST,ST)
-import Control.Monad.IO.Class (MonadIO)
 
-import System.Random.Stateful (uniformRM, newIOGenM, mkStdGen, getStdGen, newAtomicGenM, globalStdGen, applyAtomicGen, AtomicGenM, StdGen)
+import System.Random.Stateful (uniformRM, mkStdGen, newAtomicGenM, globalStdGen, AtomicGenM, StdGen)
 import System.TimeIt
 
 import Text.Printf (printf)
@@ -63,6 +62,7 @@ retroDeutsch fr base f = print $ runST $ do
               }
   readSTRef y
 
+runRetroDeutsch :: ([Bool] -> [Bool]) -> IO ()
 runRetroDeutsch = retroDeutsch FL.formRepr "x"
 
 ----------------------------------------------------------------------------------------
@@ -86,6 +86,7 @@ runRetroDeutschJozsa = retroDeutschJozsa FL.formRepr "x"
 
 ----------------------------------------------------------------------------------------
 
+retroBernsteinVazirani :: Value a => FormulaRepr a [Char] -> IO ()
 retroBernsteinVazirani fr = print $ runST $ do
   xs <- newVars (fromVars fr 8 "x")
   y <- newVar zero
@@ -103,6 +104,7 @@ runRetroBernsteinVazirani = retroBernsteinVazirani FL.formRepr
 
 ----------------------------------------------------------------------------------------
 
+retroSimon :: Value b => FormulaRepr b [Char] -> IO ()
 retroSimon fr = print $ runST $ do
   xs <- newVars (fromVars fr 2 "x")
   as <- newVars (fromInt 2 0)

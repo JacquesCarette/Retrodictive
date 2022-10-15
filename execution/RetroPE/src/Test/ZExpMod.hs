@@ -9,7 +9,7 @@ import Text.Printf (printf)
 import Circuits (Circuit(..))
 import Printing.Circuits (showSizes, sizeOP)
 import ArithCirc (expm)
-import Value (Value(..), fromInt)
+import Value (fromInt)
 import BoolUtils (toInt)
 import EvalZ (run)
 

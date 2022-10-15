@@ -1,6 +1,9 @@
-module FormAsBitmaps where
+module FormAsBitmaps (
+  Formula, lits, ands, formRepr,
+  normalize, xor
+  ) where
 
-import Data.Bits
+import Data.Bits (bit,(.|.))
 import Data.Bits.Bitwise (toListLE)
 import Data.List (intercalate, partition, subsequences, sort)
 import qualified Data.Map as Map
@@ -36,7 +39,8 @@ instance Ord Ands where
 
 instance Show Ands where
   show as = showL $ zip [0..] $ toListLE $ lits as
-    where showL [] = "1"
+    where showL :: [(Integer, Bool)] -> String
+          showL [] = "1"
           showL ss = foldr (\x s -> if snd x then 'x' : (show (fst x) ++ s) else s) "" ss
 
 -- while this represents an And, this is about presence / absence of variables
@@ -95,9 +99,6 @@ ands1 *** ands2 = normalizeF mm
 mapF :: (XORF -> XORF) -> Formula -> Formula
 mapF f (Formula ands) = Formula (f ands)
 
-mapF2 :: (XORF -> XORF -> XORF) -> Formula -> Formula -> Formula
-mapF2 f (Formula ands1) (Formula ands2) = Formula (f ands1 ands2)
-
 -- +++ does not normalize
 -- 'Xor' of formulas
 
@@ -122,9 +123,6 @@ false = Formula MS.empty
 
 true :: Formula
 true = Formula $ MS.singleton $ Ands 0
-
-isStatic :: Formula -> Bool
-isStatic f = f == false || f == true
 
 fromVar :: Int -> Formula
 fromVar s = Formula $ MS.singleton $ Ands (bit s)

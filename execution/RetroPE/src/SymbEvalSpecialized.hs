@@ -8,11 +8,10 @@ import Control.Monad.ST (ST)
 
 import Text.Printf (printf)
 
-import Value (Value(..))
 import Variable (Var)
 import GToffoli (GToffoli(..))
 import Printing.GToffoli (showGToffoli)
-import Circuits (OP, Circuit(op))
+import Circuits (Circuit(op))
 import Trace (traceM)
 import qualified FormAsBitmaps as FB
 
@@ -27,9 +26,6 @@ evalGates (GToffoli bs cs t) = do
   tv <- readSTRef t
 
   -- actually "run"
-  let funs = map (\b -> if b then id else snot) bs
-  let r = sxor tv (snand (zipWith ($) funs controls))
-
   -- all the controls ought to be single literals
   let ctrl = map (FB.lits . MS.findMin . FB.ands) controls
   let tv' = FB.ands $ tv
@@ -39,7 +35,7 @@ evalGates (GToffoli bs cs t) = do
   writeSTRef t r
 
 evalGatesDebug :: GToffoli (Var s FB.Formula) -> ST s ()
-evalGatesDebug g@(GToffoli bs cs t) = do
+evalGatesDebug g@(GToffoli _ _ t) = do
   -- debug
   msg <- showGToffoli g
   traceM (printf "Interpreting %s\n" msg) 

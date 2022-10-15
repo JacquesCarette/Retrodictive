@@ -1,6 +1,6 @@
 module FormAsMaps where
 
-import Data.List (intercalate,group,sort,sortBy)
+import Data.List (intercalate)
 import qualified Data.IntSet as IS 
 import qualified Data.Map as Map
 import qualified Data.MultiSet as MS
@@ -111,9 +111,6 @@ false = Formula MS.empty
 
 true :: Formula
 true = Formula $ MS.singleton $ Ands IS.empty
-
-isStatic :: Formula -> Bool
-isStatic f = f == false || f == true
 
 fromVar :: Int -> Formula
 fromVar s = Formula $ MS.singleton $ Ands (IS.singleton s)

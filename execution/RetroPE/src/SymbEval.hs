@@ -11,7 +11,7 @@ import Value (Value(snot,sxor,snand))
 import Variable (Var)
 import GToffoli (GToffoli(..))
 import Printing.GToffoli (showGToffoli)
-import Circuits (OP, Circuit(op))
+import Circuits (Circuit(op))
 import Trace (traceM)
 
 ------------------------------------------------------------------------------
@@ -30,7 +30,7 @@ evalGates (GToffoli bs cs t) = do
   writeSTRef t r
 
 evalGatesDebug :: Value v => GToffoli (Var s v) -> ST s ()
-evalGatesDebug g@(GToffoli bs cs t) = do
+evalGatesDebug g@(GToffoli _ _ t) = do
   -- debug
   msg <- showGToffoli g
   traceM (printf "Interpreting %s\n" msg) 
@@ -41,6 +41,6 @@ evalGatesDebug g@(GToffoli bs cs t) = do
   traceM (printf "\tWriting %s\n" (show r)) 
   
 run :: Value v => Circuit s v -> ST s ()
-run circ = foldMap evalGates $ S.reverse (op circ)
+run circ = foldMap evalGatesDebug $ S.reverse (op circ)
 
 ------------------------------------------------------------------------------

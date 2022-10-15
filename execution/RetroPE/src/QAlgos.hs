@@ -7,9 +7,8 @@ import Data.Sequence (fromList)
 import Numeric (readHex)
 import Text.Printf (printf)
 
-import Value (Value(..), fromInt)
 import GToffoli (cx, ccx, cncx)
-import Circuits (Circuit(..), OP)
+import Circuits (OP)
 import Synthesis (viewL,synthesis,synthesisGrover)
 import BoolUtils (toInt)
 
