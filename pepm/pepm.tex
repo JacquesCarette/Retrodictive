@@ -210,6 +210,12 @@ run circuit with known values and symbol for superpositions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 \section{Design and Implementation}
 
+Our exposition of the design and implementation of our system will
+follow Parnas' advice on \emph{faking it}~\cite{ParnasFake}: a reconstruction
+of the requirements as we should have had them if we'd been all-knowing,
+and a design that fits those requirements. The version history in our github
+repository can be inspected for anyone who wants to see our actual path.
+
 As we experimented with the idea of partial evaluation and symbolic
 execution of circuits, we ended up writing a lot of variants of
 essentially the same code, but with minor differences in representation.
@@ -339,9 +345,29 @@ not optimized in any way, neither for running time nor for gate count. Neither a
 the code for the classical quantum algorithms. They are, however, representation
 polymorphic.
 
-\begin{itemize}
-  \item FormAsMap and FormAsBitmap for req 8
-\end{itemize}
+Above, we said we had $3$ different symbolic evaluators. These were not driven
+by having different levels of \emph{precision} but rather by requirement $8$,
+efficiency. Our first evaluator (\texttt{FormAsList}) uses xor-lists of
+and-lists of literals (as strings, i.e.
+\texttt{"x0"}, \texttt{"x1"}, \ldots in lexicographical order of the wires). ANF 
+is then easy: and-lists are sorted, and duplicates removed. Xor-lists are sorted,
+grouped, even length lists are removed, and then made unique. This is whoefully
+inefficient, and was the clear bottleneck in our profiles.
+
+A less na\"{\i}ve approach uses a set of bits for representing literals, an
+\texttt{IntSet} for and-lists, and a normalized multiset for xor maps. We found
+more efficient to use a multiset for intermediate computations with xor maps
+which is normalized at the end instead of trying to track even/odd number of
+occurences. Only computing Cartesian products in this representation requires
+some thought for finding a reasonably efficient algorithm.
+
+While significantly faster, this was still not sufficiently efficient. Our final
+representation uses Natural numbers as and-maps where the encoding of literals is
+now positional, and xor maps are again multisets of these ``bitmaps''.
+
+As a last optimization, our circuits have a very particular property: the control
+wires are not written to, so that they are all literals. This can be used to
+further optimize the evaluation of single gates.
 
 \subsection{Implementation}
 
@@ -354,7 +380,8 @@ utilities are not counted in the above.
 The code that occupies the most volume is that for running the examples, as each
 circuit needs its own setup for the input and ancilla wires. Next is the implementation
 of symbolic representations of formulas in ANF.
-  \item largest files are for running the examples, implementing formulas
+
+TODO  largest files are for running the examples, implementing formulas
     symbolically in ANF, code for arithmetic circuits, synthesis algorithm,
     and the library of algorithms.
 \begin{figure*}[t]
