@@ -225,15 +225,10 @@ And now we give actual details.
 Questions:
 \begin{itemize}
   \item Where do we introduce the language over which we work (circuits)
-  \item How much time do we spend on background (aka quantum vs reversible)
 \end{itemize}
 
-Another try at 'the story'.
+Another try at 'the story'. (Parts done already deleted)
 \begin{enumerate}
-  \item We have some particular circuits, coming from Quantum computation,
-    that we're interested in studying
-  \item These have a particular ``shape'', and use quantum superposition to 
-    basically create free unknowns, but in a reversible way
   \item measurements give us some knowledge of the output,
   \item this places us in a setting combining having forward static and
     dynamic knowledge of the input, in the context of a particular circuit,
@@ -256,16 +251,6 @@ Another try at 'the story'.
     are universal for reversible computation, and also ???)
   \item There exists a normal form for boolean functions ideally suited to our problem:
     ANF (\url{https://en.wikipedia.org/wiki/Algebraic_normal_form})
-  \item Implementation details:
-    \begin{itemize}
-      \item tagless for value creation language (true, false, not, xor, and)
-      \item variables are references to values
-      \item the representation of a formula abstracts over variable evaluation 
-        and rep of formulas
-      \item GToff are lists of control wires (flipped or straight) and a target wire.
-      \item circuits are sequences of GT gates; we mark our circuits with input/ancilla-in/ancilla-out/output
-      \item (continue)
-    \end{itemize}
   \item evaluation on
     \begin{itemize}
       \item present test cases in more detail
@@ -276,36 +261,35 @@ Another try at 'the story'.
         \end{itemize}
     \end{itemize}
 \end{enumerate}
-
-So, all in all, I see the outline (and who seems in good position to write)
-\begin{enumerate}
-  \item Introduction [Amr]
-    \begin{itemize}
-      \item items 1-11 above, but 10-11 will be done in more depth later
-    \end{itemize}
-  \item Circuits and Boolean Functions [Jacques will try]
-    \begin{itemize}
-      \item redo 10 and 11 in more detail. Other background here
-    \end{itemize}
-  \item Symbolic Evaluation of Circuits [Jacques]
-    \begin{itemize}
-      \item Define the problem we're tackling
-    \end{itemize}
-  \item Design and Implementation [Jacques]
-    \begin{itemize}
-      \item Give the design (lots of polymorphism, tagless, etc)
-      \item Talk about dreadful timings
-      \item Design of better data-structures for ANF
-    \end{itemize}
-  \item Evaluation [Amr and Jacques]
-    \begin{itemize}
-      \item Explain each of the circuits we're using [Amr]
-      \item Explain how to 'read off' the answer from the constraints [Amr and Jacques]
-      \item Show some timings [Jacques]
-    \end{itemize}
-  \item Conclusion [?]
-\end{enumerate}
 \end{comment}
+
+% So, all in all, I see the outline (and who seems in good position to write)
+% \begin{enumerate}
+%   \item Introduction [Amr]
+%     \begin{itemize}
+%       \item items 1-11 above, but 10-11 will be done in more depth later
+%     \end{itemize}
+%   \item Circuits and Boolean Functions [Jacques will try]
+%     \begin{itemize}
+%       \item redo 10 and 11 in more detail. Other background here
+%     \end{itemize}
+%   \item Symbolic Evaluation of Circuits [Jacques]
+%     \begin{itemize}
+%       \item Define the problem we're tackling
+%     \end{itemize}
+% D \item Design and Implementation [Jacques]
+% D   \begin{itemize}
+% D     \item Give the design (lots of polymorphism, tagless, etc)
+% D     \item Design of better data-structures for ANF
+% D   \end{itemize}
+%   \item Evaluation [Amr and Jacques]
+%     \begin{itemize}
+%       \item Explain each of the circuits we're using [Amr]
+%       \item Explain how to 'read off' the answer from the constraints [Amr and Jacques]
+%       \item Show some timings [Jacques]
+%     \end{itemize}
+%   \item Conclusion [?]
+% \end{enumerate}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Circuits and Boolean Functions}
