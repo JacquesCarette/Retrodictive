@@ -174,8 +174,7 @@ predictGrover fr base n w = print $ runST $ do
 timeRetroGrover :: Int -> Integer -> IO ()
 timeRetroGrover n w = do
   circ <- stToIO (groverCircuit FB.formRepr 0 n w)
-  let bigN :: Integer
-      bigN = toInteger $ 2^n
+  let bigN = toInteger $ 2^n
   (time,form) <- timeItT (stToIO (do run circ
                                      readSTRef (head (ancillaIns circ))))
   printf "Grover: N=%d,\tu=%d;\tformula is %s; time = %.2f seconds\n"
