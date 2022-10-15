@@ -123,9 +123,10 @@ the \cx-gate transforms $\ket{x0}$ to $\ket{xx}$. Since any
 measurement of the Bell state must produce either 00 or 11, by
 producing a symbolic state that shares the same name in two positions,
 we have accurately represented the entangled Bell state. Similarly,
-for the GHZ circuit on the right, the state after the Hadamard gate is
-$\ket{x00}$ which evolves to $\ket{xx0}$ and then to $\ket{xxx}$ again
-accurately capturing the entanglement correlations.
+for the GHZ circuit on the right of Fig.~\ref{fig:bell2}, the state
+after the Hadamard gate is $\ket{x00}$ which evolves to $\ket{xx0}$
+and then to $\ket{xxx}$ again accurately capturing the entanglement
+correlations.
 
 \begin{figure*}[t]
   \centering
@@ -166,19 +167,16 @@ possibilities. Consider again the Bell circuit in Fig.~\ref{fig:bell}
 with an arbitrary initial value for the second qubit. The right
 subfigure Fig.~\ref{fig:bellqcore} removes the explicit use of
 $H\ket{0}$ and replaces the top qubit with another symbolic
-variable. At this point, we can ``partially evaluate'' the circuit
-under various regimes. For example, we can set $y_1=0$ and $y_2=1$ and
-ask about values of $x_1$ and $x_2$ that would be consistent with this
-setting. We can calculate backwards from $\ket{x_21}$ as follows. The
-state evolves to $\ket{x_2(1 \oplus x_2)}$ which can be reconciled
-with the initial conditions yielding the constraints $x_1=x_2$ and
-$1 \oplus x_2 = 0$ whose solutions are $x_1 = x_2 = 1$.
+variable. Because quantum circuits are reversible, we can, at this
+point, ``partially evaluate'' the circuit under various regimes. For
+example, we can set $y_1=0$ and $y_2=1$ and ask about values of $x_1$
+and $x_2$ that would be consistent with this setting. We can calculate
+backwards from $\ket{x_21}$ as follows. The state evolves to
+$\ket{x_2(1 \oplus x_2)}$ which can be reconciled with the initial
+conditions yielding the constraints $x_1=x_2$ and $1 \oplus x_2 = 0$
+whose solutions are $x_1 = x_2 = 1$.
 
-\newpage
-
-
-
-
+\begin{comment}
 There are three common ways to compute with \emph{unknown} values:
 \begin{enumerate}
   \item by treating as symbolic variables,
@@ -307,6 +305,7 @@ So, all in all, I see the outline (and who seems in good position to write)
     \end{itemize}
   \item Conclusion [?]
 \end{enumerate}
+\end{comment}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Circuits and Boolean Functions}
