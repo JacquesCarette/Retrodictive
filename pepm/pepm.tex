@@ -499,22 +499,6 @@ As a last optimization, our circuits have a very particular property: the contro
 wires are not written to, so that they are all literals. This can be used to
 further optimize the evaluation of single gates.
 
-\subsection{Implementation}
-
-The final code consists of $18$ modules that implement various
-services, see Fig.~\ref{fig:modules} for a full listing. It consists of
-only $1449$ lines of Haskell code, of which $646$ lines are blank, import or
-comments, module declaration, so that $809$ are ``code''. Testing and printing
-utilities are not counted in the above.
-
-The code that occupies the most volume is that for running the examples, as each
-circuit needs its own setup for the input and ancilla wires. Next is the implementation
-of symbolic representations of formulas in ANF.
-
-TODO  largest files are for running the examples, implementing formulas
-    symbolically in ANF, code for arithmetic circuits, synthesis algorithm,
-    and the library of algorithms.
-
 \begin{figure*}[t]
 \begin{tabular}{l | p{13cm}}
   \textbf{Module} & \textbf{Service} \\ \hline
@@ -553,15 +537,30 @@ TODO  largest files are for running the examples, implementing formulas
   \label{fig:modules}
 \end{figure*}
 
-Comment on
-\begin{itemize}
-  \item \texttt{snand} being in the class instead of outside.
-  \item GToffoli leaving some invariant un-expressed
-  \item $1471$ LOC, of which about $\frac{1}{3}$ is imports and comments.
-  \item largest files are for running the examples, implementing formulas
-    symbolically in ANF, code for arithmetic circuits, synthesis algorithm,
-    and the library of algorithms.
-\end{itemize}
+\subsection{Implementation}
+
+The final code consists of $18$ modules that implement various
+services, see Fig.~\ref{fig:modules} for a full listing. It consists of
+only $1449$ lines of Haskell code, of which $646$ lines are blank, import or
+comments, module declaration, so that $809$ are ``code''. Testing and printing
+utilities are not counted in the above.
+
+The code that occupies the most volume is that for running the examples, as each
+circuit needs its own setup for the input and ancilla wires. Next is the implementation
+of symbolic representations of formulas in ANF. This is largely because there are a
+lot of pieces that need to be defined, including many instances; the algorithmic aspect
+rarely span more than $15$ lines in total. The code for generating arithmetic circuits
+is voluminous as well as largely computational, but is a re-implementation of known
+material, as is the synthesis code.
+
+A few comments on further implementation details. Sharp readers might have noticed
+\texttt{snand} as defined in class \texttt{Value} instead of as a polymorphic function
+outside the class; we do this to enable its implementation to be overridden.
+Lastly, \texttt{GToffoli}'s implementation relies on an unexpressed invariant: that its
+two lists are of equal length. We really ought to refactor the code to use a single
+list of tuples, but this is a pervasive change that would not bring much benefit as
+we use combinators to build circuits, and these already maintain that invariant.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
 \section{Evaluation}
