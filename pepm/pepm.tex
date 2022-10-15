@@ -49,6 +49,164 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}
 
+The general state of a quantum bit (qubit) in a superposition of false ($\ket{0}$) and true
+($\ket{1}$) is mathematically modeled using two angles $\theta$ and
+$\phi$ as follows:
+\[
+\cos{\frac{\theta}{2}} \ket{0} + e^{i\phi} \sin{\frac{\theta}{2}} \ket{1} 
+\]
+A particular case when $\theta = \pi/2$ and $\phi=0$ is ubiquitous in
+quantum algorithms. In those cases, the general representation reduces to:
+\[
+1/\sqrt{2} (\ket{0} + \ket{1} )
+\]
+which represents a qubit in an equal superposition of false and
+true. This superposition is not observable, however. When the qubit is
+observed, it collapses, with equal probability, to either false or
+true. In other words, computationally speaking, this qubit is
+indistinguishabble from a symbolic boolean variable with an unknown
+value.
+
+This remarkably simple observation is quite robust in the presence of
+multiple, possibly entangled, qubits. 
+
+\begin{figure}[b]
+  \centering
+\begin{subfigure}[b]{.25\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=1.0]
+   \begin{yquant*}[register/minimum height=0.8cm]
+   qubit {$\ket0$} x;
+   qubit {$\ket0$} y;
+   box {$H$} x;
+   cnot y | x;
+   measure x;
+   measure y;
+  \end{yquant*}
+\end{tikzpicture}
+\caption{\label{fig:bell}Bell circuit}
+\end{subfigure}
+\qquad\qquad
+\begin{subfigure}[b]{.25\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=1.0]
+   \begin{yquant*}[register/minimum height=0.8cm]
+   qubit {$\ket{x_1}$} x;
+   qubit {$\ket{y_1}$} y;
+   box {$H$} x;
+   cnot y | x;
+   output {$\ket{x_2}$} x;
+   output {$\ket{y_2}$} y;
+  \end{yquant*}
+\end{tikzpicture}
+\caption{\label{fig:bellqcore}Quantum core}
+\end{subfigure}
+\qquad\qquad
+\begin{subfigure}[b]{.25\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=1.0]
+   \begin{yquant*}[register/minimum height=0.8cm]
+   qubit {$\ket{x_1}$} x;
+   qubit {$\ket{y_1}$} y;
+   cnot y | x;
+   output {$\ket{x_2}$} x;
+   output {$\ket{y_2}$} y;
+  \end{yquant*}
+\end{tikzpicture}
+\caption{\label{fig:bellccore}Classical core}
+\end{subfigure}
+\caption{\label{fig:bellall}A conventional quantum circuit with
+  initial conditions and measurement (a); its quantum core without
+  measurement and with unspecified initial and final conditions (b); and
+  its classical core without explicit quantum superpositions (c).}
+\end{figure}
+
+The main ideas underlying our contributions can be illustrated with
+the aid of the small examples in Fig.~\ref{fig:bellall}. In the
+conventional computational mode (Fig.~\ref{fig:bell}), the execution
+starts with the initial state $\ket{00}$. The first gate (Hadamard)
+evolves the state to $1/\sqrt{2}(\ket{00} + \ket{10})$ which is
+transformed by the controlled-not (\cx) gate to $1/\sqrt{2}(\ket{00} +
+\ket{11})$. The measurements at the end produce 00 or 11 with equal
+probability. Fig.~\ref{fig:bellqcore} keeps the quantum core of the
+circuit, removing the measurements, and naming the inputs and outputs
+with symbolic variables. Now, instead of setting $x_1=y_1=0$ and
+computing forward as before, we can, for example, set $x_2=1$ and
+$y_2=0$ and calculate backwards as follows: $\ket{10}$ evolves in the
+backwards direction to $\ket{11}$ and then to
+$1/\sqrt{2}(\ket{01}-\ket{11})$. In other words, in order to observe
+$x_2y_2=10$, the variable $x_1$ should be prepared in the
+superposition $1/\sqrt{2}(\ket{0}-\ket{1})$ and $y_1$ should be
+prepared in the state $\ket{1}$. More interestingly, we can partially
+specify the initial and final conditions. For example, we can fix
+$x_1=0$ and $x_2=1$ and ask if there are any possible values for $y_1$
+and $y_2$ that would be consistent with this setting. To answer the
+question, we calculate, using the techniques of symbolic partial
+evaluation (Methods), as follows. The initial state is $\ket{0y_1}$
+which evolves to $1/\sqrt{2}(\ket{0y_1}+\ket{1y_1})$ and then to
+$1/\sqrt{2}(\ket{0y_1}+\ket{1(1 \oplus y_1)})$ where $\oplus$ is the
+exclusive-or operation and $1 \oplus y_1$ is the canonical way of
+negating $y_1$ in the Algebraic Normal Form (ANF) of boolean
+expressions (Methods). This final state can now be reconciled with the
+specified final conditions $1y_2$ revealing that the settings are
+consistent provided that $y_2 = 1 \oplus y_1$. We can, in fact, go one
+step further and analyze the circuit without the Hadamard gate as
+shown in Fig.~\ref{fig:bellccore}. The reasoning is that the role of
+Hadamard is to introduce (modulo phase) uncertainty about whether
+$x_1=0$ or $x_1=1$. But, again modulo phase, the same uncertainty can
+be expressed by just using the variable $x_1$. Thus, in
+Fig.~\ref{fig:bellccore}, we can set $y_1=0$ and $y_2=1$ and ask about
+values of $x_1$ and $x_2$ that would be consistent with this
+setting. We can calculate backwards from $\ket{x_21}$ as follows. The
+state evolves to $\ket{x_2(1 \oplus x_2)}$ which can be reconciled
+with the initial conditions yielding the constraints $x_1=x_2$ and $1
+\oplus x_2 = 0$ whose solutions are $x_1 = x_2 = 1$.
+
+\begin{figure}[ht]
+\begin{center}
+\begin{tikzpicture}[scale=0.6]
+   \begin{yquant*}[register/minimum height=1.3cm]
+   qubit {$\ket0$} x;
+   qubit {$\ket0$} y;
+   box {$H$} x;
+   cnot y | x;
+  \end{yquant*}
+\end{tikzpicture}
+\qquad
+\begin{tikzpicture}[scale=0.6]
+   \begin{yquant*}[register/minimum height=1.3cm]
+   qubit {$\ket0$} x;
+   qubit {$\ket0$} y;
+   qubit {$\ket0$} z;
+   box {$H$} x;
+   cnot y | x;
+   cnot z | y;
+  \end{yquant*}
+\end{tikzpicture}
+\end{center}
+\caption{\label{fig:bell2}Bell and GHZ States}
+\end{figure}
+\paragraph*{Entanglement.}
+A symbolic variable represents a boolean value that can be 0 or 1;
+this is similar to a qubit in a superposition $(1/\sqrt{2}) (\ket{0}
+\pm \ket{1})$. Thus, it appears that $H\ket{0}$ could be represented
+by a symbol~$x$ to denote the uncertainty. Surprisingly, this idea
+scales to even represent maximally entangled
+states. Fig.~\ref{fig:bell2} (left) shows a circuit to generate the Bell
+state $(1/\sqrt{2}) (\ket{00} + \ket{11})$. By using the symbol $x$
+for $H\ket{0}$, the input to the \cx-gate is $\ket{x0}$ which
+evolves to $\ket{xx}$. By sharing the same symbol in two positions,
+the symbolic state accurately represents the entangled Bell
+state. Similarly, for the circuit in Fig.~\ref{fig:bell2} (right), the
+state after the Hadamard gate is $\ket{x00}$ which evolves to
+$\ket{xx0}$ and then to $\ket{xxx}$ again accurately capturing the
+entanglement correlations.
+
+\newpage
+
+
+
+
 There are three common ways to compute with \emph{unknown} values:
 \begin{enumerate}
   \item by treating as symbolic variables,
@@ -354,9 +512,11 @@ utilities are not counted in the above.
 The code that occupies the most volume is that for running the examples, as each
 circuit needs its own setup for the input and ancilla wires. Next is the implementation
 of symbolic representations of formulas in ANF.
+\begin{itemize}
   \item largest files are for running the examples, implementing formulas
     symbolically in ANF, code for arithmetic circuits, synthesis algorithm,
     and the library of algorithms.
+\end{itemize}
 \begin{figure*}[t]
 \begin{tabular}{l | p{13cm}}
   \textbf{Module} & \textbf{Service} \\ \hline
