@@ -309,18 +309,18 @@ TODO: Make sure to document the ``Circuit Abstraction'' that's in comments
 at the top of \texttt{Circuits.hs}, along with the picture. Either here or
 ensure it occurs before.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+\section{Symbolic Evaluation of Circuits}
+
 \paragraph*{Algebraic Normal Form (ANF).}
 The semantics of a generalized Toffoli gate with $n$ control qubits:
-$a_{n_1},\cdots,c_0$ and one target qubit $b$ is $b \oplus \bigwedge_i
+$a_{n},\cdots,a_0$ and one target qubit $b$ is $b \oplus \bigwedge_i
 a_i$, the exclusive-or of the target $b$ with the conjunction of all
 the control qubits. That is precisely the definition of the algebraic
 normal form of boolean expressions. We note that circuits that only
 use \x\ and \cx-gates never generate any conjunctions and hence lead
-to formulae that efficiently solvable
+to formulae that are efficiently solvable
 classically~\cite{10.5555/35517,TOKAREVA20151}.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-\section{Symbolic Evaluation of Circuits}
 
 For quantum circuits over $H$, CCX
 restrict to $\ket{0}$ inputs; look at state after the initial group of
@@ -554,6 +554,9 @@ Lastly, \texttt{GToffoli}'s implementation relies on an unexpressed invariant: t
 two lists are of equal length. We really ought to refactor the code to use a single
 list of tuples, but this is a pervasive change that would not bring much benefit as
 we use combinators to build circuits, and these already maintain that invariant.
+Similarly for \texttt{Circuit}: the lists \texttt{ancillaIns}, \texttt{ancillaOut}
+and \texttt{ancillaVals} should all be of the same length. That invariant is not
+checked in our code.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
