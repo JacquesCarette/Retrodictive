@@ -305,6 +305,103 @@ Another try at 'the story'. (Parts done already deleted)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Circuits and Boolean Functions}
  
+\begin{figure}[t]
+  \begin{subfigure}{0.5\textwidth}
+  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
+    \begin{yquant*}[operators/every barrier/.append style={red, thick},
+        operator/minimum width=7mm,
+        operator/separation=1mm,
+        register/separation=10mm]
+    qubits {$\ket0^{\otimes n}$} a;
+    qubits {$\ket{\psi}_m$} b;
+    box {$H^{\otimes n}$} a;
+    ["barrier 1"]
+    barrier (-);
+    [x radius=7mm, y radius=7mm]
+    box {$U_f$} (a,b);
+    ["barrier 2"]
+    barrier (-);
+    measure b;
+    discard b;
+    ["barrier 3"]
+    barrier (-);
+    box {$\mathit{QFT}$} a;
+    measure a;
+    \end{yquant*}
+    \draw[line width=3pt, ->, blue] (0,-1.1) .. controls (2.5,-0.1) and (6,-1.6) .. (9,-1);
+  \end{tikzpicture}
+  \caption{Conventional Flow}
+  \end{subfigure}
+  \begin{subfigure}{0.5\textwidth}
+  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
+    \begin{yquant*}[operators/every barrier/.append style={red, thick},
+        operator/minimum width=7mm,
+        operator/separation=1mm,
+        register/separation=10mm]
+    qubits {$\ket0^{\otimes n}$} a;
+    qubits {$\ket{\psi}_m$} b;
+    box {$H^{\otimes n}$} a;
+    ["barrier 1"]
+    barrier (-);
+    [x radius=7mm, y radius=7mm]
+    box {$U_f$} (a,b);
+    ["barrier 2"]
+    barrier (-);
+    measure b;
+    discard b;
+    ["barrier 3"]
+    barrier (-);
+    box {$\mathit{QFT}$} a;
+    measure a;
+  \end{yquant*}
+  \draw[line width=3pt, blue] (0,-1.6) .. controls (5.5,-2) and (11,-1.6) .. (2,-1.2);
+  \draw[line width=3pt, ->, blue] (2,-1.2) .. controls (0.5,-0.8) and (7,-0.2) .. (9,-1.2);
+  \end{tikzpicture}
+  \caption{Retrodictive Flow}
+  \end{subfigure}
+\caption{\label{fig:templateQC}Template quantum circuit}
+\end{figure}
+
+We analyze a particular class of circuits, names those
+that match the template in Fig.~\ref{fig:templateQC} (including
+Deutsch, Deutsch-Jozsa, Bernstein-Vazirani, Simon, Grover, and Shor's
+algorithms~\cite{doi:10.1137/S0097539796300921,deutsch,deutschJozsa,365701,doi:10.1137/S0097539795293172,nielsen_chuang_2010,10.1145/237814.237866}). 
+The $U_f$ block, defined as 
+\begin{equation}
+  U_f(\ket{x}\ket{y}) = \ket{x}\ket{f(x) \oplus y},
+\end{equation}
+ends up being completely classical, albeit performing mixed mode
+execution of the circuit. More precisely, here it means that in
+all these algorithms, the top collection of wires (which we will call
+the computational register) is prepared in a uniform superposition
+which can be represented using symbolic variables. The measurement of
+the bottom collection of wires (which we call the ancilla register)
+after barrier 2 provides partial information about the future which
+is, together with the initial conditions of the ancilla register,
+sufficient to symbolically execute the circuit. In each case, instead
+of the conventional execution flow depicted in
+Fig.~\ref{fig:templateQC}(a), we find a possible measurement outcome
+$w$ at barrier (2) and perform a symbolic retrodictive execution with
+a state $\ket{xw}$ going backwards to collect the constraints on $x$
+that enable us to solve the problem in question.
+
+\begin{figure}[t]
+  \begin{tikzpicture}[every label/.style={rotate=40, anchor=south west}]
+    \begin{yquant*}[
+        operator/minimum width=7mm,
+        operator/separation=3mm,
+        register/separation=10mm]
+    qubits {$\ket{\phi}_n$} a;
+    qubits {$\ket{\psi}_m$} b;
+    [x radius=7mm, y radius=7mm]
+    box {$U_f$} (a,b);
+    output {$\ket{\phi}_n$} a;
+    output {$\ket{\psi \oplus f(\phi)}_m$} b;
+    \end{yquant*}
+  \end{tikzpicture}
+\caption{\label{fig:CircuitAbstraction}Circuit Abstraction}
+\end{figure}
+
 TODO: Make sure to document the ``Circuit Abstraction'' that's in comments
 at the top of \texttt{Circuits.hs}, along with the picture. Either here or
 ensure it occurs before.
@@ -988,64 +1085,6 @@ setting. We can calculate backwards from $\ket{x_21}$ as follows. The
 state evolves to $\ket{x_2(1 \oplus x_2)}$ which can be reconciled
 with the initial conditions yielding the constraints $x_1=x_2$ and $1
 \oplus x_2 = 0$ whose solutions are $x_1 = x_2 = 1$.
-
-\begin{figure}[t]
-  \begin{subfigure}{0.5\textwidth}
-  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
-    \begin{yquant*}[operators/every barrier/.append style={red, thick},
-        operator/minimum width=7mm,
-        operator/separation=1mm,
-        register/separation=10mm]
-    qubits {$\ket0^{\otimes n}$} a;
-    qubits {$\ket{\psi}_m$} b;
-    box {$H^{\otimes n}$} a;
-    ["barrier 1"]
-    barrier (-);
-    [x radius=7mm, y radius=7mm]
-    box {$U_f$} (a,b);
-    ["barrier 2"]
-    barrier (-);
-    measure b;
-    discard b;
-    ["barrier 3"]
-    barrier (-);
-    box {$\mathit{QFT}$} a;
-    measure a;
-    \end{yquant*}
-    \draw[line width=3pt, ->, blue] (0,-1.1) .. controls (2.5,-0.1) and (6,-1.6) .. (9,-1);
-  \end{tikzpicture}
-  \caption{Conventional Flow}
-  \end{subfigure}
-  \begin{subfigure}{0.5\textwidth}
-  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
-    \begin{yquant*}[operators/every barrier/.append style={red, thick},
-        operator/minimum width=7mm,
-        operator/separation=1mm,
-        register/separation=10mm]
-    qubits {$\ket0^{\otimes n}$} a;
-    qubits {$\ket{\psi}_m$} b;
-    box {$H^{\otimes n}$} a;
-    ["barrier 1"]
-    barrier (-);
-    [x radius=7mm, y radius=7mm]
-    box {$U_f$} (a,b);
-    ["barrier 2"]
-    barrier (-);
-    measure b;
-    discard b;
-    ["barrier 3"]
-    barrier (-);
-    box {$\mathit{QFT}$} a;
-    measure a;
-  \end{yquant*}
-  \draw[line width=3pt, blue] (0,-1.6) .. controls (5.5,-2) and (11,-1.6) .. (2,-1.2);
-  \draw[line width=3pt, ->, blue] (2,-1.2) .. controls (0.5,-0.8) and (7,-0.2) .. (9,-1.2);
-  \end{tikzpicture}
-  \caption{Retrodictive Flow}
-  \end{subfigure}
-\caption{\label{fig:templateQC}Template quantum circuit}
-\end{figure}
-
 These insights are robust and can be implemented in software (Methods)
 to analyze circuits with millions of gates for the quantum algorithms
 that match the template in Fig.~\ref{fig:templateQC} (including
