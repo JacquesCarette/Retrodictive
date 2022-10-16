@@ -304,7 +304,7 @@ Another try at 'the story'. (Parts done already deleted)
 % D   \end{itemize}
 %   \item Evaluation [Amr and Jacques]
 %     \begin{itemize}
-%       \item Explain each of the circuits we're using [Amr]
+% D     \item Explain each of the circuits we're using [Jacques]
 %       \item Explain how to 'read off' the answer from the constraints [Amr and Jacques]
 %       \item Show some timings [Jacques]
 %     \end{itemize}
@@ -453,16 +453,29 @@ classically~\cite{10.5555/35517,TOKAREVA20151}.
 
 \section{Symbolic Evaluation of Circuits}
 
-As the $b_i$ are circuit constants, 
+Our problem then reduces to a mixture of partial evaluation, slicing
+and symbolic evaluation. Like with partial evaluation, we have some
+inputs dynamic, some static, and a static program. Similarly for slicing,
+but with outputs. Our situation is significantly simpler than in both
+cases. First, our language is reversible, which makes backwards evaluation
+deterministic, unlike for most languages. Second, the values at each step
+of circuit execution are boolean functions, and thus expressible in ANF.
 
-For quantum circuits over $H$, CCX
-restrict to $\ket{0}$ inputs; look at state after the initial group of
-$H$ gates
-\begin{verbatim}
-classical wires treated as known
-superpositions |0> + |1> treated as symbols x
-run circuit with known values and symbol for superpositions
-\end{verbatim}
+Thus we never need to residualize a circuit, we can always get a ``closed
+form'', in ANF, for evaluation, whether forward or backward. In the
+\emph{retrodictive} mode of running our circuits, we take a combination
+of static and dynamic knowledge of the output, run the circuit backwards,
+and produce as output a \emph{system of constraints} equating the resulting
+logical polynomials to the circuit's inputs. If the system of constraints
+has a solution, then that output was feasible. 
+
+It's important to note that our circuits are given as white boxes. In 
+particular, the $b_i$ are circuit constants, so we can always express
+everything in algebrais normal form.
+
+What we will then see is that for many classical circuits, we can
+``read off'' the information we need from the system of constraint themselves,
+\emph{without needing to actually solve them}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 \section{Design and Implementation}
@@ -493,6 +506,44 @@ that for $\overline{x} : \Bool^n$, then
 $g(\overline{x},y) = (\overline{x}, y \oplus f(\overline{x}))$.
 
 This leads us to the requirements our code must fulfill.
+
+\begin{figure*}[t]
+\begin{tabular}{l | p{13cm}}
+  \textbf{Module} & \textbf{Service} \\ \hline
+  \texttt{Value} & representation of a \emph{language of values}
+    (as a typeclass) and some constructors\\
+  \texttt{FormulaRepr} & abstract representation of formulas, as
+    a mapping from abstract variables to abstract formulas\\
+  \texttt{Variable} & variables as locations holding values and
+    their constructors\\
+  \texttt{ModularArith} & modular arithmetic utilities useful in
+    implementing certain algorithms, like Shor's\\
+  \texttt{BoolUtils} & function to interpret a list of booleans as
+    an Integer\\
+  \texttt{GToffoli} & representation of generalized Toffoli gates
+    and some constructors\\
+  \texttt{Circuits} & representation of circuits (sequences of gates)
+    and of the special ``wires'' of our circuits\\
+  \texttt{Synthesis} & synthesis algorithm for circuits with particular
+    properties\\
+  \texttt{ArithCirc} & creation of arithmetic circuits\\
+  \texttt{EvalZ} & evaluation of circuits on concrete values\\
+  \texttt{FormAsList} & representation of formulas as xor-lists 
+    of and-lists of literals-as-strings\\
+  \texttt{FormAsMaps} & representation of formulas as xor-maps
+    of and-maps of literals-as-Int\\
+  \texttt{FormAsBitmaps} & representation of formulas as xor-maps
+    of bitmaps\\
+  \texttt{SymbEval} & Symbolic evaluation of circuits\\
+  \texttt{SymbEvalSpecialized} & Symbolic evaluation of circuits
+    specialized to the representation from \texttt{FormAsBitmaps}\\
+  \texttt{QAlgos} & generating the circuits themselves\\
+  \texttt{RunQAlgos} & running the actual circuits \\
+  \texttt{Trace} & utilities for tracing and debugging 
+\end{tabular}
+  \caption{Modules and their services}
+  \label{fig:modules}
+\end{figure*}
 
 \subsection{Requirements}
 
@@ -626,44 +677,6 @@ As a last optimization, our circuits have a very particular property: the contro
 wires are not written to, so that they are all literals. This can be used to
 further optimize the evaluation of single gates.
 
-\begin{figure*}[t]
-\begin{tabular}{l | p{13cm}}
-  \textbf{Module} & \textbf{Service} \\ \hline
-  \texttt{Value} & representation of a \emph{language of values}
-    (as a typeclass) and some constructors\\
-  \texttt{FormulaRepr} & abstract representation of formulas, as
-    a mapping from abstract variables to abstract formulas\\
-  \texttt{Variable} & variables as locations holding values and
-    their constructors\\
-  \texttt{ModularArith} & modular arithmetic utilities useful in
-    implementing certain algorithms, like Shor's\\
-  \texttt{BoolUtils} & function to interpret a list of booleans as
-    an Integer\\
-  \texttt{GToffoli} & representation of generalized Toffoli gates
-    and some constructors\\
-  \texttt{Circuits} & representation of circuits (sequences of gates)
-    and of the special ``wires'' of our circuits\\
-  \texttt{Synthesis} & synthesis algorithm for circuits with particular
-    properties\\
-  \texttt{ArithCirc} & creation of arithmetic circuits\\
-  \texttt{EvalZ} & evaluation of circuits on concrete values\\
-  \texttt{FormAsList} & representation of formulas as xor-lists 
-    of and-lists of literals-as-strings\\
-  \texttt{FormAsMaps} & representation of formulas as xor-maps
-    of and-maps of literals-as-Int\\
-  \texttt{FormAsBitmaps} & representation of formulas as xor-maps
-    of bitmaps\\
-  \texttt{SymbEval} & Symbolic evaluation of circuits\\
-  \texttt{SymbEvalSpecialized} & Symbolic evaluation of circuits
-    specialized to the representation from \texttt{FormAsBitmaps}\\
-  \texttt{QAlgos} & generating the circuits themselves\\
-  \texttt{RunQAlgos} & running the actual circuits \\
-  \texttt{Trace} & utilities for tracing and debugging 
-\end{tabular}
-  \caption{Modules and their services}
-  \label{fig:modules}
-\end{figure*}
-
 \subsection{Implementation}
 
 The final code consists of $18$ modules that implement various
@@ -695,14 +708,14 @@ checked in our code.
 
 \section{Evaluation}
 
-\subsection*{Algorithms.} 
-
 We implement six well-known quantum algorithms: 
 Deutsch, Deutsch-Jozsa, Bernstein-Vazirani, Simon, Grover, and Shor. 
-We highlight the salient results for the
-first five algorithms, and then discuss the most interesting case of
-Shor's algorithm in detail.
+We first define all six, then explain interesting aspects of running them.
 
+\subsection{The Algorithms.} 
+
+\begin{comment}
+  % Jacques: I don't find this circuit brings much to the discussion.
 \begin{figure}[ht]
   \centering
 \begin{tikzpicture}[scale=1.2]
@@ -720,12 +733,93 @@ Shor's algorithm in detail.
 \caption{\label{fig:deutsch}Quantum Circuit for the Deutsch-Jozsa
   Algorithm $(n=1)$}
 \end{figure}
-\paragraph*{De-Quantization.}
-We abbreviate the set $\{ 0,1,\ldots,(n-1)\}$ as~$\finset{n}$. In the
-Deutsch-Jozsa problem, we are given a function $\finset{2^n}
-\rightarrow \finset{2}$ that is promised to be constant or balanced
-and we need to distinguish the two cases. The quantum circuit
-Fig.~\ref{fig:deutsch} shows the algorithm for the case $n=1$. Instead
+\end{comment}
+
+Let $\finset{n}$ denote the finite set $\{ 0,1,\ldots,(n-1)\}$. The
+parameter $n$ determines the problem size in all the problems below
+(except Deutsch which is a fixed sized problem).
+
+\paragraph*{Deutsch.}
+The conventional statement of the problem is to determine if a
+function $\finset{2} \rightarrow \finset{2}$ is constant or
+balanced. An equivalent statement is to answer a query about the
+cardinality of a pre-image. In this case, if the cardinality of the
+pre-image of any value in the range is even i.e. 0 or 2, the function
+must be constant and if it is odd, i.e., it contains just one element,
+the function must be balanced.
+
+\paragraph*{Deutsch-Jozsa.}
+The problem is a generalization of the previous one: the question is
+to determine if a function $\finset{2^n} \rightarrow \finset{2}$ for
+some $n$ is constant or balanced. When expressed as a pre-image
+computation, the problem reduces to a query distinguishing the
+following three situations about the pre-image of a value in the range
+of the function: is the cardinality of the pre-image equal to 0,
+$2^n$, or $2^{n-1}$? In the first two cases, the function is constant
+and in the last case, the pre-image contains half the values in the
+domain indicating that the function is balanced.
+
+\paragraph*{Bernstein-Vazirani.}
+We are given a function $f : \finset{2^n} \rightarrow \finset{2}$
+that hides a secret number $s \in \finset{2^n}$. We are promised the
+function is defined using the binary representations $\sum_i^{n-1}
+x_i$ and $\sum_i^{n-1} s_i$ of $x$ and $s$ respectively as follows:
+\[
+f(x) = \sum_{i=0}^{n-1} s_ix_i \mod{2}
+\]
+The goal is to determine the secret number $s$. 
+
+Expressing the problem as a pre-image calculation is slightly more
+involved than in the previous two cases. To determine $s$, we make $n$
+queries to the pre-image of a value in the range of the
+function. Query $i$ asks whether $2^i$ is a member of the pre-image
+and the answer determines bit $i$ of the secret $s$. Indeed, by
+definition, $f(2^i) = s_i$ and hence $s_i$ is 1 iff $2^i$ is a member
+of the pre-image of 1.
+
+\paragraph*{Bernstein-Vazirani.}
+We are given a function $f : \finset{2^n} \rightarrow \finset{2}$
+that hides a secret number $s \in \finset{2^n}$. We are promised the
+function is defined using the binary representations $\sum_i^{n-1}
+x_i$ and $\sum_i^{n-1} s_i$ of $x$ and $s$ respectively as follows:
+\[
+f(x) = \sum_{i=0}^{n-1} s_ix_i \mod{2}
+\]
+The goal is to determine the secret number $s$. 
+
+Expressing the problem as a pre-image calculation is slightly more
+involved than in the previous two cases. To determine $s$, we make $n$
+queries to the pre-image of a value in the range of the
+function. Query $i$ asks whether $2^i$ is a member of the pre-image
+and the answer determines bit $i$ of the secret $s$. Indeed, by
+definition, $f(2^i) = s_i$ and hence $s_i$ is 1 iff $2^i$ is a member
+of the pre-image of 1.
+
+\paragraph*{Simon.}
+We are given a 2-1 function $f : \finset{2^n} \rightarrow
+\finset{2^n}$ with the property that there exists an $a$ such $f(x) =
+f(x \oplus a)$ for all~$x$; the goal is to determine $a$. When
+expressed as a computation of pre-images, the problem statement
+becomes the following. Pick an arbitrary $x$ and compute the pre-image
+of $f(x)$. It must contain exactly two values one of which is $x$. The
+problem then reduces to finding the other value in the pre-image.
+
+\paragraph*{Grover}
+We are given a function $f : \finset{2^n} \rightarrow \finset{2}$
+such that there is a unique $u \in \finset{2^n}$ such that $f(u)=1$.
+The problem is to find this $u$.
+
+\paragraph*{Shor.}
+The quantum core of the algorithm is the following. We are given a
+periodic function $f(x) = a^x \mod{2^n}$ and the goal is to determine
+the period. As a computation over pre-images, the problem can be
+recast as follows. For an arbitrary $x$, compute the pre-image of
+$f(x)$ and query it to determine the period.
+
+\subsection{Running the Algorithms}
+
+\paragraph*{Deutsch and Deutsch-Jozsa}
+Instead
 of the conventional execution, we perform a retrodictive execution of
 the $U_f$ block with an ancilla measurement~$0$, i.e., with the state
 $\ket{x_{n-1}\cdots x_1x_00}$.  The result of the execution is a
@@ -757,7 +851,7 @@ balanced function whose output pattern is balanced but, by design,
 difficult to discern~\cite{quteprints21763}.
 
 An important insight is that we actually do not care about the exact
-formula. Indeed, since we are promised that the function is either
+formula. Indeed, since we are \emph{promised} that the function is either
 constant or balanced, then any formula that refers to at least one
 variable must indicate a balanced function. In other words, the
 outcome of the algorithm can be immediately decided if the formula is
@@ -765,9 +859,10 @@ anything other than 0 or 1. Indeed, our implementation correctly
 identifies all 12870 balanced functions $\finset{2^4} \rightarrow
 \finset{2}$. This is significant as some of these functions produce
 complicated entangled patterns during quantum evolution and could not
-be de-quantized using previous approaches~\cite{djdeq}. A word of
-caution though: our results assume a ``white-box'' complexity model
-rather than a ``black-box'' complexity model~\cite{10.1145/3341106}.
+be de-quantized using previous approaches~\cite{djdeq}. 
+However, it is important to remember that are circuits are ``white-box''
+rather than ``black-box'', which yields a very different complexity
+model~\cite{10.1145/3341106}.
 
 \begin{figure*}
 \begin{tabular}{ll}
@@ -807,6 +902,12 @@ $u=15$ &
 \end{tabular}
 \caption{\label{fig:Grover}Result of retrodictive execution for the Grover oracle ($n=4$, $w$ in the range $\{0..15\}$). The highlighted red subformula is the binary representation of the hidden input $u$.}
 \end{figure*}
+
+\paragraph*{Bernstein-Vazirani}
+
+\paragraph*{Grover}
+
+\paragraph*{Simon}
 
 The discussion above suggests that the details of the equations may
 not be particularly relevant for some algorithms. This would be
@@ -863,7 +964,7 @@ a=2,8 & 1 \oplus x_0 \oplus x_1 \oplus x_0x_1 = 1 & x_0x_1 = 0 & x_1 \oplus x_0x
 \end{center}
 \caption{\label{fig:shor15}Finding the period of $4^x \mod{15}$}
 \end{figure}
-\paragraph*{Shor's Algorithm}
+\paragraph*{Shor}
 The circuit in Fig.~\ref{fig:shor15} uses a hand-optimized
 implementation of quantum oracle $U_f$ for the modular exponentiation
 function $f(x) = 4^x \mod{15}$ to factor 15 using Shor's
