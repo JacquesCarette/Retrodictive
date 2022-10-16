@@ -2,6 +2,8 @@
 \setcopyright{none}
 \acmConference{PEPM}{2023}{Boston}
 
+\usepackage[english]{babel}
+\usepackage{amsthm}
 \usepackage{graphicx,color}
 \usepackage{subcaption}
 \usepackage{braket}
@@ -30,6 +32,10 @@
 
 \newcommand{\Cplx}{\ensuremath{\mathbb{C}}}
 \newcommand{\Bool}{\ensuremath{\mathbb{B}}}
+
+\theoremstyle{remark}
+\newtheorem*{insight}{Insight}
+\newtheorem*{signif}{Significance}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
@@ -834,16 +840,20 @@ the period. As a computation over pre-images, the problem can be
 recast as follows. For an arbitrary $x$, compute the pre-image of
 $f(x)$ and query it to determine the period.
 
-\subsection{Running the Algorithms}
+\subsection{Symbolic execution of the Algorithms}
+
+We make some remarks on salient points that arise from doing
+symbolic (retrodictive) execution of the algorithms.
 
 \paragraph*{Deutsch and Deutsch-Jozsa}
-Instead
-of the conventional execution, we perform a retrodictive execution of
+
+We perform a retrodictive execution of
 the $U_f$ block with an ancilla measurement~$0$, i.e., with the state
 $\ket{x_{n-1}\cdots x_1x_00}$.  The result of the execution is a
 symbolic formula $r$ that determines the conditions under which
 $f(x_{n-1},\cdots,x_0) = 0$. When the function is constant, the
-results are $0=0$ (always) or $1=0$ (never). When the function is
+results are $0=0$ (always) or $1=0$ (never)
+\emph{regardless of how large the circuit is}. When the function is
 balanced, we get a formula that mentions the relevant variables. For
 example, here are the results of three executions for balanced
 functions $\finset{2^6} \rightarrow \finset{2}$:
@@ -868,17 +878,20 @@ of a balanced function. The last case is a cryptographically strong
 balanced function whose output pattern is balanced but, by design,
 difficult to discern~\cite{quteprints21763}.
 
-An important insight is that we actually do not care about the exact
+\begin{insight} In these algorithms, we actually do not care about the exact
 formula. Indeed, since we are \emph{promised} that the function is either
 constant or balanced, then any formula that refers to at least one
 variable must indicate a balanced function. In other words, the
 outcome of the algorithm can be immediately decided if the formula is
-anything other than 0 or 1. Indeed, our implementation correctly
+anything other than 0 or 1. 
+\end{insight}
+
+Indeed, our implementation correctly
 identifies all 12870 balanced functions $\finset{2^4} \rightarrow
 \finset{2}$. This is significant as some of these functions produce
 complicated entangled patterns during quantum evolution and could not
 be de-quantized using previous approaches~\cite{djdeq}. 
-However, it is important to remember that are circuits are ``white-box''
+However, it is important to remember that our circuits are ``white-box''
 rather than ``black-box'', which yields a very different complexity
 model~\cite{10.1145/3341106}.
 
@@ -921,17 +934,27 @@ $u=15$ &
 \caption{\label{fig:Grover}Result of retrodictive execution for the Grover oracle ($n=4$, $w$ in the range $\{0..15\}$). The highlighted red subformula is the binary representation of the hidden input $u$.}
 \end{figure*}
 
+\begin{signif}
+That the details of the equations do not matter is crucial as the
+satisfiability of generaly boolean equation is, in
+general, an $\mathit{NP}$-complete
+problem~\cite{4640789,Karp1972,10.1145/800157.805047}. 
+\end{signif}
 \paragraph*{Bernstein-Vazirani}
 
+\begin{insight}
+  Here too the result can be immediately read off the formula.
+\end{insight}
+
+The formulae are guaranteed to be of the form
+$x_1 \oplus x_3 \oplus x_4 \oplus x_5$; the secret string is then the
+binary number that has a 1 at the indices of the relevant variables
+$\{ 1,3,4,5 \}$. In the case for Grover, because there is a unique
 \paragraph*{Grover}
 
 \paragraph*{Simon}
 
-The discussion above suggests that the details of the equations may
-not be particularly relevant for some algorithms. This would be
-crucial as the satisfiability of general boolean equations is, in
-general, an $\mathit{NP}$-complete
-problem~\cite{4640789,Karp1972,10.1145/800157.805047}. Fortunately,
+Fortunately,
 this observation does hold for other algorithms as well including the
 Bernstein-Vazirani algorithm and Grover's algorithm. In both cases,
 the result can be immediately read from the formula. In the
