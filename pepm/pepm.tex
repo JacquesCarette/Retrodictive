@@ -33,7 +33,7 @@
 \newcommand{\Cplx}{\ensuremath{\mathbb{C}}}
 \newcommand{\Bool}{\ensuremath{\mathbb{B}}}
 
-\theoremstyle{remark}
+\theoremstyle{definition}
 \newtheorem*{insight}{Insight}
 \newtheorem*{signif}{Significance}
 
@@ -940,6 +940,7 @@ satisfiability of generaly boolean equation is, in
 general, an $\mathit{NP}$-complete
 problem~\cite{4640789,Karp1972,10.1145/800157.805047}. 
 \end{signif}
+
 \paragraph*{Bernstein-Vazirani}
 
 \begin{insight}
@@ -949,23 +950,17 @@ problem~\cite{4640789,Karp1972,10.1145/800157.805047}.
 The formulae are guaranteed to be of the form
 $x_1 \oplus x_3 \oplus x_4 \oplus x_5$; the secret string is then the
 binary number that has a 1 at the indices of the relevant variables
-$\{ 1,3,4,5 \}$. In the case for Grover, because there is a unique
+$\{ 1,3,4,5 \}$. 
+
 \paragraph*{Grover}
 
-\paragraph*{Simon}
+\begin{insight}
+  For Grover as well, the result can be immediately read off the formula.
+\end{insight}
 
-Fortunately,
-this observation does hold for other algorithms as well including the
-Bernstein-Vazirani algorithm and Grover's algorithm. In both cases,
-the result can be immediately read from the formula. In the
-Bernstein-Vazirani case, formulae are guaranteed to be of the form
-$x_1 \oplus x_3 \oplus x_4 \oplus x_5$; the secret string is then the
-binary number that has a 1 at the indices of the relevant variables
-$\{ 1,3,4,5 \}$. In the case for Grover, because there is a unique
-input $u$ for which $f(u) = 1$, the ANF formula must include a
+For Grover, the ANF formula must include a
 subformula matching the binary representation of $u$, and in fact that
-subformula is guaranteed to be the shortest one as shown in
-Fig.~\ref{fig:Grover}.
+subformula is guaranteed to be the shortest one as shown in Fig.~\ref{fig:Grover}.
 
 \begin{figure*}
 \[\begin{array}{l@{\quad}lllll}
@@ -982,6 +977,38 @@ a=2,8 & 1 \oplus x_0 \oplus x_1 \oplus x_0x_1 = 1 & x_0x_1 = 0 & x_1 \oplus x_0x
   $x_8x_7x_6x_5x_4x_3x_2x_1x_0$. The solution for the unknown
   variables is given in the last column.}
 \end{figure*}
+
+\paragraph*{Simon}
+
+The circuit below demonstrates the situation when $n=2$ and $a = 3$. 
+
+\bigskip
+\begin{center}
+\begin{quantikz}\label{eq:simon}
+   \lstick{$x_0$} & \ctrl{2} & \ctrl{3} & \qw      & \qw      & \rstick{$x_0$} \qw \\
+   \lstick{$x_1$} & \qw      & \qw      & \ctrl{1} & \ctrl{2} & \rstick{$x_1$} \qw \\
+   \lstick{$a_0$} & \targ{}  & \qw      & \targ{}  & \qw      & \rstick{$a_0$} \qw \\
+   \lstick{$a_1$} & \qw      & \targ{}  & \qw      & \targ{}  & \rstick{$a_1$} \qw 
+\end{quantikz}
+\end{center}
+\medskip 
+
+The circuit implements the black box $U_f (x,a) = (x, f(x) \oplus
+a)$. We first pick a random $x$, say $x = 3$, fix the initial
+condition $a = 0$ and run the circuit forward. This execution
+produces, in the second register, the value of $f(x) = 0$. We now run
+a symbolic retrodictive execution with $a = 0$ at the output
+site. That execution produces information on all values of $a$ that
+are consistent with the observed result. In this case, we get: $a_0 =
+x_0 \oplus x_1$ and $a_1 = x_0 \oplus x_1$. In other words, when $x_0=x_1$, we
+have $a=0$, and when $x_0 \neq x_1$, we have $a=3$ which is indeed the
+desired hidden value.
+
+% Amr, please check!
+\begin{insight}
+  Simon's problem does not seem to have a resolution that is easy to read
+  from the resulting equations.
+\end{insight}
 
 \begin{figure}{r}
 \begin{center}
@@ -1005,6 +1032,7 @@ a=2,8 & 1 \oplus x_0 \oplus x_1 \oplus x_0x_1 = 1 & x_0x_1 = 0 & x_1 \oplus x_0x
 \end{center}
 \caption{\label{fig:shor15}Finding the period of $4^x \mod{15}$}
 \end{figure}
+
 \paragraph*{Shor}
 The circuit in Fig.~\ref{fig:shor15} uses a hand-optimized
 implementation of quantum oracle $U_f$ for the modular exponentiation
@@ -1018,7 +1046,7 @@ forward execution, the state before the QFT block is:
   (\ket{1} + \ket{3} + \ket{5} + \ket{7}) \ket{4}
   )
 \]
-At this point, the ancilla register is measured to either $\ket{1}$ or
+At this point, the ancilla register is measured to be either $\ket{1}$ or
 $\ket{4}$. In either case, the computational register snaps to a state
 of the form $\sum_{r=0}^3 \ket{a+2r}$ whose QFT has peaks at $\ket{0}$
 or $\ket{4}$ making them the most likely outcomes of measurements of
@@ -1046,7 +1074,7 @@ Fig.~\ref{fig:shor15}. In our implementation, modular exponentiation
 circuits are constructed from first principles using adders and
 multipliers~\cite{PhysRevA.54.147}. In the case of $f(x) = 4^x
 \mod{15}$, although the unoptimized constructed circuit has 56,538
-generalized Toffoli gates (controlled$^{n}$-not gates for all $n$),
+generalized Toffoli gates,
 the execution results in just two simple equations: $x_0 = 0$ and $1
 \oplus x_0 = 1$. Furthermore, as shown in Fig.~\ref{fig:shor-eqs}, the
 shape and size of the equations is largely insensitive to the choice
@@ -1131,7 +1159,7 @@ $x_0=0$ and leaving $x_1$ unconstrained. The matching values in the
 qutrit system as 00, 10, 20 or in decimal 0, 3, 6 clearly identifying
 the period to be 3. The idea of adapting the computation to simplify
 the circuit and equations is inspired by the fact that entanglement is
-relative to a particular tensor product decomposition (Methods).
+relative to a particular tensor product decomposition.
 
 \subsection*{Complexity}
 
