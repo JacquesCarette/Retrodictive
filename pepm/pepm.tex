@@ -1,4 +1,6 @@
-\documentclass[sigplan]{acmart}
+\documentclass[sigplan,review]{acmart}
+\setcopyright{none}
+\acmConference{PEPM}{2023}{Boston}
 
 \usepackage{graphicx,color}
 \usepackage{subcaption}
@@ -32,8 +34,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 
-\title{Symbolic Execution of \\
-  Toffoli-Hadamard Quantum Circuits}
+\title[Symbolic Quantum Execution]{Symbolic Execution of \\
+  Hadamard-Toffoli Quantum Circuits}
 
 \author{Jacques Carette}
 \affiliation{\institution{McMaster University}\city{Hamilton, ON}\country{Canada}}
@@ -62,7 +64,7 @@ $\phi$ determines the relative phase between them. A particular case
 when $\theta = \pi/2$ and $\phi=0$ is ubiquitous in quantum
 algorithms. In those cases, the general representation reduces to:
 \[
-1/\sqrt{2} (\ket{0} + \ket{1} )
+1/\sqrt{2}~ (\ket{0} + \ket{1} )
 \]
 which represents a qubit in an equal superposition of false and
 true.
@@ -70,11 +72,14 @@ true.
 The reason this particular case is distinguished is because a rather
 common template for quantum algorithms is to start with qubits
 initialized to $\ket{0}$ and immediately apply a Hadamard $H$ transformation
-whose action is $\ket{0} \mapsto 1/\sqrt{2} (\ket{0} + \ket{1}
-)$. This superposition is then further manipulated depending on the
+whose action is:
+\[
+  \ket{0} \mapsto 1/\sqrt{2} ~(\ket{0} + \ket{1})
+\]
+This superposition is then further manipulated depending on the
 algorithm in question.
 
-\begin{figure}[ht]
+\begin{figure}[b]
 \begin{center}
 \begin{tikzpicture}[scale=0.9]
    \begin{yquant*}[register/minimum height=1.3cm]
@@ -100,7 +105,7 @@ algorithm in question.
 \end{figure}
 
 Our observation is that a qubit in the special superposition
-$1/\sqrt{2} (\ket{0} + \ket{1} )$ is, computationally speaking,
+$1/\sqrt{2} ~(\ket{0} + \ket{1} )$ is, computationally speaking,
 indistinguishable from a symbolic boolean variable with an unknown
 value in the same sense used in symbolic evaluation of classical
 programs. First, the superposition is not observable. The only way to
@@ -112,17 +117,17 @@ in the presence of multiple, possibly entangled, qubits.
 To see this, consider the conventional quantum circuits for creating
 the maximally entangled Bell and GHZ states in
 Fig.~\ref{fig:bell2}. On the left, the circuit generates the Bell
-state $(1/\sqrt{2}) (\ket{00} + \ket{11})$ as follows. First the state
-evolves from $\ket{00}$ to $(1/\sqrt{2}) (\ket{00} + \ket{10})$. Then
+state $(1/\sqrt{2})~ (\ket{00} + \ket{11})$ as follows. First the state
+evolves from $\ket{00}$ to $(1/\sqrt{2})~ (\ket{00} + \ket{10})$. Then
 we apply the \cx-gate whose action is to negate the second qubit when
 the first one is true. By using the symbol $x$ for $H\ket{0}$, the
 input to the \cx-gate is $\ket{x0}$. A simple case analysis shows that
 the action of \cx-gate on inputs $\ket{xy}$ is $\ket{x(x \oplus y)}$
 where $\oplus$ is the exclusive-or boolean operation. In other words,
 the \cx-gate transforms $\ket{x0}$ to $\ket{xx}$. Since any
-measurement of the Bell state must produce either 00 or 11, by
-producing a symbolic state that shares the same name in two positions,
-we have accurately represented the entangled Bell state. Similarly,
+measurement of the Bell state must produce either 00 or 11, 
+a symbolic state that shares the same name in two positions
+accurately represents the entangled Bell state. Similarly,
 for the GHZ circuit on the right of Fig.~\ref{fig:bell2}, the state
 after the Hadamard gate is $\ket{x00}$ which evolves to $\ket{xx0}$
 and then to $\ket{xxx}$ again accurately capturing the entanglement
@@ -162,19 +167,23 @@ correlations.
   generating a Bell state (a); its classical symbolic variant.}
 \end{figure*}
 
-The introduction of symbolic variables opens a host of new exciting
-possibilities. Consider again the Bell circuit in Fig.~\ref{fig:bellall}
-with an arbitrary initial value for the second qubit. The right
-subfigure Fig.~\ref{fig:bellqcore} removes the explicit use of
-$H\ket{0}$ and replaces the top qubit with another symbolic
-variable. Because quantum circuits are reversible, we can, at this
-point, ``partially evaluate'' the circuit under various regimes. For
-example, we can set $y_1=0$ and $y_2=1$ and ask about values of $x_1$
-and $x_2$ that would be consistent with this setting. We can calculate
-backwards from $\ket{x_21}$ as follows. The state evolves to
-$\ket{x_2(1 \oplus x_2)}$ which can be reconciled with the initial
-conditions yielding the constraints $x_1=x_2$ and $1 \oplus x_2 = 0$
-whose solutions are $x_1 = x_2 = 1$.
+Because quantum circuits are reversible, i.e., executable forwards
+andd backwards, the introduction of symbolic variables opens a host of
+new exciting possibilities beyond conventional (classical) symbolic
+evaluation: \emph{any mixture of inputs and outputs can be made
+  symbolic}. For example, consider again the Bell circuit in
+Fig.~\ref{fig:bellall} with an arbitrary initial value for the second
+qubit. The right subfigure Fig.~\ref{fig:bellccore} removes the
+explicit use of $H\ket{0}$ and replaces the top qubit with another
+symbolic variable. Because quantum circuits are reversible, we can, at
+this point, ``partially evaluate'' the circuit under various
+regimes. For example, we can set $y_1=0$ and $y_2=1$ and ask about
+values of $x_1$ and $x_2$ that would be consistent with this
+setting. We can calculate backwards from $\ket{x_21}$ as follows. The
+state evolves to $\ket{x_2(1 \oplus x_2)}$ which can be reconciled
+with the initial conditions yielding the constraints $x_1=x_2$ and
+$1 \oplus x_2 = 0$ whose solutions are $x_1 = x_2 = 1$.
+
 
 \begin{comment}
 
@@ -421,7 +430,7 @@ target $c$ with the conjunction of the result of testing each qubit
 against its corresponding target boolean. Note that
 $\left(a_i == 1\right)$ can be expressed as just $a_i$, and
 $\left(a_i == 0\right)$ can be expressed as $1 \oplus a_i$.
-Such generalized Toffolie gates with $n$ control qubits are called
+Such generalized Toffoli gates with $n$ control qubits are called
 $c^nx$ gates. The special cases
 for $n=0$ is the \emph{not} gate 'x', 
 for $n=1$ is the \emph{controlled not} gate 'cx', and
@@ -497,7 +506,7 @@ We need to be able to deal with the following variabilities:
 \noindent It must also be possible to implement the following:
 \begin{enumerate}[resume]
   \item a reusable representation of circuits composed of generalized Toffoli gates,
-  \item a reusable representation of the inputs, outputs and ancillas associated to
+  \item a reusable representation of the inputs, outputs and ancillae associated to
     a circuit,
   \item a \emph{synthesis} algorithm for circuits implementing a certain boolean
     function,
@@ -599,14 +608,14 @@ efficiency. Our first evaluator (\texttt{FormAsList}) uses xor-lists of
 and-lists of literals (as strings, i.e.
 \texttt{"x0"}, \texttt{"x1"}, \ldots in lexicographical order of the wires). ANF 
 is then easy: and-lists are sorted, and duplicates removed. Xor-lists are sorted,
-grouped, even length lists are removed, and then made unique. This is whoefully
+grouped, even length lists are removed, and then made unique. This is woefully
 inefficient, and was the clear bottleneck in our profiles.
 
 A less na\"{\i}ve approach uses a set of bits for representing literals, an
 \texttt{IntSet} for and-lists, and a normalized multiset for xor maps. We found
 more efficient to use a multiset for intermediate computations with xor maps
 which is normalized at the end instead of trying to track even/odd number of
-occurences. Only computing Cartesian products in this representation requires
+occurrences. Only computing Cartesian products in this representation requires
 some thought for finding a reasonably efficient algorithm.
 
 While significantly faster, this was still not sufficiently efficient. Our final
@@ -982,8 +991,66 @@ the period to be 3. The idea of adapting the computation to simplify
 the circuit and equations is inspired by the fact that entanglement is
 relative to a particular tensor product decomposition (Methods).
 
+\subsection*{Complexity}
+
+Say we have a circuit containing $T$ Toffoli gates over $n+m$ qubits
+split in two registers $A$ ($n$ qubits) and $B$ (m qubits). The
+typical symbolic execution takes the following steps with the given
+worst-case complexity:
+
+\begin{enumerate}
+\item If the quantum algorithm is expressed in terms of calls to a
+  black-box oracle (all the problems we consider except Shor), then
+  the first step is to design the oracle \emph{efficiently}. Perhaps
+  suprisinglyy, it turns out we don’t have to be particularly clever
+  in designing that circuit: textbook designs with million of gates
+  can work well. 
+  \item Let $A = \ket{00\ldots 0}$ and $B = \ket{00\ldots 0}$ and run the
+circuit with classical inputs. This has complexity $\mathcal{O}(T)$ as
+it takes $T$ steps where each step takes constant time. The result of
+this evaluation will leave $A$ intact and produce some value $b$ for
+the $B$ registerr.
+\item We now run the circuit backwards with the symbolic
+values $A = \ket{x_0 x_1 \ldots x_{}n-1}$ and $B = \ket{b}$. This
+takes $T$ steps. At each step, we have $m$ ANF equations over the
+$\{x_0,x_1,\ldots,x_{n-1}\}$ variables. The size of each equation
+  might be $\mathcal{O}(2^n)$ in the worst case. So the overall
+  complexity of this step is $\mathcal{O}(Tm 2^n)$.
+\item The answer to the algorithm is obtained by solving / inspecting
+  the resulting $m$ equations. In the Deutsch-Jozsa and Grover
+  algorithms, the solution is immediate by inspection of the
+  equations.
+\end{enumerate}
+More precisely, the main bottleneck is step (3) above which has a
+worst-case complexity of $\mathcal{O}(Tm 2^n)$. The $\mathcal{O}(T)$
+factor is inevitable because we have a white box implementation of the
+oracle and we must touch every gate in that implementation. The
+$\mathcal{O}(m)$ factor is also inevitable as it represents the number
+of variables. What varies from one function to the other and, for a
+particular function, from one oracle implementation to the other is
+the $\mathcal{O}(2^n)$ factor.
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 \section{Conclusion}
+
+Symbolic execution is a way of evaluating a given program abstractly,
+so that the abstraction represents multiple inputs sharing an
+evolution path through the program, with solutions encoded in
+equations or constraints. So far, this way of execution has been
+limited to the classical realm. In this work, we extended these ideas
+to the quantum realm by considering the computational quantum
+universality of Hadamard and Toffoli gates. The proposed replacement
+of $H \ket{0}$ by $\ket{x}$, where $x$ is a symbol, provides the key
+to capturing some of the entanglement (non-local correlations) present
+in those programs; however, the execution is classical. Surprisingly,
+in many well-known quantum algorithms (such as Deutsch, Deutsch-Jozsa,
+Bernstein-Vazirani, Simon, Grover) these correlations are sufficient
+to obtain the solution efficiently for some inputs with a plain
+\emph{classical symbolic execution} as opposed to a purely quantum
+execution (involving states that belong to a complex vector space
+endowed with an inner product). This raises many questions, in
+particular, those foundational ones related to the origin behind the
+power of quantum computation.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{comment}
@@ -1076,8 +1143,8 @@ The main ideas underlying our contributions can be illustrated with
 the aid of the small examples in Fig.~\ref{fig:bellall}. In the
 conventional computational mode (Fig.~\ref{fig:bell}), the execution
 starts with the initial state $\ket{00}$. The first gate (Hadamard)
-evolves the state to $1/\sqrt{2}(\ket{00} + \ket{10})$ which is
-transformed by the controlled-not (\cx) gate to $1/\sqrt{2}(\ket{00} +
+evolves the state to $1/\sqrt{2}~(\ket{00} + \ket{10})$ which is
+transformed by the controlled-not (\cx) gate to $1/\sqrt{2}~(\ket{00} +
 \ket{11})$. The measurements at the end produce 00 or 11 with equal
 probability. Fig.~\ref{fig:bellqcore} keeps the quantum core of the
 circuit, removing the measurements, and naming the inputs and outputs
@@ -1085,17 +1152,17 @@ with symbolic variables. Now, instead of setting $x_1=y_1=0$ and
 computing forward as before, we can, for example, set $x_2=1$ and
 $y_2=0$ and calculate backwards as follows: $\ket{10}$ evolves in the
 backwards direction to $\ket{11}$ and then to
-$1/\sqrt{2}(\ket{01}-\ket{11})$. In other words, in order to observe
+$1/\sqrt{2}~(\ket{01}-\ket{11})$. In other words, in order to observe
 $x_2y_2=10$, the variable $x_1$ should be prepared in the
-superposition $1/\sqrt{2}(\ket{0}-\ket{1})$ and $y_1$ should be
+superposition $1/\sqrt{2}~(\ket{0}-\ket{1})$ and $y_1$ should be
 prepared in the state $\ket{1}$. More interestingly, we can partially
 specify the initial and final conditions. For example, we can fix
 $x_1=0$ and $x_2=1$ and ask if there are any possible values for $y_1$
 and $y_2$ that would be consistent with this setting. To answer the
 question, we calculate, using the techniques of symbolic partial
 evaluation (Methods), as follows. The initial state is $\ket{0y_1}$
-which evolves to $1/\sqrt{2}(\ket{0y_1}+\ket{1y_1})$ and then to
-$1/\sqrt{2}(\ket{0y_1}+\ket{1(1 \oplus y_1)})$ where $\oplus$ is the
+which evolves to $1/\sqrt{2}~(\ket{0y_1}+\ket{1y_1})$ and then to
+$1/\sqrt{2}~(\ket{0y_1}+\ket{1(1 \oplus y_1)})$ where $\oplus$ is the
 exclusive-or operation and $1 \oplus y_1$ is the canonical way of
 negating $y_1$ in the Algebraic Normal Form (ANF) of boolean
 expressions (Methods). This final state can now be reconciled with the
@@ -1174,12 +1241,12 @@ properties of the program under consideration.
 \end{figure}
 \paragraph*{Entanglement.}
 A symbolic variable represents a boolean value that can be 0 or 1;
-this is similar to a qubit in a superposition $(1/\sqrt{2}) (\ket{0}
+this is similar to a qubit in a superposition $1/\sqrt{2}~ (\ket{0}
 \pm \ket{1})$. Thus, it appears that $H\ket{0}$ could be represented
 by a symbol~$x$ to denote the uncertainty. Surprisingly, this idea
 scales to even represent maximally entangled
 states. Fig.~\ref{fig:bell2} (left) shows a circuit to generate the Bell
-state $(1/\sqrt{2}) (\ket{00} + \ket{11})$. By using the symbol $x$
+state $1/\sqrt{2}~ (\ket{00} + \ket{11})$. By using the symbol $x$
 for $H\ket{0}$, the input to the \cx-gate is $\ket{x0}$ which
 evolves to $\ket{xx}$. By sharing the same symbol in two positions,
 the symbolic state accurately represents the entangled Bell
