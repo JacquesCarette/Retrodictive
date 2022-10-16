@@ -168,7 +168,7 @@ correlations.
 \end{figure*}
 
 Because quantum circuits are reversible, i.e., executable forwards
-andd backwards, the introduction of symbolic variables opens a host of
+and backwards, the introduction of symbolic variables opens a host of
 new exciting possibilities beyond conventional (classical) symbolic
 evaluation: \emph{any mixture of inputs and outputs can be made
   symbolic}. For example, consider again the Bell circuit in
@@ -183,6 +183,20 @@ setting. We can calculate backwards from $\ket{x_21}$ as follows. The
 state evolves to $\ket{x_2(1 \oplus x_2)}$ which can be reconciled
 with the initial conditions yielding the constraints $x_1=x_2$ and
 $1 \oplus x_2 = 0$ whose solutions are $x_1 = x_2 = 1$.
+
+\subsection*{Outline.}
+We begin in Sec.~\ref{sec2} with background information covering the
+special quantum circuits of interest and a review of boolean functions
+and their algebraic normal form (ANF). Sec.~\ref{sec3} discusses the
+main ideas of symbolic execution of these circuits in detail. Our main
+contribution, the design and implementation, of a symbolic evaluator
+for Hadamard-Toffoli quantum circuits, is explained in
+Sec.~\ref{sec4}. The next section (Sec.~\ref{sec5}) includes a
+complexity analysis and a performance evaluation of our symbolic
+evaluator on major textbook algorithms. Sec.~\ref{sec6} concludes with
+a summary and a discussion of the broader implications of our approach
+to the understanding of the classical / quantum performance
+characteristics. 
 
 
 \begin{comment}
@@ -313,6 +327,7 @@ Another try at 'the story'. (Parts done already deleted)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Circuits and Boolean Functions}
+\label{sec2}
  
 \paragraph*{Special Circuits}
 \begin{figure}[t]
@@ -452,6 +467,7 @@ classically~\cite{10.5555/35517,TOKAREVA20151}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
 \section{Symbolic Evaluation of Circuits}
+\label{sec3}
 
 As the $b_i$ are circuit constants, 
 
@@ -466,6 +482,7 @@ run circuit with known values and symbol for superpositions
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 \section{Design and Implementation}
+\label{sec4}
 
 Our exposition of the design and implementation of our system will
 follow Parnas' advice on \emph{faking it}~\cite{ParnasFake}: a reconstruction
@@ -694,6 +711,7 @@ checked in our code.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
 \section{Evaluation}
+\label{sec5}
 
 \subsection*{Algorithms.} 
 
@@ -1002,7 +1020,7 @@ worst-case complexity:
 \item If the quantum algorithm is expressed in terms of calls to a
   black-box oracle (all the problems we consider except Shor), then
   the first step is to design the oracle \emph{efficiently}. Perhaps
-  suprisinglyy, it turns out we don’t have to be particularly clever
+  surprisingly, it turns out we don’t have to be particularly clever
   in designing that circuit: textbook designs with million of gates
   can work well. 
   \item Let $A = \ket{00\ldots 0}$ and $B = \ket{00\ldots 0}$ and run the
@@ -1032,6 +1050,7 @@ the $\mathcal{O}(2^n)$ factor.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 \section{Conclusion}
+\label{sec6}
 
 Symbolic execution is a way of evaluating a given program abstractly,
 so that the abstraction represents multiple inputs sharing an
