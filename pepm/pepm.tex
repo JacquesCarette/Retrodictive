@@ -52,39 +52,59 @@
 \author{Amr Sabry}
 \affiliation{\institution{Indiana University}\city{Bloomington, IN}\country{USA}}
 
-\maketitle
+\begin{abstract}
+  The classic simulation of quantum programs is a critical endeavor
+  for several reasons: it provides proof-of-concept validation of
+  quantum algorithms; it provides opportunities to experiment with new
+  programming abstractions suitable for the quantum domain, and most
+  significantly it is a way to explore the elusive boundary at which a
+  quantum advantage may materialize. Here, we show that traditional
+  techniques of symbolic evaluation and partial evaluation yield
+  surprisingly efficient classical simulations for some instances of
+  textbook quantum algorithms that include the Deutsch, Deutsch-Jozsa,
+  Bernstein-Vaziron, Simon, Grover, and Shor algorithms. The success
+  of traditional partial evaluation techniques in this domain is due
+  to one simple insight: the quantum bits used in these algorithms can
+  be modeled by a symbolic boolean variable while still keeping track
+  of the correlations due to superposition and entanglement. More
+  precisely, the system of constraints generated over the symbolic
+  variables contains all the necessary quantum correlations and hence
+  the answer to the quantum algorithms. With a few programming tricks
+  explained in the paper, quantum circuits with millions of gates can
+  be symbolically executed in seconds. Paradoxically, other circuits
+  with as few as a dozen gates take exponential time. We reflect on
+  the significance of these results in the conclusion.   
+\end{abstract} 
+
+\maketitle 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}
+
+Expand the abstract;
+
+explain why H-CCX
+
+revise outline
+
+\subsection*{Outline.}
+We begin in Sec.~\ref{sec2} with background information covering the
+special quantum circuits of interest and a review of boolean functions
+and their algebraic normal form (ANF). Sec.~\ref{sec3} discusses the
+main ideas of symbolic execution of these circuits in detail. Our main
+contribution, the design and implementation, of a symbolic evaluator
+for Hadamard-Toffoli quantum circuits, is explained in
+Sec.~\ref{sec4}. The next section (Sec.~\ref{sec5}) includes a
+complexity analysis and a performance evaluation of our symbolic
+evaluator on major textbook algorithms. Sec.~\ref{sec6} concludes with
+a summary and a discussion of the broader implications of our approach
+to the understanding of the classical / quantum performance
+characteristics. 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
 \section{Symbolic Evaluation of Circuits}
 \label{sec3}
-
-Our problem then reduces to a mixture of partial evaluation, slicing
-and symbolic evaluation. Like with partial evaluation, we have some
-inputs dynamic, some static, and a static program. Similarly for slicing,
-but with outputs. Our situation is significantly simpler than in both
-cases. First, our language is reversible, which makes backwards evaluation
-deterministic, unlike for most languages. Second, the values at each step
-of circuit execution are boolean functions, and thus expressible in ANF.
-
-Thus we never need to residualize a circuit, we can always get a ``closed
-form'', in ANF, for evaluation, whether forward or backward. In the
-\emph{retrodictive} mode of running our circuits, we take a combination
-of static and dynamic knowledge of the output, run the circuit backwards,
-and produce as output a \emph{system of constraints} equating the resulting
-logical polynomials to the circuit's inputs. If the system of constraints
-has a solution, then that output was feasible. 
-
-It's important to note that our circuits are given as white boxes. In 
-particular, the $b_i$ are circuit constants, so we can always express
-everything in algebrais normal form.
-
-What we will then see is that for many classical circuits, we can
-``read off'' the information we need from the system of constraint themselves,
-\emph{without needing to actually solve them}.
 
 The general state of a quantum bit (qubit) is mathematically modeled
 using an equation parameterized by two angles $\theta$ and $\phi$ as
@@ -219,32 +239,35 @@ state evolves to $\ket{x_2(1 \oplus x_2)}$ which can be reconciled
 with the initial conditions yielding the constraints $x_1=x_2$ and
 $1 \oplus x_2 = 0$ whose solutions are $x_1 = x_2 = 1$.
 
-\subsection*{Outline.}
-We begin in Sec.~\ref{sec2} with background information covering the
-special quantum circuits of interest and a review of boolean functions
-and their algebraic normal form (ANF). Sec.~\ref{sec3} discusses the
-main ideas of symbolic execution of these circuits in detail. Our main
-contribution, the design and implementation, of a symbolic evaluator
-for Hadamard-Toffoli quantum circuits, is explained in
-Sec.~\ref{sec4}. The next section (Sec.~\ref{sec5}) includes a
-complexity analysis and a performance evaluation of our symbolic
-evaluator on major textbook algorithms. Sec.~\ref{sec6} concludes with
-a summary and a discussion of the broader implications of our approach
-to the understanding of the classical / quantum performance
-characteristics. 
+Technically, the problem of symbolic evaluation of our quantum
+circuits then reduces to a mixture of partial evaluation, slicing and
+symbolic evaluation. Like with partial evaluation, we have some inputs
+dynamic, some static, and a static program. Similarly for slicing, but
+with outputs. Our situation is significantly simpler than in both
+cases. First, our language is reversible, which makes backwards
+evaluation deterministic, unlike for most languages. Second, the
+values at each step of circuit execution are boolean functions
+manipulated with conditional exclusive-or operations with a
+well-understand normal form, the algebraic normal form (ANF). 
 
+Thus we never need to residualize a circuit, we can always get a
+``closed form,'' in ANF, for evaluation, whether forward or
+backward. In what we call the \emph{retrodictive} mode of running our
+circuits, we take a combination of static and dynamic knowledge of the
+output, run the circuit backwards, and produce as output a
+\emph{system of constraints} equating the resulting logical
+polynomials to the circuit's inputs. If the system of constraints has
+a solution, then that output was feasible. What we will actually see
+is that for many quantum circuits, we can ``read off'' the information
+we need from the system of constraint themselves, \emph{without
+  needing to actually solve them}.
 
 \begin{comment}
-
   eliminate superpositions
   use symbols to represent correlations in the quantum superposition
   H |0> replaced by x
   preserve the correlations in the quantum superposition but they are
     encoded in the correlations between symbols
-
-  
-
-
 
 There are three common ways to compute with \emph{unknown} values:
 \begin{enumerate}
