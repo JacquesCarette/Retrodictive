@@ -280,10 +280,10 @@ Another try at 'the story'. (Parts done already deleted)
 %     \begin{itemize}
 %       \item items 1-11 above, but 10-11 will be done in more depth later
 %     \end{itemize}
-%   \item Circuits and Boolean Functions [Jacques will try]
-%     \begin{itemize}
-%       \item redo 10 and 11 in more detail. Other background here
-%     \end{itemize}
+% D \item Circuits and Boolean Functions [Jacques will try]
+% D   \begin{itemize}
+% D     \item redo 10 and 11 in more detail. Other background here
+% D   \end{itemize}
 %   \item Symbolic Evaluation of Circuits [Jacques]
 %     \begin{itemize}
 %       \item Define the problem we're tackling
@@ -305,6 +305,7 @@ Another try at 'the story'. (Parts done already deleted)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Circuits and Boolean Functions}
  
+\paragraph*{Special Circuits}
 \begin{figure}[t]
   \begin{subfigure}{0.5\textwidth}
   \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
@@ -362,7 +363,7 @@ Another try at 'the story'. (Parts done already deleted)
 \caption{\label{fig:templateQC}Template quantum circuit}
 \end{figure}
 
-We analyze a particular class of circuits, names those
+We analyze a particular class of circuits, namely those
 that match the template in Fig.~\ref{fig:templateQC} (including
 Deutsch, Deutsch-Jozsa, Bernstein-Vazirani, Simon, Grover, and Shor's
 algorithms~\cite{doi:10.1137/S0097539796300921,deutsch,deutschJozsa,365701,doi:10.1137/S0097539795293172,nielsen_chuang_2010,10.1145/237814.237866}). 
@@ -402,22 +403,48 @@ that enable us to solve the problem in question.
 \caption{\label{fig:CircuitAbstraction}Circuit Abstraction}
 \end{figure}
 
-TODO: Make sure to document the ``Circuit Abstraction'' that's in comments
-at the top of \texttt{Circuits.hs}, along with the picture. Either here or
-ensure it occurs before.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-\section{Symbolic Evaluation of Circuits}
+In other words, it suffices to look at circuits that match the
+template in Fig.~\ref{fig:CircuitAbstraction}.
 
 \paragraph*{Algebraic Normal Form (ANF).}
-The semantics of a generalized Toffoli gate with $n$ control qubits:
-$a_{n},\cdots,a_0$ and one target qubit $b$ is $b \oplus \bigwedge_i
-a_i$, the exclusive-or of the target $b$ with the conjunction of all
-the control qubits. That is precisely the definition of the algebraic
-normal form of boolean expressions. We note that circuits that only
+
+Furthermore, the circuits we are interested in can all be expressed
+in terms of \emph{generalized Toffoli gates} with $n$ control qubits:
+$a_{n},\cdots,a_0$ and one target qubit $c$ is $c \oplus \bigwedge_i
+a_i$, the exclusive-or of the target $c$ with the conjunction of all
+the control qubits. In fact, we generalize this further, so that we
+can control either on a qubit or its negation, by using pairs of
+control qubit and a boolean. In other words, our gates are
+$(a_{n}, b_{n}),\cdots,(a_0,b_0)$ and one target qubit $c$ is 
+$c \oplus \bigwedge_i \left(a_i == b_i\right)$, the exclusive-or of the 
+target $c$ with the conjunction of the result of testing each qubit
+against its corresponding target boolean. Note that
+$\left(a_i == 1\right)$ can be expressed as just $a_i$, and
+$\left(a_i == 0\right)$ can be expressed as $1 \oplus a_i$.
+Such generalized Toffolie gates with $n$ control qubits are called
+$c^nx$ gates. The special cases
+for $n=0$ is the \emph{not} gate 'x', 
+for $n=1$ is the \emph{controlled not} gate 'cx', and
+for $n=2$ is the classical \emph{Toffoli} gate 'ccx'.
+
+The \emph{algebraic normal form} 
+(also called ring sum normal form, Zhegalkin normal form or
+Reed-Muller expansion)
+of boolean functions $\Bool^n\rightarrow\Bool$
+is as the exclusive-or ($\oplus$) of ands ($\wedge$) of $0$ or more
+of the inputs $x_i$. Note that the and of $0$ inputs is $1$. It is then
+easy to see that generalized Toffoli gates (without the extra boolean) are
+already in algebraic normal form.
+Furthermore, circuits that only
 use \x\ and \cx-gates never generate any conjunctions and hence lead
 to formulae that are efficiently solvable
 classically~\cite{10.5555/35517,TOKAREVA20151}.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+
+\section{Symbolic Evaluation of Circuits}
+
+As the $b_i$ are circuit constants, 
 
 For quantum circuits over $H$, CCX
 restrict to $\ket{0}$ inputs; look at state after the initial group of
