@@ -70,7 +70,7 @@
   techniques of symbolic evaluation and partial evaluation yield
   surprisingly efficient classical simulations for some instances of
   textbook quantum algorithms that include the Deutsch, Deutsch-Jozsa,
-  Bernstein-Vaziron, Simon, Grover, and Shor's algorithms. The success
+  Bernstein-Vazirani, Simon, Grover, and Shor's algorithms. The success
   of traditional partial evaluation techniques in this domain is due
   to one simple insight: the quantum bits used in these algorithms can
   be modeled by a symbolic boolean variable while still keeping track
@@ -237,7 +237,7 @@ and backwards, the introduction of symbolic variables opens a host of
 new exciting possibilities beyond conventional (classical) symbolic
 evaluation: \emph{any mixture of inputs and outputs can be made
   symbolic}. For example, consider again the Bell circuit in
-Fig.~\ref{fig:bellall} with an arbitrary initial value for the second
+Fig.~\ref{fig:bellall} but with an arbitrary initial value for the second
 qubit. The right subfigure Fig.~\ref{fig:bellccore} removes the
 explicit use of $H\ket{0}$ and replaces the top qubit with another
 symbolic variable. Because quantum circuits are reversible, we can, at
@@ -260,28 +260,30 @@ values at each step of circuit execution are boolean functions
 manipulated with conditional exclusive-or operations with a
 well-understood normal form, the algebraic normal form (ANF). 
 
-\paragraph*{Algebraic Normal Form (ANF).}
+\paragraph*{Algebraic Normal Form (ANF)}
 
-The circuits we are interested in can all be expressed
-in terms of \emph{generalized Toffoli gates} with $n$ control qubits:
-$a_{n},\cdots,a_0$ and one target qubit $c$, where the effect is 
-to send $c$ to $c \oplus \bigwedge_i a_i$, the exclusive-or of the target $c$
-with the conjunction of all the control qubits. In fact, we generalize this
-further, so that we can control either on a qubit or its negation, by using
-pairs of control qubit and a boolean. In other words, our gates are
-$(a_{n}, b_{n}),\cdots,(a_0,b_0)$ and one target qubit $c$ is 
-$c \oplus \bigwedge_i \left(a_i == b_i\right)$, the exclusive-or of the 
-target $c$ with the conjunction of the result of testing each qubit
-against its corresponding target boolean. Note that
+The circuits we are interested in can all be expressed in terms of
+\emph{generalized Toffoli gates} with $n$ control qubits:
+$a_{n},\cdots,a_0$ and one target qubit $c$, where the effect is to
+leave all the control qubits unchanged and send $c$ to
+$c \oplus \bigwedge_i a_i$, the exclusive-or of the target $c$ with
+the conjunction of all the control qubits. In fact, we generalize this
+further, so that we can control either on a qubit or its negation, by
+using pairs of a control qubit and a boolean. In other words, our
+gates are specified by a collection $(a_{n}, b_{n}),\cdots,(a_0,b_0)$
+together with one target qubit $c$; their action is to send the target
+qubit to $c \oplus \bigwedge_i \left(a_i == b_i\right)$, the
+exclusive-or of the target $c$ with the conjunction of the result of
+testing each qubit against its corresponding target boolean. Note that
 $\left(a_i == 1\right)$ can be expressed as just $a_i$, and
-$\left(a_i == 0\right)$ can be expressed as $1 \oplus a_i$.
-Such generalized Toffoli gates with $n$ control qubits are called
-$c^nx$ gates. It is worth noting the following special cases:
+$\left(a_i == 0\right)$ can be expressed as $1 \oplus a_i$.  Such
+generalized Toffoli gates with~$n$ control qubits are called $c^nx$
+gates. It is worth noting the following special cases:
 \begin{itemize}
   \item for $n=0$, we get the \emph{not} gate \x, 
   \item for $n=1$, we get the \emph{controlled not} gate \cx, and
-  \item for $n=2$, we get the \emph{controlled controlled not} or
-    \emph{Toffoli} gate \ccx.
+  \item for $n=2$, we get the \emph{controlled controlled not} or the
+    conventional \emph{Toffoli} gate \ccx.
 \end{itemize}
 
 The \emph{algebraic normal form} (also called ring sum normal form,
@@ -297,17 +299,24 @@ algebraic normal form.  Furthermore, circuits that only use \x\ and
 that are efficiently solvable
 classically~\cite{10.5555/35517,TOKAREVA20151}.
 
-To summarize, we never need to residualize a circuit, we can always get a
-``closed form,'' in ANF, for evaluation, whether forward or
-backward. In what we call the \emph{retrodictive} mode of running our
-circuits, we take a combination of static and dynamic knowledge of the
-output, run the circuit backwards, and produce as output a
-\emph{system of constraints} equating the resulting logical
-polynomials to the circuit's inputs. If the system of constraints has
-a solution, then that output was feasible. What we will actually see
-is that for many quantum circuits, we can ``read off'' the information
-we need from the system of constraint themselves, \emph{without
-  needing to actually solve them}.
+To summarize, we never need to residualize a circuit, we can always
+get a ``closed form,'' in ANF, for evaluation, whether forward or
+backward. Evaluating a circuit in one fixed direction is then quite
+standard. A novel approach, enabled by the reversibility of quantum
+mechanics, is what we call the \emph{retrodictive} mode of running
+circuits~\cite{retrodictive}. In that mode, illustrated in
+Fig.~\ref{retroflow} , we start execution in the forward direction
+with a fully static collection of inputs in order to partially
+determine a possible future; we then execute backwards from the
+partially specified possible future (with the unknown values
+represented symbolically). This combination of static and dynamic
+knowledge of the output produces as its result a \emph{system of
+  constraints} equating the resulting logical polynomials to the
+circuit's inputs. If the system of constraints has a solution, then
+that output was feasible. What we will actually see is that for many
+quantum circuits, we can ``read off'' the information we need from the
+system of constraint themselves, \emph{without needing to actually
+  solve them}.
 
 \begin{comment}
   eliminate superpositions
@@ -371,7 +380,7 @@ Another try at 'the story'. (Parts done already deleted)
   \item measurements give us some knowledge of the output,
   \item this places us in a setting combining having forward static and
     dynamic knowledge of the input, in the context of a particular circuit,
-    which is the domain of Partial Evalution (PE),
+    which is the domain of Partial Evaluation (PE),
   \item this also places us in a setting combining having backward static and
     dynamic knowledge of the output, in the context of a particular circuit,
     which is the domain of Slicing,
@@ -588,7 +597,7 @@ $f(x)$ and query it to determine the period.
   \draw[line width=3pt, blue] (0,-1.6) .. controls (5.5,-2) and (11,-1.6) .. (2,-1.2);
   \draw[line width=3pt, ->, blue] (2,-1.2) .. controls (0.5,-0.8) and (7,-0.2) .. (9,-1.2);
   \end{tikzpicture}
-  \caption{Retrodictive Flow}
+  \caption{\label{retrofig}Retrodictive Flow}
   \end{subfigure}
 \caption{\label{fig:templateQC}Template quantum circuit}
 \end{figure}
@@ -644,7 +653,7 @@ template in Fig.~\ref{fig:CircuitAbstraction}.
 Our exposition of the design and implementation of our system will
 follow Parnas' advice on \emph{faking it}~\cite{parnas1986rational}: a reconstruction
 of the requirements as we should have had them if we'd been all-knowing,
-and a design that fits those requirements. The version history in our github
+and a design that fits those requirements. The version history in our GitHub
 repository can be inspected for anyone who wants to see our actual path.
 
 As we experimented with the idea of partial evaluation and symbolic
@@ -870,7 +879,7 @@ checked in our code.
 \section{Evaluation}
 \label{sec5}
 
-We frst give interesting aspects of running the six quantum algorithms
+We first give interesting aspects of running the six quantum algorithms
 outlined in Sec.~\ref{sec5}.
 
 \subsection{Symbolic execution of the Algorithms}
@@ -972,7 +981,7 @@ $u=15$ &
 
 \begin{signif}
 That the details of the equations do not matter is crucial as the
-satisfiability of generaly boolean equation is, in
+satisfiability of generally boolean equation is, in
 general, an $\mathit{NP}$-complete
 problem~\cite{4640789,Karp1972,10.1145/800157.805047}. 
 \end{signif}
