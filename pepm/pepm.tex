@@ -464,9 +464,14 @@ Another try at 'the story'. (Parts done already deleted)
 \end{figure}
 \end{comment}
 
-\noindent Let $\finset{n}$ denote the finite set $\{ 0,1,\ldots,(n-1)\}$. The
-parameter~$n$ determines the problem size for all the problems below
-(except Deutsch which is a fixed sized problem).
+\noindent Let $\finset{n}$ denote the finite set
+$\{ 0,1,\ldots,(n-1)\}$. The parameter~$n$ determines the problem size
+for all the problems below (except Deutsch which is a fixed sized
+problem). In the review below, we adapt the usual presentation of the
+algorithms to one better suited to our context. In particular, instead
+of using the forward flow of execution using exact quantum
+superpositions, we express the problem as one asking for particular
+properties of boolean functions. 
 
 \paragraph*{Deutsch.}
 The conventional statement of the problem is to determine if a
@@ -502,7 +507,7 @@ f(x) = \sum_{i=0}^{n-1} s_ix_i \mod{2}
 The goal is to determine the secret number $s$. 
 
 Expressing the problem as a pre-image calculation is slightly more
-involved than in the previous two cases. To determine $s$, we make $n$
+involved than in the previous two cases. To determine~$s$, we make $n$
 queries to the pre-image of a value in the range of the
 function. Query $i$ asks whether $2^i$ is a member of the pre-image
 and the answer determines bit $i$ of the secret $s$. Indeed, by
