@@ -55,7 +55,7 @@
 \affiliation{\institution{Indiana University}\city{Bloomington, IN}\country{USA}}
 
 \begin{abstract}
-  The classic simulation of quantum programs is a critical endeavor
+  The simulation of quantum programs by classical computers is a critical endeavor
   for several reasons: it provides proof-of-concept validation of
   quantum algorithms; it provides opportunities to experiment with new
   programming abstractions suitable for the quantum domain, and most
@@ -64,7 +64,7 @@
   techniques of symbolic evaluation and partial evaluation yield
   surprisingly efficient classical simulations for some instances of
   textbook quantum algorithms that include the Deutsch, Deutsch-Jozsa,
-  Bernstein-Vaziron, Simon, Grover, and Shor algorithms. The success
+  Bernstein-Vaziron, Simon, Grover, and Shor's algorithms. The success
   of traditional partial evaluation techniques in this domain is due
   to one simple insight: the quantum bits used in these algorithms can
   be modeled by a symbolic boolean variable while still keeping track
@@ -161,35 +161,6 @@ algorithm in question.
 \caption{\label{fig:bell2}Bell and GHZ States}
 \end{figure}
 
-Our observation is that a qubit in the special superposition
-$1/\sqrt{2} ~(\ket{0} + \ket{1} )$ is, computationally speaking,
-indistinguishable from a symbolic boolean variable with an unknown
-value in the same sense used in symbolic evaluation of classical
-programs. First, the superposition is not observable. The only way to
-observe the qubit is via a measurement which collapses the state to be
-either false or true with equal probability. Second, and more
-significantly, this remarkably simple observation is quite robust even
-in the presence of multiple, possibly entangled, qubits.
-
-To see this, consider the conventional quantum circuits for creating
-the maximally entangled Bell and GHZ states in
-Fig.~\ref{fig:bell2}. On the left, the circuit generates the Bell
-state $(1/\sqrt{2})~ (\ket{00} + \ket{11})$ as follows. First the state
-evolves from $\ket{00}$ to $(1/\sqrt{2})~ (\ket{00} + \ket{10})$. Then
-we apply the \cx-gate whose action is to negate the second qubit when
-the first one is true. By using the symbol $x$ for $H\ket{0}$, the
-input to the \cx-gate is $\ket{x0}$. A simple case analysis shows that
-the action of \cx-gate on inputs $\ket{xy}$ is $\ket{x(x \oplus y)}$
-where $\oplus$ is the exclusive-or boolean operation. In other words,
-the \cx-gate transforms $\ket{x0}$ to $\ket{xx}$. Since any
-measurement of the Bell state must produce either 00 or 11, 
-a symbolic state that shares the same name in two positions
-accurately represents the entangled Bell state. Similarly,
-for the GHZ circuit on the right of Fig.~\ref{fig:bell2}, the state
-after the Hadamard gate is $\ket{x00}$ which evolves to $\ket{xx0}$
-and then to $\ket{xxx}$ again accurately capturing the entanglement
-correlations.
-
 \begin{figure*}[t]
   \centering
 \begin{subfigure}[b]{.25\textwidth}
@@ -224,6 +195,35 @@ correlations.
   generating a Bell state (a); its classical symbolic variant.}
 \end{figure*}
 
+Our observation is that a qubit in the special superposition
+$1/\sqrt{2} ~(\ket{0} + \ket{1} )$ is, computationally speaking,
+indistinguishable from a symbolic boolean variable with an unknown
+value in the same sense used in symbolic evaluation of classical
+programs. First, the superposition is not observable. The only way to
+observe the qubit is via a measurement which collapses the state to be
+either false or true with equal probability. Second, and more
+significantly, this remarkably simple observation is quite robust even
+in the presence of multiple, possibly entangled, qubits.
+
+To see this, consider the conventional quantum circuits for creating
+the maximally entangled Bell and GHZ states in
+Fig.~\ref{fig:bell2}. On the left, the circuit generates the Bell
+state $(1/\sqrt{2})~ (\ket{00} + \ket{11})$ as follows. First the state
+evolves from $\ket{00}$ to $(1/\sqrt{2})~ (\ket{00} + \ket{10})$. Then
+we apply the \cx-gate whose action is to negate the second qubit when
+the first one is true. By using the symbol $x$ for $H\ket{0}$, the
+input to the \cx-gate is $\ket{x0}$. A simple case analysis shows that
+the action of \cx-gate on inputs $\ket{xy}$ is $\ket{x(x \oplus y)}$
+where $\oplus$ is the exclusive-or boolean operation. In other words,
+the \cx-gate transforms $\ket{x0}$ to $\ket{xx}$. Since any
+measurement of the Bell state must produce either 00 or 11, 
+a symbolic state that shares the same name in two positions
+accurately represents the entangled Bell state. Similarly,
+for the GHZ circuit on the right of Fig.~\ref{fig:bell2}, the state
+after the Hadamard gate is $\ket{x00}$ which evolves to $\ket{xx0}$
+and then to $\ket{xxx}$ again accurately capturing the entanglement
+correlations.
+
 Because quantum circuits are reversible, i.e., executable forwards
 and backwards, the introduction of symbolic variables opens a host of
 new exciting possibilities beyond conventional (classical) symbolic
@@ -254,13 +254,13 @@ well-understand normal form, the algebraic normal form (ANF).
 
 \paragraph*{Algebraic Normal Form (ANF).}
 
-Furthermore, the circuits we are interested in can all be expressed
+The circuits we are interested in can all be expressed
 in terms of \emph{generalized Toffoli gates} with $n$ control qubits:
-$a_{n},\cdots,a_0$ and one target qubit $c$ is $c \oplus \bigwedge_i
-a_i$, the exclusive-or of the target $c$ with the conjunction of all
-the control qubits. In fact, we generalize this further, so that we
-can control either on a qubit or its negation, by using pairs of
-control qubit and a boolean. In other words, our gates are
+$a_{n},\cdots,a_0$ and one target qubit $c$, where the effect is 
+to send $c$ to $c \oplus \bigwedge_i a_i$, the exclusive-or of the target $c$
+with the conjunction of all the control qubits. In fact, we generalize this
+further, so that we can control either on a qubit or its negation, by using
+pairs of control qubit and a boolean. In other words, our gates are
 $(a_{n}, b_{n}),\cdots,(a_0,b_0)$ and one target qubit $c$ is 
 $c \oplus \bigwedge_i \left(a_i == b_i\right)$, the exclusive-or of the 
 target $c$ with the conjunction of the result of testing each qubit
@@ -268,10 +268,12 @@ against its corresponding target boolean. Note that
 $\left(a_i == 1\right)$ can be expressed as just $a_i$, and
 $\left(a_i == 0\right)$ can be expressed as $1 \oplus a_i$.
 Such generalized Toffoli gates with $n$ control qubits are called
-$c^nx$ gates. The special cases
-for $n=0$ is the \emph{not} gate 'x', 
-for $n=1$ is the \emph{controlled not} gate 'cx', and
-for $n=2$ is the classical \emph{Toffoli} gate 'ccx'.
+$c^nx$ gates. It is worth noting the following special cases:
+\begin{itemize}
+  \item for $n=0$ is the \emph{not} gate 'x', 
+  \item for $n=1$ is the \emph{controlled not} gate 'cx', and
+  \item for $n=2$ is the classical \emph{Toffoli} gate 'ccx'.
+\end{itemize}
 
 The \emph{algebraic normal form} 
 (also called ring sum normal form, Zhegalkin normal form or
@@ -859,14 +861,16 @@ checked in our code.
 \section{Evaluation}
 \label{sec5}
 
-We implement six well-known quantum algorithms: 
-Deutsch, Deutsch-Jozsa, Bernstein-Vazirani, Simon, Grover, and Shor. 
-We first define all six, then explain interesting aspects of running them.
+We frst give interesting aspects of running the six quantum algorithms
+outlined in Sec.~\ref{sec5}.
 
 \subsection{Symbolic execution of the Algorithms}
 
-We make some remarks on salient points that arise from doing
-symbolic (retrodictive) execution of the algorithms.
+Most of the algorithms end up generating differently shaped constraint
+systems, and thus each need to be examined on its own. It is worth noting
+that all these algorithms do not have known fast classical versions.
+We spend more time on the analysis of Shor's algorithm, as it is both
+more important and displays subtle behaviour.
 
 \paragraph*{Deutsch and Deutsch-Jozsa}
 
@@ -1184,7 +1188,7 @@ the period to be 3. The idea of adapting the computation to simplify
 the circuit and equations is inspired by the fact that entanglement is
 relative to a particular tensor product decomposition.
 
-\subsection*{Complexity}
+\subsection{Complexity}
 
 Say we have a circuit containing $T$ Toffoli gates over $n+m$ qubits
 split in two registers $A$ ($n$ qubits) and $B$ (m qubits). The
@@ -1209,19 +1213,26 @@ takes $T$ steps. At each step, we have $m$ ANF equations over the
 $\{x_0,x_1,\ldots,x_{n-1}\}$ variables. The size of each equation
   might be $\mathcal{O}(2^n)$ in the worst case. So the overall
   complexity of this step is $\mathcal{O}(Tm 2^n)$.
-\item The answer to the algorithm is obtained by solving / inspecting
+\item The answer to the algorithm is obtained by 
+  either inspecting or, in the worst case, solving
   the resulting $m$ equations. In the Deutsch-Jozsa and Grover
   algorithms, the solution is immediate by inspection of the
   equations.
 \end{enumerate}
-More precisely, the main bottleneck is step (3) above which has a
-worst-case complexity of $\mathcal{O}(Tm 2^n)$. The $\mathcal{O}(T)$
+There are two potential bottlenecks: steps (3) above which has a
+worst-case complexity of $\mathcal{O}(Tm 2^n)$, and step (4)
+in the solve case, which is an NP-complete problem. The $\mathcal{O}(T)$
 factor is inevitable because we have a white box implementation of the
 oracle and we must touch every gate in that implementation. The
 $\mathcal{O}(m)$ factor is also inevitable as it represents the number
 of variables. What varies from one function to the other and, for a
 particular function, from one oracle implementation to the other is
 the $\mathcal{O}(2^n)$ factor.
+
+What our examples show is that while the worst-case is $\mathcal{O}(2^n)$,
+it seems that the expected case actually depends on the length of the
+encoding (in binary) of the information contained in the answer, especially
+in the case where we do not need to solve the constraints.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 \section{Conclusion}
