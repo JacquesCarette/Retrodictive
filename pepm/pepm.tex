@@ -465,15 +465,18 @@ Another try at 'the story'. (Parts done already deleted)
 \end{comment}
 
 \noindent Let $\finset{n}$ denote the finite set $\{ 0,1,\ldots,(n-1)\}$. The
-parameter $n$ determines the problem size in all the problems below
+parameter~$n$ determines the problem size for all the problems below
 (except Deutsch which is a fixed sized problem).
 
 \paragraph*{Deutsch.}
 The conventional statement of the problem is to determine if a
 function $\finset{2} \rightarrow \finset{2}$ is constant or
-balanced. An equivalent statement is to answer a query about the
-cardinality of a pre-image. In this case, if the cardinality of the
-pre-image of any value in the range is even i.e. 0 or 2, the function
+balanced. In this small case, the function is balanced if it is the
+identity or boolean negation, and is constant otherwise. Equivalently,
+we can ask about the pre-image of an arbitrary boolean (say false),
+i.e. the set of inputs that are mapped to false by the function, and
+check whether the pre-image has an even or odd number of elements. If
+the cardinality of the pre-image is even i.e. 0 or 2, the function
 must be constant and if it is odd, i.e., it contains just one element,
 the function must be balanced.
 
