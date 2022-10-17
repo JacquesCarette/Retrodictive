@@ -2,6 +2,8 @@
 \setcopyright{none}
 \acmConference{PEPM}{2023}{Boston}
 
+% 12 pages
+
 \usepackage[english]{babel}
 \usepackage{amsthm}
 \usepackage{graphicx,color}
@@ -103,7 +105,7 @@ characteristics.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 
-\section{Symbolic Evaluation of Circuits}
+\section{Qubits as Symbolic Variables} 
 \label{sec3}
 
 The general state of a quantum bit (qubit) is mathematically modeled
@@ -250,7 +252,41 @@ values at each step of circuit execution are boolean functions
 manipulated with conditional exclusive-or operations with a
 well-understand normal form, the algebraic normal form (ANF). 
 
-Thus we never need to residualize a circuit, we can always get a
+\paragraph*{Algebraic Normal Form (ANF).}
+
+Furthermore, the circuits we are interested in can all be expressed
+in terms of \emph{generalized Toffoli gates} with $n$ control qubits:
+$a_{n},\cdots,a_0$ and one target qubit $c$ is $c \oplus \bigwedge_i
+a_i$, the exclusive-or of the target $c$ with the conjunction of all
+the control qubits. In fact, we generalize this further, so that we
+can control either on a qubit or its negation, by using pairs of
+control qubit and a boolean. In other words, our gates are
+$(a_{n}, b_{n}),\cdots,(a_0,b_0)$ and one target qubit $c$ is 
+$c \oplus \bigwedge_i \left(a_i == b_i\right)$, the exclusive-or of the 
+target $c$ with the conjunction of the result of testing each qubit
+against its corresponding target boolean. Note that
+$\left(a_i == 1\right)$ can be expressed as just $a_i$, and
+$\left(a_i == 0\right)$ can be expressed as $1 \oplus a_i$.
+Such generalized Toffoli gates with $n$ control qubits are called
+$c^nx$ gates. The special cases
+for $n=0$ is the \emph{not} gate 'x', 
+for $n=1$ is the \emph{controlled not} gate 'cx', and
+for $n=2$ is the classical \emph{Toffoli} gate 'ccx'.
+
+The \emph{algebraic normal form} 
+(also called ring sum normal form, Zhegalkin normal form or
+Reed-Muller expansion)
+of boolean functions $\Bool^n\rightarrow\Bool$
+is as the exclusive-or ($\oplus$) of ands ($\wedge$) of $0$ or more
+of the inputs $x_i$. Note that the and of $0$ inputs is $1$. It is then
+easy to see that generalized Toffoli gates (without the extra boolean) are
+already in algebraic normal form.
+Furthermore, circuits that only
+use \x\ and \cx-gates never generate any conjunctions and hence lead
+to formulae that are efficiently solvable
+classically~\cite{10.5555/35517,TOKAREVA20151}.
+
+To summarize, we never need to residualize a circuit, we can always get a
 ``closed form,'' in ANF, for evaluation, whether forward or
 backward. In what we call the \emph{retrodictive} mode of running our
 circuits, we take a combination of static and dynamic knowledge of the
@@ -384,14 +420,12 @@ Another try at 'the story'. (Parts done already deleted)
 % \end{enumerate}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Circuits and Boolean Functions}
+\section{Quantum Algorithms} 
 \label{sec2}
  
-\subsection{The Algorithms.} 
-
 \begin{comment}
   % Jacques: I don't find this circuit brings much to the discussion.
-\begin{figure}[ht]
+\begin{figure}[t]
   \centering
 \begin{tikzpicture}[scale=1.2]
    \begin{yquant*}
@@ -410,7 +444,7 @@ Another try at 'the story'. (Parts done already deleted)
 \end{figure}
 \end{comment}
 
-Let $\finset{n}$ denote the finite set $\{ 0,1,\ldots,(n-1)\}$. The
+\noindent Let $\finset{n}$ denote the finite set $\{ 0,1,\ldots,(n-1)\}$. The
 parameter $n$ determines the problem size in all the problems below
 (except Deutsch which is a fixed sized problem).
 
@@ -491,7 +525,6 @@ the period. As a computation over pre-images, the problem can be
 recast as follows. For an arbitrary $x$, compute the pre-image of
 $f(x)$ and query it to determine the period.
 
-\paragraph*{Special Circuits}
 \begin{figure}[t]
   \begin{subfigure}{0.5\textwidth}
   \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
@@ -549,7 +582,8 @@ $f(x)$ and query it to determine the period.
 \caption{\label{fig:templateQC}Template quantum circuit}
 \end{figure}
 
-We analyze a particular class of circuits, namely those
+\paragraph*{Template for Circuits.}
+ We analyze a particular class of circuits, namely those
 that match the template in Fig.~\ref{fig:templateQC} (including
 Deutsch, Deutsch-Jozsa, Bernstein-Vazirani, Simon, Grover, and Shor's
 algorithms~\cite{doi:10.1137/S0097539796300921,deutsch,deutschJozsa,365701,doi:10.1137/S0097539795293172,nielsen_chuang_2010,10.1145/237814.237866}). 
@@ -591,40 +625,6 @@ that enable us to solve the problem in question.
 
 In other words, it suffices to look at circuits that match the
 template in Fig.~\ref{fig:CircuitAbstraction}.
-
-\paragraph*{Algebraic Normal Form (ANF).}
-
-Furthermore, the circuits we are interested in can all be expressed
-in terms of \emph{generalized Toffoli gates} with $n$ control qubits:
-$a_{n},\cdots,a_0$ and one target qubit $c$ is $c \oplus \bigwedge_i
-a_i$, the exclusive-or of the target $c$ with the conjunction of all
-the control qubits. In fact, we generalize this further, so that we
-can control either on a qubit or its negation, by using pairs of
-control qubit and a boolean. In other words, our gates are
-$(a_{n}, b_{n}),\cdots,(a_0,b_0)$ and one target qubit $c$ is 
-$c \oplus \bigwedge_i \left(a_i == b_i\right)$, the exclusive-or of the 
-target $c$ with the conjunction of the result of testing each qubit
-against its corresponding target boolean. Note that
-$\left(a_i == 1\right)$ can be expressed as just $a_i$, and
-$\left(a_i == 0\right)$ can be expressed as $1 \oplus a_i$.
-Such generalized Toffoli gates with $n$ control qubits are called
-$c^nx$ gates. The special cases
-for $n=0$ is the \emph{not} gate 'x', 
-for $n=1$ is the \emph{controlled not} gate 'cx', and
-for $n=2$ is the classical \emph{Toffoli} gate 'ccx'.
-
-The \emph{algebraic normal form} 
-(also called ring sum normal form, Zhegalkin normal form or
-Reed-Muller expansion)
-of boolean functions $\Bool^n\rightarrow\Bool$
-is as the exclusive-or ($\oplus$) of ands ($\wedge$) of $0$ or more
-of the inputs $x_i$. Note that the and of $0$ inputs is $1$. It is then
-easy to see that generalized Toffoli gates (without the extra boolean) are
-already in algebraic normal form.
-Furthermore, circuits that only
-use \x\ and \cx-gates never generate any conjunctions and hence lead
-to formulae that are efficiently solvable
-classically~\cite{10.5555/35517,TOKAREVA20151}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
 \section{Design and Implementation}
