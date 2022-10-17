@@ -248,7 +248,7 @@ with the initial conditions yielding the constraints $x_1=x_2$ and
 $1 \oplus x_2 = 0$ whose solutions are $x_1 = x_2 = 1$.
 
 Technically, the problem of symbolic evaluation of our quantum
-circuits then reduces to a mixture of partial evaluation, slicing and
+circuits then reduces to a mixture of partial evaluation, slicing, and
 symbolic evaluation. Like with partial evaluation, we have some inputs
 dynamic, some static, and a static program. Similarly for slicing, but
 with outputs. Our situation is significantly simpler than in both
@@ -256,7 +256,7 @@ cases. First, our language is reversible, which makes backwards
 evaluation deterministic, unlike for most languages. Second, the
 values at each step of circuit execution are boolean functions
 manipulated with conditional exclusive-or operations with a
-well-understand normal form, the algebraic normal form (ANF). 
+well-understood normal form, the algebraic normal form (ANF). 
 
 \paragraph*{Algebraic Normal Form (ANF).}
 
@@ -276,22 +276,23 @@ $\left(a_i == 0\right)$ can be expressed as $1 \oplus a_i$.
 Such generalized Toffoli gates with $n$ control qubits are called
 $c^nx$ gates. It is worth noting the following special cases:
 \begin{itemize}
-  \item for $n=0$ is the \emph{not} gate 'x', 
-  \item for $n=1$ is the \emph{controlled not} gate 'cx', and
-  \item for $n=2$ is the classical \emph{Toffoli} gate 'ccx'.
+  \item for $n=0$, we get the \emph{not} gate \x, 
+  \item for $n=1$, we get the \emph{controlled not} gate \cx, and
+  \item for $n=2$, we get the \emph{controlled controlled not} or
+    \emph{Toffoli} gate \ccx.
 \end{itemize}
 
-The \emph{algebraic normal form} 
-(also called ring sum normal form, Zhegalkin normal form or
-Reed-Muller expansion)
-of boolean functions $\Bool^n\rightarrow\Bool$
-is as the exclusive-or ($\oplus$) of ands ($\wedge$) of $0$ or more
-of the inputs $x_i$. Note that the and of $0$ inputs is $1$. It is then
-easy to see that generalized Toffoli gates (without the extra boolean) are
-already in algebraic normal form.
-Furthermore, circuits that only
-use \x\ and \cx-gates never generate any conjunctions and hence lead
-to formulae that are efficiently solvable
+The \emph{algebraic normal form} (also called ring sum normal form,
+Zhegalkin normal form or Reed-Muller expansion) of boolean functions
+$\Bool^n\rightarrow\Bool$ is the exclusive-or ($\oplus$) of
+$\wedge$-clauses where each clause is the conjunction of 0 or more
+inputs $x_i$. Note that the conjunction of $0$ inputs is $1$ and that
+$1 \oplus F$ is the negation of $F$ which means that negation is not
+needed as a separate primitive. It is then easy to see that
+generalized Toffoli gates (without the extra boolean) are already in
+algebraic normal form.  Furthermore, circuits that only use \x\ and
+\cx-gates never generate any conjunctions and hence lead to formulae
+that are efficiently solvable
 classically~\cite{10.5555/35517,TOKAREVA20151}.
 
 To summarize, we never need to residualize a circuit, we can always get a
