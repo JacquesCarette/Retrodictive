@@ -633,7 +633,7 @@ template in Fig.~\ref{fig:CircuitAbstraction}.
 \label{sec4}
 
 Our exposition of the design and implementation of our system will
-follow Parnas' advice on \emph{faking it}~\cite{ParnasFake}: a reconstruction
+follow Parnas' advice on \emph{faking it}~\cite{parnas1986rational}: a reconstruction
 of the requirements as we should have had them if we'd been all-knowing,
 and a design that fits those requirements. The version history in our github
 repository can be inspected for anyone who wants to see our actual path.
@@ -794,7 +794,7 @@ data Circuit s v = Circuit
 \noindent which lets us achieve requirement $5$.
 
 For requirement $6$, we implement a straightforward version of 
-the algorithm of~\cite{SoekenEtAl2016}. Our implementation is
+the algorithm of~\cite{soeken2016fast}. Our implementation is
 \emph{language agnostic}, in other words it works via the \texttt{Value}
 interface, so that the resulting circuits are all of type \texttt{OP br}
 for a free representation \texttt{br}. As circuit synthesis is only
