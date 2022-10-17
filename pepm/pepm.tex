@@ -468,10 +468,11 @@ Another try at 'the story'. (Parts done already deleted)
 $\{ 0,1,\ldots,(n-1)\}$. The parameter~$n$ determines the problem size
 for all the problems below (except Deutsch which is a fixed sized
 problem). In the review below, we adapt the usual presentation of the
-algorithms to one better suited to our context. In particular, instead
-of using the forward flow of execution using exact quantum
-superpositions, we express the problem as one asking for particular
-properties of boolean functions. 
+algorithms~\cite{doi:10.1137/S0097539796300921,deutsch,deutschJozsa,365701,doi:10.1137/S0097539795293172,nielsen_chuang_2010,10.1145/237814.237866}).
+to one better suited to our context. In particular, instead of using
+the forward flow of execution using exact quantum superpositions, we
+express the problem as one asking for particular properties of boolean
+functions.
 
 \paragraph*{Deutsch.}
 The conventional statement of the problem is to determine if a
@@ -507,30 +508,12 @@ f(x) = \sum_{i=0}^{n-1} s_ix_i \mod{2}
 The goal is to determine the secret number $s$. 
 
 Expressing the problem as a pre-image calculation is slightly more
-involved than in the previous two cases. To determine~$s$, we make $n$
-queries to the pre-image of a value in the range of the
-function. Query $i$ asks whether $2^i$ is a member of the pre-image
-and the answer determines bit $i$ of the secret $s$. Indeed, by
-definition, $f(2^i) = s_i$ and hence $s_i$ is 1 iff $2^i$ is a member
-of the pre-image of 1.
-
-\paragraph*{Bernstein-Vazirani.}
-We are given a function $f : \finset{2^n} \rightarrow \finset{2}$
-that hides a secret number $s \in \finset{2^n}$. We are promised the
-function is defined using the binary representations $\sum_i^{n-1}
-x_i$ and $\sum_i^{n-1} s_i$ of $x$ and $s$ respectively as follows:
-\[
-f(x) = \sum_{i=0}^{n-1} s_ix_i \mod{2}
-\]
-The goal is to determine the secret number $s$. 
-
-Expressing the problem as a pre-image calculation is slightly more
-involved than in the previous two cases. To determine $s$, we make $n$
-queries to the pre-image of a value in the range of the
-function. Query $i$ asks whether $2^i$ is a member of the pre-image
-and the answer determines bit $i$ of the secret $s$. Indeed, by
-definition, $f(2^i) = s_i$ and hence $s_i$ is 1 iff $2^i$ is a member
-of the pre-image of 1.
+involved than in the previous two cases. To determine~$s$, we compute
+the pre-image of a value in the range of the function, and then make
+$n$ queries to this pre-image. Query $i$ asks whether $2^i$ is a
+member of the pre-image and the answer determines bit $i$ of the
+secret $s$. Indeed, by definition, $f(2^i) = s_i$ and hence $s_i$ is 1
+iff $2^i$ is a member of the pre-image of 1.
 
 \paragraph*{Simon.}
 We are given a 2-1 function $f : \finset{2^n} \rightarrow
@@ -538,7 +521,7 @@ We are given a 2-1 function $f : \finset{2^n} \rightarrow
 f(x \oplus a)$ for all~$x$; the goal is to determine $a$. When
 expressed as a computation of pre-images, the problem statement
 becomes the following. Pick an arbitrary $x$ and compute the pre-image
-of $f(x)$. It must contain exactly two values one of which is $x$. The
+of $f(x)$. It must contain exactly two values one of which is~$x$. The
 problem then reduces to finding the other value in the pre-image.
 
 \paragraph*{Grover}
@@ -547,11 +530,10 @@ such that there is a unique $u \in \finset{2^n}$ such that $f(u)=1$.
 The problem is to find this $u$.
 
 \paragraph*{Shor.}
-The quantum core of the algorithm is the following. We are given a
-periodic function $f(x) = a^x \mod{2^n}$ and the goal is to determine
-the period. As a computation over pre-images, the problem can be
-recast as follows. For an arbitrary $x$, compute the pre-image of
-$f(x)$ and query it to determine the period.
+We are given a periodic function $f(x) = a^x \mod{2^n}$ and the goal
+is to determine the period. As a computation over pre-images, the
+problem can be recast as follows. For an arbitrary $x$, compute the
+pre-image of $f(x)$ and query it to determine the period.
 
 \begin{figure}[t]
   \begin{subfigure}{0.5\textwidth}
@@ -611,28 +593,28 @@ $f(x)$ and query it to determine the period.
 \end{figure}
 
 \paragraph*{Template for Circuits.}
- We analyze a particular class of circuits, namely those
-that match the template in Fig.~\ref{fig:templateQC} (including
-Deutsch, Deutsch-Jozsa, Bernstein-Vazirani, Simon, Grover, and Shor's
-algorithms~\cite{doi:10.1137/S0097539796300921,deutsch,deutschJozsa,365701,doi:10.1137/S0097539795293172,nielsen_chuang_2010,10.1145/237814.237866}). 
-The $U_f$ block, defined as 
+All the problems above have solutions using quantum circuits that all
+fit the template in Fig.~\ref{fig:templateQC}. The $U_f$ block is
+uniformlly defined as:
 \begin{equation}
   U_f(\ket{x}\ket{y}) = \ket{x}\ket{f(x) \oplus y},
 \end{equation}
-ends up being completely classical, albeit performing mixed mode
-execution of the circuit. More precisely, here it means that in
-all these algorithms, the top collection of wires (which we will call
-the computational register) is prepared in a uniform superposition
-which can be represented using symbolic variables. The measurement of
-the bottom collection of wires (which we call the ancilla register)
-after barrier 2 provides partial information about the future which
-is, together with the initial conditions of the ancilla register,
-sufficient to symbolically execute the circuit. In each case, instead
-of the conventional execution flow depicted in
-Fig.~\ref{fig:templateQC}(a), we find a possible measurement outcome
-$w$ at barrier (2) and perform a symbolic retrodictive execution with
-a state $\ket{xw}$ going backwards to collect the constraints on $x$
-that enable us to solve the problem in question.
+for all the problems. After replacing $H\ket{0}$ by a symbolic
+variable, the $U_f$ block ends up being completely classical, albeit
+performing mixed mode execution of the circuit. More precisely, here
+it means that in all these algorithms, the top collection of wires
+(which we will call the computational register) is prepared in a
+uniform superposition which can be represented using symbolic
+variables. The measurement of the bottom collection of wires (which we
+call the ancilla register) after barrier 2 provides partial
+information about the future which is, together with the initial
+conditions of the ancilla register, sufficient to symbolically execute
+the circuit. In each case, instead of the conventional execution flow
+depicted in Fig.~\ref{fig:templateQC}(a), we find a possible
+measurement outcome $w$ at barrier (2) and perform a symbolic
+retrodictive execution with a state $\ket{xw}$ going backwards to
+collect the constraints on $x$ that enable us to solve the problem in
+question.
 
 \begin{figure}[t]
   \begin{tikzpicture}[every label/.style={rotate=40, anchor=south west}]
