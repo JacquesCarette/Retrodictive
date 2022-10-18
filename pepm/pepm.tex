@@ -607,7 +607,7 @@ it means that in all these algorithms, the top collection of wires
 uniform superposition which can be represented using symbolic
 variables. The measurement of the bottom collection of wires (which we
 call the ancilla register) after barrier 2 provides partial
-information about the future which is, together with the initial
+information about the future which is, together fwith the initial
 conditions of the ancilla register, sufficient to symbolically execute
 the circuit. In each case, instead of the conventional execution flow
 depicted in Fig.~\ref{fig:templateQC}(a), we find a possible
@@ -647,7 +647,7 @@ and a design that fits those requirements. The version history in our GitHub
 repository can be inspected for anyone who wants to see our actual path.
 
 As we experimented with the idea of partial evaluation and symbolic
-execution of circuits, we ended up writing a lot of variants of
+execution of quantum circuits, we ended up writing a lot of variants of
 essentially the same code, but with minor differences in representation.
 From these early experiments, we could see the major variation points:
 \begin{itemize}
@@ -656,13 +656,16 @@ From these early experiments, we could see the major variation points:
   \item representation of circuits.
 \end{itemize}
 We also wanted to write out circuits only once, and have them be valid
-across these representation changes.
+across these representation changes and be executable forwards,
+backwards, and mixed retrodictive mode. 
 
-A number of our examples involve arbitrary boolean functions (given as black
-boxes at ``compile time'') for which we want to, offline, generate an
-equivalent reversible circuit. In other words for $f : \Bool^n \rightarrow\Bool$,
-we wish to generate the circuit for $g : \Bool^{n+1} \rightarrow \Bool^{n+1}$ such
-that for $\overline{x} : \Bool^n$, then 
+A number of quantum algorithms are expressed in the ``black-box
+model'' where the $U_f$ block defines arbitrary boolean functions
+(given as black boxes at ``compile time''). To actually execute these
+algorithms, we want to, offline, synthesize a circuit from the boolean
+specification. In other words for $f : \Bool^n \rightarrow\Bool$, we wish to
+generate the circuit for $g : \Bool^{n+1} \rightarrow \Bool^{n+1}$
+such that for $\overline{x} : \Bool^n$, then
 $g(\overline{x},y) = (\overline{x}, y \oplus f(\overline{x}))$.
 
 This leads us to the requirements our code must fulfill.
@@ -711,7 +714,8 @@ We need to be able to deal with the following variabilities:
 \begin{enumerate}
   \item multiple representations of \emph{boolean values},
   \item multiple representations of \emph{boolean formulas},
-  \item different evaluation means (directly and symbolically),
+  \item different evaluation means (directly, symbolically, forwards,
+    backwards, retrodictive),
 \end{enumerate}
 
 \noindent It must also be possible to implement the following:
@@ -801,16 +805,17 @@ data Circuit s v = Circuit
 \end{minted}
 \noindent which lets us achieve requirement $5$.
 
-For requirement $6$, we implement a straightforward version of 
-the algorithm of~\cite{soeken2016fast}. Our implementation is
-\emph{language agnostic}, in other words it works via the \texttt{Value}
-interface, so that the resulting circuits are all of type \texttt{OP br}
-for a free representation \texttt{br}. As circuit synthesis is only
-done for generating examples, we are not worried about its efficiency.
+For requirement $6$, we implement a straightforward version of a
+well-estbalished algorithm~\cite{soeken2016fast}. Our implementation
+is \emph{language agnostic}, in other words it works via the
+\texttt{Value} interface, so that the resulting circuits are all of
+type \texttt{OP br} for a free representation \texttt{br}. As circuit
+synthesis is only done for generating examples, we are not worried
+about its efficiency.
 
-The arithmetic circuit generators are also based on classical algorithms, and are
+The arithmetic circuit generators are also based on textbook algorithms, and are
 not optimized in any way, neither for running time nor for gate count. Neither are
-the code for the classical quantum algorithms. They are, however, representation
+the code for the quantum algorithms. They are, however, representation
 polymorphic.
 
 Above, we said we had $3$ different symbolic evaluators. These were not driven
@@ -824,14 +829,14 @@ inefficient, and was the clear bottleneck in our profiles.
 
 A less na\"{\i}ve approach uses a set of bits for representing literals, an
 \texttt{IntSet} for and-lists, and a normalized multiset for xor maps. We found
-more efficient to use a multiset for intermediate computations with xor maps
+it more efficient to use a multiset for intermediate computations with xor maps
 which is normalized at the end instead of trying to track even/odd number of
 occurrences. Only computing Cartesian products in this representation requires
 some thought for finding a reasonably efficient algorithm.
 
 While significantly faster, this was still not sufficiently efficient. Our final
-representation uses Natural numbers as and-maps where the encoding of literals is
-now positional, and xor maps are again multisets of these ``bitmaps''.
+representation uses natural numbers as and-maps where the encoding of literals is
+now positional, and xor maps are again multisets of these ``bitmaps.''
 
 As a last optimization, our circuits have a very particular property: the control
 wires are not written to, so that they are all literals. This can be used to
@@ -842,7 +847,7 @@ further optimize the evaluation of single gates.
 The final code consists of $18$ modules that implement various
 services, see Fig.~\ref{fig:modules} for a full listing. It consists of
 only $1449$ lines of Haskell code, of which $646$ lines are blank, import or
-comments, module declaration, so that $809$ are ``code''. Testing and printing
+comments, module declaration, so that $809$ are ``code.'' Testing and printing
 utilities are not counted in the above.
 
 The code that occupies the most volume is that for running the examples, as each
