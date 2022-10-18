@@ -498,8 +498,8 @@ and in the last case, the pre-image contains half the values in the
 domain indicating that the function is balanced.
 
 \paragraph*{Bernstein-Vazirani.}
-We are given a function $f : \finset{2^n} \rightarrow \finset{2}$
-that hides a secret number $s \in \finset{2^n}$. We are promised the
+We are given a function $f : \finset{2^{\it n}} \rightarrow \finset{2}$
+that hides a secret number $s \in \finset{2^{\it n}}$. We are promised the
 function is defined using the binary representations $\sum_i^{n-1}
 x_i$ and $\sum_i^{n-1} s_i$ of $x$ and $s$ respectively as follows:
 \[
@@ -516,8 +516,8 @@ secret $s$. Indeed, by definition, $f(2^i) = s_i$ and hence $s_i$ is 1
 iff $2^i$ is a member of the pre-image of 1.
 
 \paragraph*{Simon.}
-We are given a 2-1 function $f : \finset{2^n} \rightarrow
-\finset{2^n}$ with the property that there exists an $a$ such $f(x) =
+We are given a 2-1 function $f : \finset{2^{\it n}} \rightarrow
+\finset{2^{\it n}}$ with the property that there exists an $a$ such $f(x) =
 f(x \oplus a)$ for all~$x$; the goal is to determine $a$. When
 expressed as a computation of pre-images, the problem statement
 becomes the following. Pick an arbitrary $x$ and compute the pre-image
@@ -525,8 +525,8 @@ of $f(x)$. It must contain exactly two values one of which is~$x$. The
 problem then reduces to finding the other value in the pre-image.
 
 \paragraph*{Grover}
-We are given a function $f : \finset{2^n} \rightarrow \finset{2}$
-such that there is a unique $u \in \finset{2^n}$ such that $f(u)=1$.
+We are given a function $f : \finset{2^{\it n}} \rightarrow \finset{2}$
+such that there is a unique $u \in \finset{2^{\it n}}$ such that $f(u)=1$.
 The problem is to find this $u$.
 
 \paragraph*{Shor.}
