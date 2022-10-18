@@ -67,23 +67,39 @@ runRetroDeutsch = retroDeutsch FL.formRepr "x"
 
 ----------------------------------------------------------------------------------------
 
-retroDeutschJozsa :: (Show f, Value f) =>
-                     FormulaRepr f r -> r -> Int -> ([Bool] -> [Bool]) -> IO ()
-retroDeutschJozsa fr base n f = print $ runST $ do
+initDeutschJozsaCircuit :: Value f =>
+  FormulaRepr f r -> r -> Int -> ([Bool] -> [Bool]) -> ST s (Circuit s f)
+initDeutschJozsaCircuit fr base n f = do
   xs <- newVars (fromVars fr n base)
   y <- newVar zero
   let circ = deutschJozsaCircuit n f (xs ++ [y])
-  run Circuit { op = circ
+  return $ 
+      Circuit { op = circ
               , xs = xs
               , ancillaIns = [y]
               , ancillaOuts = [y]
               , ancillaVals = undefined
               }
-  readSTRef y
+
+retroDeutschJozsa :: (Show f, Value f) =>
+                     FormulaRepr f r -> r -> Int -> ([Bool] -> [Bool]) -> IO ()
+retroDeutschJozsa fr base n f = print $ runST $ do
+  circ <- initDeutschJozsaCircuit fr base n f
+  run circ
+  readSTRef (head (ancillaIns circ))
 
 runRetroDeutschJozsa :: Int -> ([Bool] -> [Bool]) -> IO ()
 runRetroDeutschJozsa = retroDeutschJozsa FL.formRepr "x"
 
+timeRetroDJ :: Int -> ([Bool] -> [Bool]) -> IO ()
+timeRetroDJ n f = do
+  circ <- stToIO (initDeutschJozsaCircuit FB.formRepr 0 n f)
+  let bigN = toInteger $ 2^n
+  (time,form) <- timeItT (stToIO (do run circ
+                                     readSTRef (head (ancillaIns circ))))
+  printf "Deutsch-Jozsa: N=%d,\tu=%d; time = %.2f seconds\n"
+    bigN (head (words (show form))) time
+    
 ----------------------------------------------------------------------------------------
 
 retroBernsteinVazirani :: Value a => FormulaRepr a [Char] -> IO ()
