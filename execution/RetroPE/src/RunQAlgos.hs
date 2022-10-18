@@ -91,14 +91,14 @@ retroDeutschJozsa fr base n f = print $ runST $ do
 runRetroDeutschJozsa :: Int -> ([Bool] -> [Bool]) -> IO ()
 runRetroDeutschJozsa = retroDeutschJozsa FL.formRepr "x"
 
-timeRetroDJ :: Int -> ([Bool] -> [Bool]) -> IO ()
-timeRetroDJ n f = do
-  circ <- stToIO (initDeutschJozsaCircuit FB.formRepr 0 n f)
-  let bigN = toInteger $ 2^n
+timeRetroDJ :: Value f => FormulaRepr f r -> r -> Int -> ([Bool] -> [Bool]) -> IO ()
+timeRetroDJ fr base n f = do
+  circ <- stToIO (initDeutschJozsaCircuit fr base n f)
+  let bigN = toInteger $ (2^n :: Integer)
   (time,form) <- timeItT (stToIO (do run circ
                                      readSTRef (head (ancillaIns circ))))
-  printf "Deutsch-Jozsa: N=%d,\tu=%d; time = %.2f seconds\n"
-    bigN (head (words (show form))) time
+  printf "Deutsch-Jozsa: N=%d,\tformula is = %s; time = %.2f seconds\n"
+    bigN (show form) time
     
 ----------------------------------------------------------------------------------------
 
@@ -190,7 +190,7 @@ predictGrover fr base n w = print $ runST $ do
 timeRetroGrover :: Int -> Integer -> IO ()
 timeRetroGrover n w = do
   circ <- stToIO (groverCircuit FB.formRepr 0 n w)
-  let bigN = toInteger $ 2^n
+  let bigN = toInteger $ (2^n :: Integer)
   (time,form) <- timeItT (stToIO (do run circ
                                      readSTRef (head (ancillaIns circ))))
   printf "Grover: N=%d,\tu=%d;\tformula is %s; time = %.2f seconds\n"
@@ -254,7 +254,7 @@ retroShor fr base seed maybea mayber m = do
       a <- case maybea of
              Nothing -> uniformRM (2,m-1) gen
              Just a' -> return a'
-      let n = ceiling $ logBase 2 (fromInteger m * fromInteger m)
+      let n = ceiling $ (logBase 2 (fromInteger m * fromInteger m) :: Double)
       let r = case mayber of
                 Nothing -> 1
                 Just r' -> r'
