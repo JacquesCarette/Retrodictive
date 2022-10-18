@@ -91,7 +91,7 @@
 
 Expand the abstract;
 
-explain why H-CCX
+explain why H-CCX (computationally universal)
 
 revise outline
 
@@ -910,7 +910,7 @@ x_0x_2x_3x_5 \oplus x_0x_1x_4x_5 \oplus x_0x_1x_3x_5 \oplus
 x_0x_1x_3x_4 \oplus x_0x_1x_2x_4 \oplus x_0x_1x_2x_4x_5 \oplus
 x_0x_1x_2x_3x_5 \oplus x_0x_1x_2x_3x_4 = 0$.
 \end{itemize}
-In the first case, the function is balanced because it produces $0$
+In the first case, the function is balanced because it produces~$0$
 exactly when $x_0=0$ which happens half of the time in all possible
 inputs; in the second case the output of the function is the
 exclusive-or of all the input variables which is another easy instance
@@ -1162,27 +1162,26 @@ them to be all 0, i.e., asserting that the period is 16.
 \end{figure}
 Since periods that are powers of 2 are rare and special, we turn our
 attention to factoring problems with other periods. The simplest such
-problem is that of factoring 21 with an underlying function $f(x) =
-4^x \mod{21}$ of period 3. The unoptimized circuit constructed from
-the first principles has 78,600 generalized Toffoli gates; its
+problem is that of factoring 21 with an underlying function
+$f(x) = 4^x \mod{21}$ of period 3. The unoptimized circuit constructed
+from the first principles has 78,600 generalized Toffoli gates; its
 execution generates just three equations. But even in this rather
-trivial situation, the equations span 5 pages of text!  (Supplementary
-Material). A small optimization reducing the number of qubits results
-in a circuit of 15,624 generalized Toffoli gates whose execution
-produces still quite large, but more reasonable, equations
-(Supplementary Material). To understand the reason for these unwieldy
-equations, we examine a general ANF formula of the form $ X_1 \oplus
-X_2 \oplus X_3 \oplus \ldots = 0$ where each $X_i$ is a conjunction of
-some boolean variables, i.e., the variables in each $X$ exhibit
-constructive interference as they must all be true to enable that
-$X=1$. Since the entire formula must equal to 0, every $X_i = 1$ must
-be offset by another $X_j = 1$, thus exhibiting negative interference
-among $X_i$ and $X_j$. Generally speaking, arbitrary interference
-patterns can be encoded in the formulae at the cost of making the size
-of the formulae exponential in the number of variables. This
-exponential blowup is actually a necessary condition for any quantum
-algorithm that can offer an exponential speed-up over classical
-computation~\cite{10.2307/3560059}.
+trivial situation, the equations span 5 pages of text!  A small
+optimization reducing the number of qubits results in a circuit of
+15,624 generalized Toffoli gates whose execution produces still quite
+large, but more reasonable, equations. To understand the reason for
+these unwieldy equations, we examine a general ANF formula of the form
+$ X_1 \oplus X_2 \oplus X_3 \oplus \ldots = 0$ where each $X_i$ is a
+conjunction of some boolean variables, i.e., the variables in each $X$
+exhibit constructive interference as they must all be true to enable
+that $X=1$. Since the entire formula must equal to 0, every $X_i = 1$
+must be offset by another $X_j = 1$, thus exhibiting negative
+interference among $X_i$ and $X_j$. Generally speaking, arbitrary
+interference patterns can be encoded in the formulae at the cost of
+making the size of the formulae exponential in the number of
+variables. This exponential blowup is actually a necessary condition
+for any quantum algorithm that can offer an exponential speed-up over
+classical computation~\cite{10.2307/3560059}.
 
 It would however be incorrect to conclude that factoring 21 is
 inherently harder than factoring 15. The issue is simply that the
@@ -1201,10 +1200,10 @@ relative to a particular tensor product decomposition.
 
 \subsection{Complexity}
 
-Say we have a circuit containing $T$ Toffoli gates over $n+m$ qubits
-split in two registers $A$ ($n$ qubits) and $B$ (m qubits). The
-typical symbolic execution takes the following steps with the given
-worst-case complexity:
+In the general case, we have a circuit containing $T$ generalized
+Toffoli gates over $n+m$ qubits split in two registers $A$ ($n$
+qubits) and $B$ (m qubits). The typical symbolic execution takes the
+following steps with the given worst-case complexity:
 
 \begin{enumerate}
 \item If the quantum algorithm is expressed in terms of calls to a
@@ -1219,7 +1218,7 @@ it takes $T$ steps where each step takes constant time. The result of
 this evaluation will leave $A$ intact and produce some value $b$ for
 the $B$ registerr.
 \item We now run the circuit backwards with the symbolic
-values $A = \ket{x_0 x_1 \ldots x_{}n-1}$ and $B = \ket{b}$. This
+values $A = \ket{x_0 x_1 \ldots x_{n-1}}$ and $B = \ket{b}$. This
 takes $T$ steps. At each step, we have $m$ ANF equations over the
 $\{x_0,x_1,\ldots,x_{n-1}\}$ variables. The size of each equation
   might be $\mathcal{O}(2^n)$ in the worst case. So the overall
