@@ -158,7 +158,7 @@ groverCircuit :: Value f =>
 groverCircuit fr base n w = do
   xs <- newVars (fromVars fr n base)
   y <- newVar zero
-  return $ 
+  return $! 
    Circuit { op = groverCirc y xs n w
            , xs = xs
            , ancillaIns = [y]
@@ -187,18 +187,23 @@ predictGrover fr base n w = print $ runST $ do
   readSTRef (head (ancillaIns circ))
 --
 
-timeRetroGrover :: Int -> Integer -> IO ()
-timeRetroGrover n w = do
-  circ <- stToIO (groverCircuit FB.formRepr 0 n w)
+timeRetroGrover :: (Show f, Value f) =>
+  FormulaRepr f r -> r -> Int -> Integer -> IO ()
+timeRetroGrover fr base n w = do
+  circ <- stToIO $ groverCircuit fr base n w
   let bigN = toInteger $ (2^n :: Integer)
   (time,form) <- timeItT (stToIO (do run circ
                                      readSTRef (head (ancillaIns circ))))
-  printf "Grover: N=%d,\tu=%d;\tformula is %s; time = %.2f seconds\n"
+  printf "Grover: N=%d,\tu=%d;\tformula is %s; time = %f seconds\n"
     bigN w (head (words (show form))) time
     
-timings :: [Int] -> IO ()
-timings = mapM_ (\n -> timeRetroGrover n (2 ^ n - 1))
-
+timeRetroGrover' :: (Show f, Value f) =>
+  FormulaRepr f r -> r -> Int -> Integer -> f
+timeRetroGrover' fr base n w = runST $ do
+  circ <- groverCircuit fr base n w
+  run circ 
+  readSTRef (head (ancillaIns circ))
+    
 ------------------------------------------------------------------------------
 -- Shor
 

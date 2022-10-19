@@ -111,6 +111,6 @@ n=4 12870
 
 synthesisGrover :: Int -> [br] -> Integer -> OP br
 synthesisGrover n (viewL -> (xs,y)) u =
-  S.singleton $ GToffoli (fromInt n u) xs y
+  S.singleton $! GToffoli (fromInt n u) xs y
   
 ------------------------------------------------------------------------------
