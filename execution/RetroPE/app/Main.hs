@@ -5,11 +5,12 @@ import Text.Printf
 import Criterion.Main
 
 -- Comment out the appropriate one for running the 'right' test
-import QAlgos (deutschJozsaBal1)
-import RunQAlgos (timeRetroGrover')
+import QAlgos (deutschJozsaBal4)
 import FormAsLists as FL
 import FormAsMaps as FM
 import FormAsBitmaps as FB
+import RunQAlgos (timeRetroDJ)
+-- import RunQAlgos (timeRetroGrover')
 -- import RunQAlgos (runRetroGrover')
 -- import RunQAlgos (runRetroShor)
 
@@ -62,9 +63,17 @@ main = do
   timeRetroDJ FM.formRepr 0 15 deutschJozsaBal1   -- 59.79
   timeRetroDJ FB.formRepr 0 15 deutschJozsaBal1   -- 60.25
   -} 
+
+  timeRetroDJ FB.formRepr 0 10 deutschJozsaBal4   -- 0.02
+  timeRetroDJ FB.formRepr 0 11 deutschJozsaBal4   -- 0.12
+  timeRetroDJ FB.formRepr 0 12 deutschJozsaBal4   -- 0.56
+  timeRetroDJ FB.formRepr 0 13 deutschJozsaBal4   -- 2.52
+  timeRetroDJ FB.formRepr 0 14 deutschJozsaBal4   -- 11.39
+  timeRetroDJ FB.formRepr 0 15 deutschJozsaBal4   -- 54.75
   -- mapM_ (retroGrover 5) [0..31]
   -- runRetroGrover' 23 0
 
+  {-
   defaultMain [
     bgroup "RetroGrover" 
       [ bench "List 10"  $ nf (\rep -> head $ words $ show $ timeRetroGrover' rep "x" 10 0) FL.formRepr
@@ -75,6 +84,7 @@ main = do
       , bench "BitM 12"  $ nf (\rep -> head $ words $ show $ timeRetroGrover' rep 0 12 0) FB.formRepr
       ]
     ]
+  -}
 {- The above produces
 benchmarking RetroGrover/List 10
 time                 4.023 ms   (3.992 ms .. 4.052 ms)
