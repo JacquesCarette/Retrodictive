@@ -223,7 +223,8 @@ Our observation is that a qubit in the special superposition
 $1/\sqrt{2} ~(\ket{0} + \ket{1} )$ is, computationally speaking,
 indistinguishable from a symbolic boolean variable with an unknown
 value in the same sense used in symbolic evaluation of classical
-programs. First, the superposition is not observable. The only way to
+programs~\cite{10.1145/390016.808445,10.1145/360248.360252,howden,10.1145/800191.805647,10.1145/3182657}.
+First, the superposition is not observable. The only way to
 observe the qubit is via a measurement which collapses the state to be
 either false or true with equal probability. Second, and more
 significantly, this remarkably simple observation is quite robust even
@@ -321,7 +322,7 @@ backward. Evaluating a circuit in one fixed direction is then quite
 standard. A novel approach, enabled by the reversibility of quantum
 mechanics, is what we call the \emph{retrodictive} mode of running
 circuits~\cite{retrodictive}. In that mode, illustrated in
-Fig.~\ref{retroflow} , we start execution in the forward direction
+Fig.~\ref{fig:retroflow} , we start execution in the forward direction
 with a fully static collection of inputs in order to partially
 determine a possible future; we then execute backwards from the
 partially specified possible future (with the unknown values
@@ -603,7 +604,7 @@ pre-image of $f(x)$ and query it to determine the period.
   \draw[line width=3pt, blue] (0,-1.6) .. controls (5.5,-2) and (11,-1.6) .. (2,-1.2);
   \draw[line width=3pt, ->, blue] (2,-1.2) .. controls (0.5,-0.8) and (7,-0.2) .. (9,-1.2);
   \end{tikzpicture}
-  \caption{\label{retrofig}Retrodictive Flow}
+  \caption{\label{fig:retroflow}Retrodictive Flow}
   \end{subfigure}
 \caption{\label{fig:templateQC}Template quantum circuit}
 \end{figure}
@@ -1213,6 +1214,10 @@ qutrit system as 00, 10, 20 or in decimal 0, 3, 6 clearly identifying
 the period to be 3. The idea of adapting the computation to simplify
 the circuit and equations is inspired by the fact that entanglement is
 relative to a particular tensor product decomposition.
+
+\subsection{Time Measurements}
+
+\includegraphics[scale=0.4]{../execution/RetroPE/grover.pdf}
 
 \subsection{Complexity}
 
