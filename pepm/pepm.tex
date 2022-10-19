@@ -417,7 +417,7 @@ get a ``closed form,'' in ANF, for evaluation, whether forward or
 backward. Evaluating a circuit in one fixed direction is then quite
 standard. A novel approach, enabled by the reversibility of quantum
 mechanics, is what we call the \emph{retrodictive} mode of running
-circuits~\cite{retrodictive}. In that mode, illustrated in
+circuits~\cite{retroqc}. In that mode, illustrated in
 Fig.~\ref{fig:retroflow} , we start execution in the forward direction
 with a fully static collection of inputs in order to partially
 determine a possible future; we then execute backwards from the
@@ -1268,20 +1268,17 @@ relative to a particular tensor product decomposition.
 
 \begin{figure}
  \includegraphics[scale=0.4]{../execution/RetroPE/DJ.pdf}
-  \label{fig:DJ}
-  \caption{Deutsch-Jozsa on $3$ problems at different sizes}
+  \caption{\label{fig:DJ} Deutsch-Jozsa on $3$ problems at different sizes}
 \end{figure}
 
 \begin{figure}
 \includegraphics[scale=0.4]{../execution/RetroPE/grover.pdf}
-  \label{fig:GroverWC}
-  \caption{Grover on different ``secret'' values $u$ at different sizes}
+  \caption{\label{fig:GroverWC} Grover on different ``secret'' values $u$ at different sizes}
 \end{figure}
 
 \begin{figure}
 \includegraphics[scale=0.6]{../execution/RetroPE/Grover1.pdf}
-  \label{fig:GroverImpl}
-  \caption{Grover at $2$ sizes but using different ANF representations on $u=0$}
+  \caption{\label{fig:GroverImpl} Grover at $2$ sizes but using different ANF representations on $u=0$}
 \end{figure}
 
 We show a few representative set of timings for the Deutsch-Jozsa and
@@ -1302,7 +1299,7 @@ what ``secret value $u$'' we are looking for. Here
 the binary representation of $u$ matters greatly, ranging from what looks
 like essentially constant time to exponential time.
 
-Lastly, Fig.~\ref{fig:GroverImp} shows Grover's algorithm again, using the
+Lastly, Fig.~\ref{fig:GroverImpl} shows Grover's algorithm again, using the
 worst case value from the previous figure ($u=0$) but varies the representation
 at two sizes. Here we can clearly see the very strong effect that this has
 on the timings. This is not just a constant improvement, it is also a complexity
