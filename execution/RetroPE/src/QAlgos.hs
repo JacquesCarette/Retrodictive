@@ -36,7 +36,7 @@ deutschCircuit f x y = synthesis 2 [x, y] f
 -- Deutsch Jozsa
 
 deutschJozsaConstant0, deutschJozsaConstant1 :: [Bool] -> [Bool]
-deutschJozsaBal1, deutschJozsaBal2, deutschJozsaBal3 :: [Bool] -> [Bool]
+deutschJozsaBal1, deutschJozsaBal2, deutschJozsaBal3, deutschJozsaBal4 :: [Bool] -> [Bool]
 -- f(x) = 0
 deutschJozsaConstant0 = uf (const False)
 -- f(x) = 1
@@ -56,6 +56,8 @@ deutschJozsaBal3 = uf f
         sbin :: [Bool]
         sbin = map (== '0') $ concatMap h2Str shex
         f xs = sbin !! fromInteger (toInt xs)
+-- f(x0x1x2..) = xn
+deutschJozsaBal4 = uf last
 
 deutschJozsaCircuit :: Int -> ([Bool] -> [Bool]) -> [br] -> OP br
 deutschJozsaCircuit n f l = synthesis (n+1) l f
