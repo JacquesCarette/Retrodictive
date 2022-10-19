@@ -1313,6 +1313,12 @@ relative to a particular tensor product decomposition.
 \subsection{Time Measurements}
 
 \begin{figure}
+% \includegraphics[scale=0.4]{../execution/RetroPE/grover.pdf}
+  \label{fig:DJ}
+  \caption{Deutsch-Jozsa on $3$ problems at different sizes}
+\end{figure}
+
+\begin{figure}
 \includegraphics[scale=0.4]{../execution/RetroPE/grover.pdf}
   \label{fig:GroverWC}
   \caption{Grover on different ``secret'' values $u$ at different sizes}
@@ -1324,11 +1330,28 @@ relative to a particular tensor product decomposition.
   \caption{Grover at $2$ sizes but using different algorithms on $u=0$}
 \end{figure}
 
-\begin{figure}
-% \includegraphics[scale=0.4]{../execution/RetroPE/grover.pdf}
-  \label{fig:DJ}
-  \caption{Deutsch-Vazirani on $3$ problems at different sizes}
-\end{figure}
+We show a few representative set of timings for the Deutsch-Jozsa and
+Grover problems. 
+
+Fig.~\ref{fig:DJ} shows that happens when we vary the
+size of the problem for Deutsch-Josza on three different balanced
+functions: $x_0$, $x0\oplus\ldots\oplus x_n$ and $x_n$. All three show
+clear exponential behaviour that does not depend on the size of the final
+answer. We show the timings only for a single implementation of the
+representation of formulas as, somewhat mysteriously, this makes no
+difference in this case, we get essentially the same result in all cases.
+
+Fig.~\ref{fig:GroverWC} shows timings of different calls to Grover's
+algorithm, uses the best representation for formulas (as bitmaps) but varies
+what ``secret value $u$'' we are looking for. Here
+the binary representation of $u$ matters greatly, ranging from what looks
+like essentially constant time to exponential time.
+
+Lastly, Fig.~\ref{fig:GroverImp} shows Grover's algorithm again, using the
+worst case value from the previous figure ($u=0$) but varies the representation
+at two sizes. Here we can clearly see the very strong effect that this has
+on the timings. This is not just a constant improvement, it is also a complexity
+improvement.
 
 \subsection{Complexity}
 
