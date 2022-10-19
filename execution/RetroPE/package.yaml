@@ -22,16 +22,15 @@ description:         Please see the README on GitHub at <https://github.com/gith
 dependencies:
 - base 
 - vector
-- QuickCheck
 - containers
 - assert
 - integer-gmp
-- lens
 - random >= 1.2.1
 - multiset
 - bitwise
 - mtl
 - timeit
+- criterion
 
 library:
   source-dirs:

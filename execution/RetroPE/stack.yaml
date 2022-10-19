@@ -46,6 +46,8 @@ extra-deps:
 - assert-0.0.1.2
 - random-1.2.1
 - bitwise-1.0.0.1
+- criterion-1.6.0.0
+- criterion-measurement-0.2.0.0
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
@@ -73,4 +75,3 @@ extra-deps:
 
 ghc-options:
   "$locals": -Wall -fno-warn-name-shadowing
-  "$everything": -O2

@@ -25,6 +25,20 @@ packages:
       sha256: fe95409d2e77769965df68eade44e6eb5fcc63643a94e2645cd5db357670b20f
   original:
     hackage: bitwise-1.0.0.1
+- completed:
+    hackage: criterion-1.6.0.0@sha256:76280dace017fe1fab4dae35d57992a48e70a3cfcdb2a4563923cd2502a7268c,5403
+    pantry-tree:
+      size: 2398
+      sha256: 68dc4a17a46b31782b7147969ac721a2d2c397b4353dbc5606c450686597f522
+  original:
+    hackage: criterion-1.6.0.0
+- completed:
+    hackage: criterion-measurement-0.2.0.0@sha256:8c6127b22a53aebc7d5a9dbf8fd870f128b93be3069fe7fed969e4c253cd9626,2121
+    pantry-tree:
+      size: 726
+      sha256: ca5784038346b104cfc403bf48e8e78ab5b4afcbb0addbc01f9d67a74503714d
+  original:
+    hackage: criterion-measurement-0.2.0.0
 snapshots:
 - completed:
     size: 590102
