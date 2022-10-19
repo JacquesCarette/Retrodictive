@@ -1279,9 +1279,9 @@ relative to a particular tensor product decomposition.
 \end{figure}
 
 \begin{figure}
-% \includegraphics[scale=0.4]{../execution/RetroPE/grover.pdf}
+\includegraphics[scale=0.6]{../execution/RetroPE/Grover1.pdf}
   \label{fig:GroverImpl}
-  \caption{Grover at $2$ sizes but using different algorithms on $u=0$}
+  \caption{Grover at $2$ sizes but using different ANF representations on $u=0$}
 \end{figure}
 
 We show a few representative set of timings for the Deutsch-Jozsa and
@@ -1289,7 +1289,8 @@ Grover problems.
 
 Fig.~\ref{fig:DJ} shows that happens when we vary the
 size of the problem for Deutsch-Josza on three different balanced
-functions: $x_0$, $x0\oplus\ldots\oplus x_n$ and $x_n$. All three show
+functions: \texttt{bal1} is $x_0$, \texttt{bal2} is $x0\oplus\ldots\oplus x_n$ 
+and \texttt{bal4} is $x_n$. All three show
 clear exponential behaviour that does not depend on the size of the final
 answer. We show the timings only for a single implementation of the
 representation of formulas as, somewhat mysteriously, this makes no
