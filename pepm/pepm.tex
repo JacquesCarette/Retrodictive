@@ -113,7 +113,7 @@ for instances of standard examples of quantum algorithms.
 \subsection*{Outline.}
 We begin in Sec.~\ref{sec2} with background information on quantum
 computing with a focus on the idea of representing a class of qubit
-states using symbolic variables. We also show how standard quantum
+states using symbolic variables. Sec.~\ref{anf} shows how standard quantum
 gates can be modeled using this symbolic representation by using the
 algebraic normal form of boolean formulae. Sec.~\ref{sec3} reviews the
 family of quantum algorithms that is the focus of our approach and
@@ -277,7 +277,9 @@ values at each step of circuit execution are boolean functions
 manipulated with conditional exclusive-or operations with a
 well-understood normal form, the algebraic normal form (ANF). 
 
-\paragraph*{Algebraic Normal Form (ANF)}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+\section{Algebraic Normal Form (ANF)}
+\label{anf}
 
 The circuits we are interested in can all be expressed in terms of
 \emph{generalized Toffoli gates} with $n$ control qubits:
@@ -315,6 +317,100 @@ algebraic normal form.  Furthermore, circuits that only use \x\ and
 \cx-gates never generate any conjunctions and hence lead to formulae
 that are efficiently solvable
 classically~\cite{10.5555/35517,TOKAREVA20151}.
+
+\subsection{Example}
+
+\begin{figure*}[t]
+  \centering
+\begin{subfigure}[c]{.25\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=1.0]
+   \begin{yquant*}[register/minimum height=0.3cm]
+   qubit {} x;
+   qubit {} y; 
+   qubit {} z; 
+   cnot z | x;
+  \end{yquant*}
+\end{tikzpicture}
+\end{subfigure}
+\qquad$\equiv$\qquad
+\begin{subfigure}[c]{.25\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=1.0]
+   \begin{yquant*}[register/minimum height=0.3cm]
+   qubit {} x; 
+   qubit {} y; 
+   qubit {} z; 
+   cnot y | x; 
+   cnot z | y; 
+   cnot y | x; 
+   cnot z | y; 
+  \end{yquant*}
+\end{tikzpicture}
+ \end{subfigure}
+\caption{\label{fig:cnotopt}A gate equivalence}
+\end{figure*}
+
+\begin{figure*}[t]
+  \centering
+\begin{subfigure}[c]{.25\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=1.0]
+   \begin{yquant*}[register/minimum height=0.3cm]
+   qubit {$z=\ket{0}$} z; 
+   qubit {$\ket{0}$} a;
+   qubit {$\ket{0}$} b; 
+   qubit {$\ket{0}$} c;
+   box {$H$} z; 
+   cnot c | ~z;
+   cnot a | z; 
+  \end{yquant*}
+\end{tikzpicture}
+\end{subfigure}
+\qquad$\equiv$\qquad
+\begin{subfigure}[c]{.25\textwidth}
+    \centering
+    \begin{tikzpicture}[scale=1.0]
+   \begin{yquant*}[register/minimum height=0.3cm]
+   qubit {$z=\ket{0}$} z; 
+   qubit {$\ket{0}$} a;
+   qubit {$\ket{0}$} b; 
+   qubit {$\ket{0}$} c;
+   box {$H$} z; 
+   cnot c | ~z;
+   cnot b | z; 
+   cnot a | b; 
+   cnot b | z; 
+   cnot a | b; 
+  \end{yquant*}
+\end{tikzpicture}
+ \end{subfigure}
+\caption{\label{fig:circopt}A circuit equivalence using the gate
+  equivalence in Fig.~\ref{fig:cnotopt}}
+\end{figure*}
+
+Fig.~\ref{fig:cnotopt} shows an equivalence that is often useful when
+only nearest-qubit interactions are available. Fig.~\ref{fig:circopt}
+shows a fragment of a circuit used in Shor's algorithm in the next
+section. We demonstrate, manually, how the ANF symbolic representation
+of the two circuits is unique which explains why a non-optimized
+circuit with millions of gates can be efficiently processed if the
+underlying function has an efficient circuit representation. 
+
+Let's start symbolically evaluating the circuit on the left. Replacing
+$H\ket{0}$ by $z$ for the top wire, the initial state for the symbolic
+execution is $\ket{z000}$.  The white dot in the graphical
+representation of the first gate indicates that the control is active
+when it is 0. The state proceeds to $\ket{z00(1\oplus z)}$. The second
+gate then produces $\ket{zz0(1\oplus z)}$ as the final state. For the
+circuit on the right, symbolic evaluation instead proceeds as follows:
+\[\begin{array}{rcl}
+    \ket{z000}  &\mapsto& \ket{z00(1\oplus z)} \\
+                &\mapsto& \ket{z0z(1\oplus z)} \\
+                &\mapsto& \ket{zzz(1\oplus z)} \\
+                &\mapsto& \ket{zz0(1\oplus z)} \\
+                &\mapsto& \ket{zz0(1\oplus z)} 
+\end{array}\]
 
 To summarize, we never need to residualize a circuit, we can always
 get a ``closed form,'' in ANF, for evaluation, whether forward or
@@ -1091,10 +1187,9 @@ desired hidden value.
 \paragraph*{Shor}
 The circuit in Fig.~\ref{fig:shor15} uses a hand-optimized
 implementation of quantum oracle $U_f$ for the modular exponentiation
-function $f(x) = 4^x \mod{15}$ to factor 15 using Shor's
-algorithm. The white dot in the graphical representation of the first
-indicates that the control is active when it is 0. In a conventional
-forward execution, the state before the QFT block is:
+function $f(x) = 4^x \mod{15}$ to factor 15 using Shor's algorithm.
+In a conventional forward execution, the state before the QFT block
+is:
 \[
 \frac{1}{2\sqrt{2}} (
   (\ket{0} + \ket{2} + \ket{4} + \ket{6}) \ket{1} + 
