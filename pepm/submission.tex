@@ -1,4 +1,4 @@
-\documentclass[sigplan]{acmart}
+\documentclass[sigplan,review]{acmart}
 \setcopyright{none}
 \acmConference{PEPM}{2023}{Boston}
 
@@ -393,18 +393,17 @@ Fig.~\ref{fig:cnotopt} shows an equivalence that is often useful when
 only nearest-qubit interactions are available. Fig.~\ref{fig:circopt}
 shows a fragment of a circuit used in Shor's algorithm in the next
 section. We demonstrate, manually, how the ANF symbolic representation
-of the two circuits is unique, which explains why a non-optimized
+of the two circuits is unique which explains why a non-optimized
 circuit with millions of gates can be efficiently processed if the
 underlying function has an efficient circuit representation. 
 
-Let's start symbolically evaluating the circuit on the left of
-Fig.~{fig:circopt}. Replacing $H\ket{0}$ by $z$ for the top wire, the
-initial state for the symbolic execution is $\ket{z000}$.  The white
-dot in the graphical representation of the first gate indicates that
-the control is active when it is 0. The state proceeds to
-$\ket{z00(1\oplus z)}$. The second gate then produces
-$\ket{zz0(1\oplus z)}$ as the final state. For the circuit on the
-right, symbolic evaluation instead proceeds as follows:
+Let's start symbolically evaluating the circuit on the left. Replacing
+$H\ket{0}$ by $z$ for the top wire, the initial state for the symbolic
+execution is $\ket{z000}$.  The white dot in the graphical
+representation of the first gate indicates that the control is active
+when it is 0. The state proceeds to $\ket{z00(1\oplus z)}$. The second
+gate then produces $\ket{zz0(1\oplus z)}$ as the final state. For the
+circuit on the right, symbolic evaluation instead proceeds as follows:
 \[\begin{array}{rcl}
     \ket{z000}  &\mapsto& \ket{z00(1\oplus z)} \\
                 &\mapsto& \ket{z0z(1\oplus z)} \\
@@ -443,11 +442,11 @@ There are three common ways to compute with \emph{unknown} values:
 \begin{enumerate}
   \item by treating as symbolic variables,
   \item by using distributions,
-  \item by using unitary operators (i.e., qubits).
+  \item by using unitary operators (i.e. qubits).
 \end{enumerate}
 As a zeroth-order approximation, one can think of the ``unitary operators'' of quantum
 computing as \Cplx-valued distributions. The extra ``phase'' involved allows tracking of
-simple relations between inputs (i.e., \emph{entanglement}).
+simple relations between inputs (i.e. \emph{entanglement}).
 
 What we will do is to look at the classical reversible circuits at the heart
 of quantum computation, replacing the qubits by symbolic quantities. We look at a particular
@@ -460,7 +459,7 @@ What a quantum circuit does with H on the ancilla is to transform a known input 
 (the equivalent of) the uniform distribution on all possible values. The result is
 basically \emph{maximally unknown}.
 
-What we do instead is to remove the H, and treat the ancillae as dynamic inputs, i.e.,
+What we do instead is to remove the H, and treat the ancillae as dynamic inputs, i.e.
 fully unknown. However, these circuits are all \emph{reversible}, so we can also 
 start from a partial measurement (static), treating the rest of the state as dynamic.
 We then execute the circuit backwards ``symbolically''.
@@ -472,7 +471,7 @@ Since our circuits are reversible, for simplicity we're going to look at retrodi
 execution as forward execution of the reverse program, which puts us in the setup of PE.
 
 Except that in PE, the result is a \emph{residual program} that obeys the Futumura equations.
-In our case, we have ``both sides'', i.e., input, output and ancillae, in our hands. So the
+In our case, we have ``both sides'', i.e. input, output and ancillae, in our hands. So the
 result is going to be a set of equations constraining the ``possible pasts'' of the output
 to be equal to the actual inputs. So rather than obtaining a residual program as output,
 we obtain a \emph{system of equations}.
@@ -533,7 +532,7 @@ Another try at 'the story'. (Parts done already deleted)
 $\{ 0,1,\ldots,(n-1)\}$. The parameter~$n$ determines the problem size
 for all the problems below (except Deutsch which is a fixed sized
 problem). In the review below, we adapt the usual presentation of the
-algorithms~\cite{doi:10.1137/S0097539796300921,deutsch,deutschJozsa,365701,doi:10.1137/S0097539795293172,nielsen_chuang_2010,10.1145/237814.237866}.
+algorithms~\cite{doi:10.1137/S0097539796300921,deutsch,deutschJozsa,365701,doi:10.1137/S0097539795293172,nielsen_chuang_2010,10.1145/237814.237866}).
 to one better suited to our context. In particular, instead of using
 the forward flow of execution using exact quantum superpositions, we
 express the problem as one asking for particular properties of boolean
@@ -545,9 +544,9 @@ function $\finset{2} \rightarrow \finset{2}$ is constant or
 balanced. In this small case, the function is balanced if it is the
 identity or boolean negation, and is constant otherwise. Equivalently,
 we can ask about the pre-image of an arbitrary boolean (say false),
-i.e., the set of inputs that are mapped to false by the function, and
+i.e. the set of inputs that are mapped to false by the function, and
 check whether the pre-image has an even or odd number of elements. If
-the cardinality of the pre-image is even, i.e., 0 or 2, the function
+the cardinality of the pre-image is even i.e. 0 or 2, the function
 must be constant and if it is odd, i.e., it contains just one element,
 the function must be balanced.
 
@@ -731,10 +730,9 @@ A number of quantum algorithms are expressed in the ``black-box
 model'' where the $U_f$ block defines arbitrary boolean functions
 (given as black boxes at ``compile time''). To actually execute these
 algorithms, we want to, offline, synthesize a circuit from the boolean
-specification. In other words for $f : \Bool^n \rightarrow\Bool$, we
-wish to generate the circuit for
-$g : \Bool^{n+1} \rightarrow \Bool^{n+1}$ such that for
-$\overline{x} : \Bool^n$ we have
+specification. In other words for $f : \Bool^n \rightarrow\Bool$, we wish to
+generate the circuit for $g : \Bool^{n+1} \rightarrow \Bool^{n+1}$
+such that for $\overline{x} : \Bool^n$, then
 $g(\overline{x},y) = (\overline{x}, y \oplus f(\overline{x}))$.
 
 This leads us to the requirements our code must fulfill.
@@ -826,11 +824,9 @@ and then multiple times for different symbolic variations. As a side-effect,
 this gives us requirement $3$ ``for free'' if we can write a sufficiently
 polymorphic evaluator (which we will present below).
 
-Unlike value representations that can be computed from context, we
-want to explicitly choose a formula representation (requirement 2)
-ourselves. Thus we use an explicit record instead of an implicit
-dictionary:
-
+Unlike for value representation which can be computed from context, we want
+to explicitly choose formula representation (requirement 2) ourselves. Thus we
+use an explicit record instead of an implicit dictionary:
 \begin{minted}{haskell}
 data FormulaRepr f r = FR 
   { fromVar  :: r -> f
@@ -892,7 +888,7 @@ polymorphic.
 Above, we said we had $3$ different symbolic evaluators. These were not driven
 by having different levels of \emph{precision} but rather by requirement $8$,
 efficiency. Our first evaluator (\texttt{FormAsList}) uses xor-lists of
-and-lists of literals (as strings, i.e.,
+and-lists of literals (as strings, i.e.
 \texttt{"x0"}, \texttt{"x1"}, \ldots in lexicographical order of the wires). ANF 
 is then easy: and-lists are sorted, and duplicates removed. Xor-lists are sorted,
 grouped, even length lists are removed, and then made unique. This is woefully
@@ -917,7 +913,7 @@ further optimize the evaluation of single gates.
 
 The final code consists of $18$ modules that implement various
 services, see Fig.~\ref{fig:modules} for a full listing. It consists of
-only $1449$ lines of Haskell text, of which $646$ lines are blank, import or
+only $1449$ lines of Haskell code, of which $646$ lines are blank, import or
 comments, module declaration, so that $809$ are ``code.'' Testing and printing
 utilities are not counted in the above.
 
@@ -1327,7 +1323,7 @@ following steps with the given worst-case complexity:
 circuit with classical inputs. This has complexity $\mathcal{O}(T)$ as
 it takes $T$ steps where each step takes constant time. The result of
 this evaluation will leave $A$ intact and produce some value $b$ for
-the $B$ register.
+the $B$ registerr.
 \item We now run the circuit backwards with the symbolic
 values $A = \ket{x_0 x_1 \ldots x_{n-1}}$ and $B = \ket{b}$. This
 takes $T$ steps. At each step, we have $m$ ANF equations over the
