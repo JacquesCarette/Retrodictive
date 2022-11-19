@@ -1,6 +1,12 @@
-\documentclass[sigplan]{acmart}
-\setcopyright{none}
+\documentclass[sigplan,screen]{acmart}
+\setcopyright{rightsretained}
+\acmPrice{}
+\acmDOI{}
+\acmYear{2023}
+\copyrightyear{2023}
 \acmConference{PEPM}{2023}{Boston}
+
+\bibliographystyle{ACM-Reference-Format}
 
 % 12 pages
 
@@ -15,10 +21,6 @@
 \usepackage{enumitem}
 \usepackage{tikz}
 \usetikzlibrary{quantikz,fit,quotes,svg.path}
-%%\usepackage[backend=biber,citestyle=numeric-comp]{biblatex}
-%%\ExecuteBibliographyOptions{sorting=nyt,maxbibnames=100,doi=false,isbn=false,url=false}
-%%\addbibresource{cites.bib}
-\bibliographystyle{acm}
 
 \newcommand{\h}[1]{\mintinline{haskell}{#1}}
 
@@ -45,20 +47,38 @@
 \title[Symbolic Quantum Execution]{Symbolic Execution of \\
   Hadamard-Toffoli Quantum Circuits}
 
-\author{Jacques Carette}
+\author{Jacques Carette} 
 \orcid{0000-0001-8993-9804}
-\email{carette@mcmaster.ca}
-\affiliation{\institution{McMaster University}\city{Hamilton, ON}\country{Canada}}
+\affiliation{
+  \department{Department of Computer Sciences}
+  \institution{McMaster University}
+  \city{Hamilton}
+  \postcode{?}
+  \country{Canada}
+}
+\email{carette@mcmaster.ca} 
 
 \author{Gerardo Ortiz}
 \orcid{0000-0003-3254-4494}
+\affiliation{
+  \department{Department of Physics}
+  \institution{Indiana University}
+  \city{Bloomington}
+  \postcode{47408}
+  \country{USA}
+}
 \email{ortizg@iu.edu}
-\affiliation{\institution{Indiana University}\city{Bloomington, IN}\country{USA}}
 
 \author{Amr Sabry}
 \orcid{0000-0002-1025-7331}
+\affiliation{
+  \department{Department of Computer Science}
+  \institution{Indiana University}
+  \city{Bloomington}
+  \postcode{47408}
+  \country{USA}
+}
 \email{sabry@indiana.edu}
-\affiliation{\institution{Indiana University}\city{Bloomington, IN}\country{USA}}
 
 \begin{abstract}
   The simulation of quantum programs by classical computers is a critical endeavor
@@ -84,7 +104,40 @@
   the significance of these results in the conclusion.   
 \end{abstract} 
 
-\keywords{{quantum computation}, {partial evaluation}, {symbolic evaluation}}
+\begin{CCSXML}
+<ccs2012>
+   <concept>
+       <concept_id>10003752.10010124</concept_id>
+       <concept_desc>Theory of computation~Semantics and reasoning</concept_desc>
+       <concept_significance>500</concept_significance>
+       </concept>
+   <concept>
+       <concept_id>10003752.10010124.10010131.10010134</concept_id>
+       <concept_desc>Theory of computation~Operational semantics</concept_desc>
+       <concept_significance>500</concept_significance>
+       </concept>
+   <concept>
+       <concept_id>10010147.10010148.10010149</concept_id>
+       <concept_desc>Computing methodologies~Symbolic and algebraic algorithms</concept_desc>
+       <concept_significance>500</concept_significance>
+       </concept>
+   <concept>
+       <concept_id>10010405.10010432.10010441</concept_id>
+       <concept_desc>Applied computing~Physics</concept_desc>
+       <concept_significance>500</concept_significance>
+       </concept>
+ </ccs2012>
+\end{CCSXML}
+
+\ccsdesc[500]{Theory of computation~Semantics and reasoning}
+\ccsdesc[500]{Theory of computation~Operational semantics}
+\ccsdesc[500]{Computing methodologies~Symbolic and algebraic algorithms}
+\ccsdesc[500]{Applied computing~Physics}
+
+
+\keywords{{quantum computation}, {partial evaluation}, {symbolic
+    evaluation}, {retrodictive quantum computing}, {algebraic normal
+    form}, {boolean circuits}, {quantum oracles}}
 \maketitle 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
