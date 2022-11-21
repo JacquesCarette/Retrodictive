@@ -1,0 +1,169 @@
+Review #9A
+===========================================================================
+
+Paper summary
+-------------
+This paper presents a new symbolic execution technique for a quantum oracle, which can be considered a classical circuit. Specifically, the presented method regards a generation of superposition (that is, H|0>) as an introduction of a symbolic variable |x> and realizes the symbolic execution of oracles in algebraic normal form (ANF). Moreover, this paper presents forward partial evaluation and retrodictive execution by using the fact that quantum computation is reversible. Finally, the authors implemented their method with Haskell and applied it to several quantum algorithms. The time complexity of their algorithm is exponential, but as a result, the execution time is reasonable even if an input circuit has a large oracle.
+
+Comments for authors
+--------------------
+The idea that an application of the Hadamard gate can be regarded as an introduction of a symbolic variable is simple but effective enough to analyze quantum oracles. It is interesting that retrodictive execution can collect ANF equations from the future to the present. The authors actually implemented the proposed method and showed its effectiveness  though the code is not open currently. Thus this paper can be considered appropriate for the research topics desired in PEPM2022.
+
+However, this paper can be made more readable and attractive.
+One of the weakest points is that this paper does not explain how to use it in the actual development of quantum algorithms. For example, what should we do next after obtaining ANF equations by retrodictive execution? It seems not to be easy to get feedback by just seeing these equations. If you show a workflow of the presented method in an earlier section, the strong points become more apparent.
+
+You need not describe all algorithms in section 4 because the main point here is that these algorithms have quantum oracles as their subcircuits that can be considered classical. How about selecting some of them? For example, Deutsch-Jozsa, Grover's algorithm, and Shor's algorithm. If you think it is essential to illustrate obtained ANF equations of these algorithms, as shown in section 6, then you need to explain the various and different ways to use your tool specifically.
+
+The main points of section 5 are not clear to me. What are the advantages of introducing several representations of boolean variables and formulas? I guess you use them properly to optimize the evaluator, as described at the end of this section, but I cannot understand how to optimize it. How about illustrating concrete examples of and-list, and-maps, xor-list, and xor-maps? The methods of `FormulaRepr` does not also make sense to me. I think the last paragraph in this section explains the detail of the implementation too much, so how about omitting it and adding an example?
+
+I have a question about related work. I think partial evaluation in (classical) reversible computing is also studied. Can we consider the presented method as an extension of the existing work with Hadamard gates? If so, please cite the paper and make the differences clear.
+
+In my understanding, all examples in section 6 assume that quantum oracles are implemented correctly. For example, the insight of Deutsch-Jozsa says that a given oracle must be balanced or constant. This assumption seems to be too strong when we try to use this work to for validation. Can we inspect the bug by extracting ANF equations easily? If possible, it might be better to give another example for use.
+
+The Oqimp programming language proposed in the following paper has a feature for partial evaluation, so it may be related to your work. This comment can be ignored if it is not related to your work.
+
+> Li, Liyi, Finn Voichick, Kesha Hietala, Yuxiang Peng, Xiaodi Wu, and Michael Hicks. “Verified Compilation of Quantum Oracles.” ArXiv:2112.06700 [Quant-Ph], April 20, 2022. http://arxiv.org/abs/2112.06700.
+
+I also have to note that you should make sure that you make the repository of this work public before the deadline.
+
+### Minor comments
+
+* L169: The sentence "any mixture of inputs and outputs can be made symbolic" does not make sense to me. Does it mean that if the number of input and output wires are the same, it can be made reversible, so symbolic partial evaluation such as retrodictive execution can be achieved?
+* L374: How about saying that the unitary $U_f$ called oracle in this paragraph?
+* Fig 5: A unitary $U_f$ is common in the given algorithms, but QFT is not. Probably this figure represents the case of the Shor. Moreover, you should note that QFT is an abbreviation of Quantum Fourier Transform.
+* L573: Is it essential to separate data qubits and ancillae qubits in this analysis?
+* L601: What is a "normalized" multiset?
+* L631: What does mean `this` here?
+* L637: How can we use the property of control wires to optimize the evaluation of single gates? Is this future work?
+* Fig 12, 14: The axis labels are missing.
+* All Figures: The fonts in the figures are too small.
+* L1042. Why is it sufficient to inspect the case of A = |0...0>?
+* L1047: there is a typo: registerr -> register
+* L1093. What is the meaning of "those foundational ones related to the origin behind the power of quantum computation"?
+
+
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+
+Review #9B
+===========================================================================
+
+Paper summary
+-------------
+This paper proposes a method of symbolic evaluation of (a certain
+class of) quantum circuits, based on an observation that a quantum bit
+$\frac{1}{\sqrt{2}}|0\langle + \frac{1}{\sqrt{2}}|1\langle$ in
+superposition can be considered a Boolean variable whose value is
+unknown.  For the symbolic evaluation to work, the circuit has to be
+expressed by a combination of generalized Toffoli gates, but these
+gates are expressive enough to express oracles (which correspond to
+classical Boolean circuits) used in many quantum algorithms.  Another
+feature of the proposed method is that symbolic execution backward
+(computing inputs from outputs symbolically) is possible, thanks to
+the fact that the computation expressed by these circuits is
+reversible.
+
+The paper discusses the design and implementation of the symbolic
+evaluator in Haskell, reports experiments on textbook quantum
+algorithms and time measurements.  Although the worst-case time
+complexity is exponential, it is reported that no problem is caused in
+the experiments.
+
+Comments for authors
+--------------------
+Pros
+* An interesting observation that $H\mid0\rangle$ can be considered a symbolic Boolean variable.
+* An implementation of a symbolic evaluator for (a certain class of) quantum circuits.
+
+Cons
+* The purpose of the evaluation of the symbolic evaluator on major quantum algorithms is not very clear.
+
+
+I find the observation made in this paper (mentioned above) pretty
+interesting.  Combined with another useful fact that oracles can be
+expressed by generalized Toffoli gates, the authors successfully built
+a symbolic evaluator for quantum circuits, which I think is novel.  As
+the authors clearly state, the symbolic evaluation method itself is
+straightforward but it's not surprising.
+
+What puzzles me is the section on evaluation, especially Section 6.1,
+because it's not clear what the authors would like to evaluate.  This
+section also raises a question about how the symbolic evaluator is
+supposed to be used.  The section seems to provide a few uses,
+including circuit optimization, but it is not very clear from the writing.
+
+More detailed comments:
+
+The title is "Symbolic Execution of Hadamard-Toffoli Quantum Circuits"
+but what is really symbolically executed is, as far as I understand, a
+part of a circuit in ANF, which consists only of generalized Toffoli
+gates and it is not really possible to mix Hadamard and Toffoli in an
+arbitrary way.  Since oracles can be written only with the generalized
+Toffoli gates, this restriction doesn't seem to cause problems (as far
+as examples in the paper are concerned) but the title may be slightly
+misleading.
+
+Where "retrodictive" is mentioned, the paper [8] by the same set of
+authors is cited.  Self-citation is fine, but the cited paper (arXiv
+preprint) seems to share some materials with this submission, which I
+felt is a bit weird.
+
+The circuits in Figure 5 use QFT but not all algorithms use it.  Also
+QFT is hardly mentioned until Section 6.
+
+Section 5 is kind of isolated from the rest of the paper and it is not
+very clear (at least to me) what should be learned from this section.
+Perhaps, it is because the evaluation section doesn't really discuss
+how the evaluation took advantage of the careful design.
+
+L716: How did you identify these balanced functions using the symbolic
+evaluator?  As far as I understand, if you know a given function is
+either a constant or balanced function, you will know which, but how
+do you enumerate such functions?  I think I missed something.
+
+
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+
+Review #9C
+===========================================================================
+
+Paper summary
+-------------
+The authors use symbolic execution to evaluate a number of standard Quantum circuits. This produces a set of constraints that, in many interesting cases, can be easily "solved" to yield solutions to the original problem. In other cases, the constraints can only be solved in exponential time.
+
+Comments for authors
+--------------------
+This is a really well-written, interesting paper and I only have minor comments below. It's fascinating that leveraging a PL technique (symbolic evaluation) yields insight into which problems do not have efficient classical simulations. This paper should be accepted.
+
+## Typos/minor comments
+
+* line 245: Add comma before "which."
+* line 249. Slightly clarify by changing to "Let's start symbolically evaluating the circuit on the left **of Fig. 4**".
+* line 297: Eliminate ")." after the list of references.
+* Paragraph around line 304. Three of the four possible ways to punctuate "i.e." are used: comma before, no commas, comma before and after. Choose one and stick with it; I am of the opinion that a comma is required both before and after, but that is my American English bias.
+* line 466: Change "such that for $x : \mathbb{B}^n$, then $g(x, y)=...$" to, e.g., "such that for $x$ in $\mathbb{B}^n$ we have ..."
+* line 514: Change "Unlike for value representation which can be computed from context, we want to explicitly choose formula representation (requirement 2) ourselves." to, e.g., "Unlike value representations that can be computed from context, we want to explicitly choose a formula representation (requirement 2) ourselves."
+* line 547: Add a column break so the code is not split across a page.
+* line 644. Reword, e.g., "It consists of 1449 lines of Haskell, of which 646 lines are blank, imports, comments, or module declarations, so that only 809 are “code.”"
+* line 1047: Change "registerr" to "register"
+
+
+* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+
+Review #9D
+===========================================================================
+
+Paper summary
+-------------
+The paper proposes an approach to simulating special quantum circuits, the Hadamard-Toffoli circuits. The key idea is to represent these circuits by Boolean formuli and to apply symbolic and partial evaluation techniques on these. For a well-known group of such circuits, the authors demonstrate the effectiveness of such evaluations which significantly brings down the simulation times and, in some cases, also the underlying complexities.
+
+Although I am not familiar with the state of the art in quantum circuit simulation, this paper presents a very nice idea. Together with a description of a Haskell implementation as well as some initial performance evaluations this makes an excellent contribution to PEPM. It surely will inspire some future work in the context of quantum circuit simulations. It may also serve as a starting point towards a better understanding of where the real potential of quantum computing as compared to classical computation comes from.
+
+I therefore suggest to accept this paper.
+
+Comments for authors
+--------------------
+The graphs and explanations of the time measurements would benefit some extension. In particular, some discussion on how these figures relate to a simulation without symbolic evaluation would be beneficial for understanding the true impact of the proposed approach.
+
