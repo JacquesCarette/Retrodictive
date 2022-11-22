@@ -1,4 +1,7 @@
 # Retrodictive
 For exploring symbolic evaluation of quantum circuits, both running forward and, more importantly, backwards.
 
-The core ideas are rooted in partial evaluation, except that we don't residualize circuits but symbolic constraints instead.
+We do *symbolic execution* of circuits that residualize symbolic constraints. The ideas are rooted
+in partial evaluation, even though that's not quite what the resulting code ends up doing.
+
+The published paper is in the PEPM directory. The code is in execution/RetroPE.
