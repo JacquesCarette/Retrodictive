@@ -907,7 +907,7 @@ checked in our code.
 \label{sec5}
 
 We first give interesting aspects of running the six quantum algorithms
-outlined in Sec.~\ref{sec5}.
+outlined in Sec.~\ref{sec5}, before commenting on complexity and workflow.
 
 \subsection{Symbolic execution of the Algorithms}
 
@@ -1311,10 +1311,18 @@ of variables. What varies from one function to the other and, for a
 particular function, from one oracle implementation to the other is
 the $\mathcal{O}(2^n)$ factor.
 
-What our examples show is that while the worst-case is $\mathcal{O}(2^n)$,
+What our examples show is that while the worst-case for some
+algorithms is $\mathcal{O}(2^n)$,
 it seems that the expected case actually depends on the length of the
 encoding (in binary) of the information contained in the answer, especially
 in the case where we do not need to solve the constraints.
+
+\subsection{Workflow}
+
+While we would like to be able to offer a uniform workflow, our case
+studies do not seem to reveal one: how to ``read'' the resulting
+system of equations to obtain an answer seems very algorithm-dependent.
+We do not (yet) see a pattern emerging.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Conclusion}
