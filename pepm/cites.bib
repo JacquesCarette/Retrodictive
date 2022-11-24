@@ -556,3 +556,60 @@ keywords = {reversible computation, parial evaluation, janus},
 location = {Austin, Texas, USA},
 series = {PEPM '11}
 }
+
+@article{10.1145/3563309,
+author = {Li, Liyi and Voichick, Finn and Hietala, Kesha and Peng, Yuxiang and Wu, Xiaodi and Hicks, Michael},
+title = {Verified Compilation of Quantum Oracles},
+year = {2022},
+issue_date = {October 2022},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {6},
+number = {OOPSLA2},
+url = {https://doi.org/10.1145/3563309},
+doi = {10.1145/3563309},
+abstract = {Quantum algorithms often apply classical operations, such as arithmetic or predicate checks, over a quantum superposition of classical data; these so-called oracles are often the largest components of a quantum program. To ease the construction of efficient, correct oracle functions, this paper presents VQO, a high-assurance framework implemented with the Coq proof assistant. The core of VQO is OQASM, the oracle quantum assembly language. OQASM operations move qubits between two different bases via the quantum Fourier transform, thus admitting important optimizations, but without inducing entanglement and the exponential blowup that comes with it. OQASM’s design enabled us to prove correct VQO’s compilers—from a simple imperative language called OQIMP to OQASM, and from OQASM to SQIR, a general-purpose quantum assembly language—and allowed us to efficiently test properties of OQASM programs using the QuickChick property-based testing framework. We have used VQO to implement a variety of arithmetic and geometric operators that are building blocks for important oracles, including those used in Shor’s and Grover’s algorithms. We found that VQO’s QFT-based arithmetic oracles require fewer qubits, sometimes substantially fewer, than those constructed using “classical” gates; VQO’s versions of the latter were nevertheless on par with or better than (in terms of both qubit and gate counts) oracles produced by Quipper, a state-of-the-art but unverified quantum programming platform.},
+journal = {Proc. ACM Program. Lang.},
+month = {oct},
+articleno = {146},
+numpages = {27},
+keywords = {Type System, Compiler Verification, Programming Language Design, Quantum Oracle}
+}
+
+@inproceedings{DBLP:journals/corr/abs-1805-06908,
+  author    = {Matthew Amy},
+  editor    = {Peter Selinger and
+               Giulio Chiribella},
+  title     = {Towards Large-scale Functional Verification of Universal Quantum Circuits},
+  booktitle = {Proceedings 15th International Conference on Quantum Physics and Logic,
+               {QPL} 2018, Halifax, Canada, 3-7th June 2018},
+  series    = {{EPTCS}},
+  volume    = {287},
+  pages     = {1--21},
+  year      = {2018},
+  url       = {https://doi.org/10.4204/EPTCS.287.1},
+  doi       = {10.4204/EPTCS.287.1},
+  timestamp = {Wed, 29 May 2019 11:09:08 +0200},
+  biburl    = {https://dblp.org/rec/journals/corr/abs-1805-06908.bib},
+  bibsource = {dblp computer science bibliography, https://dblp.org}
+}
+
+
+@ARTICLE{aharonov:toffolihadamard,
+        author = {D. Aharonov},
+        title = {A simple proof that {T}offoli and {H}adamard are qauntum universal},
+        journal = {arXiv:quant-ph/0301040},
+        year = {2003}
+}
+
+
+@article{osti_319738,
+title = {The Heisenberg representation of quantum computers},
+author = {Gottesman, D},
+abstractNote = {Since Shor`s discovery of an algorithm to factor numbers on a quantum computer in polynomial time, quantum computation has become a subject of immense interest. Unfortunately, one of the key features of quantum computers--the difficulty of describing them on classical computers--also makes it difficult to describe and understand precisely what can be done with them. A formalism describing the evolution of operators rather than states has proven extremely fruitful in understanding an important class of quantum operations. States used in error correction and certain communication protocols can be described by their stabilizer, a group of tensor products of Pauli matrices. Even this simple group structure is sufficient to allow a rich range of quantum effects, although it falls short of the full power of quantum computation.},
+doi = {},
+url = {https://www.osti.gov/biblio/319738}, 
+place = {United States},
+year = {1998},
+month = {6}
+}
