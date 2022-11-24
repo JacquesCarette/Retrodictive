@@ -37,7 +37,6 @@ J: will investigate.
 
 * L169: The sentence "any mixture of inputs and outputs can be made symbolic" does not make sense to me. Does it mean that if the number of input and output wires are the same, it can be made reversible, so symbolic partial evaluation such as retrodictive execution can be achieved?
 * L374: How about saying that the unitary $U_f$ called oracle in this paragraph?
-* Fig 5: A unitary $U_f$ is common in the given algorithms, but QFT is not. Probably this figure represents the case of the Shor. Moreover, you should note that QFT is an abbreviation of Quantum Fourier Transform.
 * L573: Is it essential to separate data qubits and ancillae qubits in this analysis?
 * L601: What is a "normalized" multiset?
 * L631: What does mean `this` here?
@@ -75,11 +74,6 @@ J: Amr?
   felt is a bit weird.
 
 J: We'll clarify the relationship
-
-  The circuits in Figure 5 use QFT but not all algorithms use it.  Also
-  QFT is hardly mentioned until Section 6.
-
-J: Indeed, should be careful about that.
 
   Section 5 is kind of isolated from the rest of the paper and it is not
   very clear (at least to me) what should be learned from this section.
@@ -149,3 +143,12 @@ questions one wants to ask. Added a short sub-section.
 J: Given the audience of PEPM, erring on giving more seems better than selecting.
 Otherwise it gives the impression that the applications are too narrow. No changes
 done for this.
+
+* Fig 5: A unitary $U_f$ is common in the given algorithms, but QFT is not. Probably this figure represents the case of the Shor. Moreover, you should note that QFT is an abbreviation of Quantum Fourier Transform.
+
+  The circuits in Figure 5 use QFT but not all algorithms use it.  Also
+  QFT is hardly mentioned until Section 6.
+
+J: Indeed, should be careful about that. (H is a special case of
+QFT. Added a sentence)
+
