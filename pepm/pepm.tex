@@ -7,6 +7,7 @@
 \acmConference{PEPM}{2023}{Boston}
 
 \bibliographystyle{ACM-Reference-Format}
+\citestyle{acmauthoryear}   %% For author/year citations
 
 % 12 pages
 
@@ -509,29 +510,30 @@ solve them}.
 \section{Quantum Algorithms}
 \label{sec3}
 
-\noindent Let $\finset{n}$ denote the finite set
-$\{ 0,1,\ldots,(n-1)\}$. The parameter~$n$ determines the problem size
-for all the problems below (except Deutsch which is a fixed sized
-problem). In the review below, we adapt the usual presentation of the
+Let $\finset{n}$ denote the finite set $\{ 0,1,\ldots,(n-1)\}$. The
+parameter~$n$ determines the problem size for all the problems below
+(except Deutsch which is a fixed sized problem). In the review below,
+we adapt the usual presentation of the
 algorithms~\cite{doi:10.1137/S0097539796300921,deutsch,deutschJozsa,365701,doi:10.1137/S0097539795293172,nielsen_chuang_2010,10.1145/237814.237866}.
 to one better suited to our context. In particular, we focus on the
 heart of the algorithm, the quantum oracle, which encapsulates the
 underlying boolean function of interest. Furthermore, instead of using
 the forward flow of execution using exact quantum superpositions, we
 express the problem as one asking for particular properties of the
-pre-image of the classical function embedded in the quantum oracle. 
+pre-image of the classical function embedded in the quantum oracle.
 
 \paragraph*{Deutsch.}
 The conventional statement of the problem is to determine if a
 function $\finset{2} \rightarrow \finset{2}$ is constant or
-balanced. In this small case, the function is balanced if it is the
-identity or boolean negation, and is constant otherwise. Equivalently,
-we can ask about the pre-image of an arbitrary boolean (say false),
-i.e., the set of inputs that are mapped to false by the function, and
-check whether the pre-image has an even or odd number of elements. If
-the cardinality of the pre-image is even, i.e., 0 or 2, the function
-must be constant and if it is odd, i.e., it contains just one element,
-the function must be balanced.
+balanced. In this small case, there are just four possible functions;
+the function is balanced if it is the identity or boolean negation,
+and is constant otherwise. Equivalently, we can ask about the
+pre-image of an arbitrary boolean value (say false), i.e., the set of
+inputs that are mapped to false by the function, and check whether the
+pre-image has an even or odd number of elements. If the cardinality of
+the pre-image is even, i.e., 0 or 2, the function must be constant and
+if it is odd, i.e., it contains just one element, the function must be
+balanced. 
 
 \paragraph*{Deutsch-Jozsa.}
 The problem is a generalization of the previous one: the question is
@@ -542,7 +544,7 @@ following three situations about the pre-image of a value in the range
 of the function: is the cardinality of the pre-image equal to 0,
 $2^n$, or $2^{n-1}$? In the first two cases, the function is constant
 and in the last case, the pre-image contains half the values in the
-domain indicating that the function is balanced.
+domain indicating that the function is balanced. 
 
 \paragraph*{Bernstein-Vazirani.}
 We are given a function $f : \finset{2^{\it n}} \rightarrow \finset{2}$
@@ -646,22 +648,27 @@ uniformly defined as:
 \begin{equation}
   U_f(\ket{x}\ket{y}) = \ket{x}\ket{f(x) \oplus y},
 \end{equation}
-for all the problems. After replacing $H\ket{0}$ by a symbolic
-variable, the $U_f$ block ends up being completely classical, albeit
-performing mixed mode execution of the circuit. More precisely, here
-it means that in all these algorithms, the top collection of wires
-(which we will call the computational register) is prepared in a
-uniform superposition which can be represented using symbolic
-variables. The measurement of the bottom collection of wires (which we
-call the ancilla register) after barrier 2 provides partial
-information about the future which is, together with the initial
-conditions of the ancilla register, sufficient to symbolically execute
-the circuit. In each case, instead of the conventional execution flow
-depicted in Fig.~\ref{fig:templateQC}(a), we find a possible
-measurement outcome $w$ at barrier (2) and perform a symbolic
-retrodictive execution with a state $\ket{xw}$ going backwards to
-collect the constraints on $x$ that enable us to solve the problem in
-question.
+for all the problems. We also use the Quantum Fourier Transform (QFT)
+uniformly as the last step in all the circuits although for most
+circuits, with the notable exception of Shor's algorithm, the low
+precision approximation of QFT (which is the Hadamard gate) is
+sufficient~\cite{aqft}. 
+
+After replacing $H\ket{0}$ by a symbolic variable, the $U_f$ block
+ends up being completely classical, albeit performing mixed mode
+execution of the circuit. More precisely, it means that in all these
+algorithms, the top collection of wires (which we will call the
+computational register) is prepared in a uniform superposition which
+can be represented using symbolic variables. The measurement of the
+bottom collection of wires (which we call the ancilla register) after
+barrier 2 provides partial information about the future which is,
+together with the initial conditions of the ancilla register,
+sufficient to symbolically execute the circuit. In each case, instead
+of the conventional execution flow depicted in
+Fig.~\ref{fig:templateQC}(a), we find a possible measurement
+outcome~$w$ at barrier (2) and perform a symbolic retrodictive
+execution with a state $\ket{xw}$ going backwards to collect the
+constraints on $x$ that enable us to solve the problem in question.
 
 \begin{figure}[t]
   \begin{tikzpicture}[every label/.style={rotate=40, anchor=south west}]
@@ -680,7 +687,9 @@ question.
 \caption{\label{fig:CircuitAbstraction}Circuit Abstraction}
 \end{figure}
 
-In other words, it suffices to look at circuits that match the
+In other words, from the perspective of our approach to symbolic
+execution, it is possible to disregard the initial Hadamard gates and
+the final QFT block and it suffices to look at circuits that match the
 template in Fig.~\ref{fig:CircuitAbstraction}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -923,7 +932,6 @@ and \texttt{ancillaVals} should all be of the same length. That invariant is not
 checked in our code.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 \section{Evaluation}
 \label{sec5}
 
