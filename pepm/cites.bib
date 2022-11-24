@@ -523,3 +523,36 @@ address = {USA}
   organization={Springer}
 }
 
+@InProceedings{10.1007/978-3-319-63390-9_1,
+author="Amy, Matthew
+and Roetteler, Martin
+and Svore, Krysta M.",
+editor="Majumdar, Rupak
+and Kun{\v{c}}ak, Viktor",
+title="Verified Compilation of Space-Efficient Reversible Circuits",
+booktitle="Computer Aided Verification",
+year="2017",
+publisher="Springer International Publishing",
+address="Cham",
+pages="3--21",
+abstract="The generation of reversible circuits from high-level code is an important problem in several application domains, including low-power electronics and quantum computing. Existing tools compile and optimize reversible circuits for various metrics, such as the overall circuit size or the total amount of space required to implement a given function reversibly. However, little effort has been spent on verifying the correctness of the results, an issue of particular importance in quantum computing. There, compilation allows not only mapping to hardware, but also the estimation of resources required to implement a given quantum algorithm, a process that is crucial for identifying which algorithms will outperform their classical counterparts. We present a reversible circuit compiler called ReVerC, which has been formally verified in F{\$}{\$}^{\backslash}star {\$}{\$}and compiles circuits that operate correctly with respect to the input program. Our compiler compiles the Revs language [21] to combinational reversible circuits with as few ancillary bits as possible, and provably cleans temporary values.",
+isbn="978-3-319-63390-9"
+}
+
+@inproceedings{10.1145/1929501.1929506,
+author = {Mogensen, Torben \AE{}gidius},
+title = {Partial Evaluation of the Reversible Language Janus},
+year = {2011},
+isbn = {9781450304856},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+url = {https://doi.org/10.1145/1929501.1929506},
+doi = {10.1145/1929501.1929506},
+abstract = {A reversible programming language is a programming language in which you can only write reversible programs, i.e., programs that can be run both forwards (computing outputs from inputs) and backwards (computing inputs from outputs). It is interesting to study reversible programs and languages because computations on reversible computers (computers that only allow reversible programs) in theory can be done using less energy than computations on traditional irreversible computers. Janus is a reversible, structured imperative programming language.We present a partial evaluator for the full Janus language with the exception of procedure calls. The partial evaluator converts Janus programs into reversible flowcharts, specialises these using polyvariant specialisation and converts the result back to structured form. Reversibility adds some complications, which we address in the paper. We demonstrate the results by some small examples.We believe this to be the first partial evaluator for a deterministic reversible programming language.},
+booktitle = {Proceedings of the 20th ACM SIGPLAN Workshop on Partial Evaluation and Program Manipulation},
+pages = {23–32},
+numpages = {10},
+keywords = {reversible computation, parial evaluation, janus},
+location = {Austin, Texas, USA},
+series = {PEPM '11}
+}
