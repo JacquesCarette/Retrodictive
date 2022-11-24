@@ -1,3 +1,4 @@
+
   You need not describe all algorithms in section 4 because the main point here
   is that these algorithms have quantum oracles as their subcircuits that can be
   considered classical. How about selecting some of them? For example,
