@@ -1,21 +1,6 @@
-### Minor comments
-
-* L637: How can we use the property of control wires to optimize the evaluation of single gates? Is this future work?
 * Fig 12, 14: The axis labels are missing.
 * All Figures: The fonts in the figures are too small.
-* L1042. Why is it sufficient to inspect the case of A = |0...0>?
-* L1047: there is a typo: registerr -> register
-* L1093. What is the meaning of "those foundational ones related to the origin behind the power of quantum computation"?
 
-===========================================================================
-
-  What puzzles me is the section on evaluation, especially Section 6.1,
-  because it's not clear what the authors would like to evaluate.  This
-  section also raises a question about how the symbolic evaluator is
-  supposed to be used.  The section seems to provide a few uses,
-  including circuit optimization, but it is not very clear from the writing.
-
-J: will try to clarify
 
   The title is "Symbolic Execution of Hadamard-Toffoli Quantum Circuits"
   but what is really symbolically executed is, as far as I understand, a
@@ -26,45 +11,27 @@ J: will try to clarify
   as examples in the paper are concerned) but the title may be slightly
   misleading.
 
-J: Amr?
-
-  Where "retrodictive" is mentioned, the paper [8] by the same set of
-  authors is cited.  Self-citation is fine, but the cited paper (arXiv
-  preprint) seems to share some materials with this submission, which I
-  felt is a bit weird.
-
-J: We'll clarify the relationship
-
-  Section 5 is kind of isolated from the rest of the paper and it is not
-  very clear (at least to me) what should be learned from this section.
-  Perhaps, it is because the evaluation section doesn't really discuss
-  how the evaluation took advantage of the careful design.
-
-J: It's a paper about a piece of software...
+Amr?
 
   L716: How did you identify these balanced functions using the symbolic
   evaluator?  As far as I understand, if you know a given function is
   either a constant or balanced function, you will know which, but how
   do you enumerate such functions?  I think I missed something.
 
-J: clarify.
-
-===========================================================================
+Amr?
 
   This is a really well-written, interesting paper and I only have minor comments
   below. It's fascinating that leveraging a PL technique (symbolic evaluation)
   yields insight into which problems do not have efficient classical simulations.
 
-J: We should add something about this to the introduction.
-
-===========================================================================
+We should add something about this to the introduction.
 
   The graphs and explanations of the time measurements would benefit some
   extension. In particular, some discussion on how these figures relate to a
   simulation without symbolic evaluation would be beneficial for understanding
   the true impact of the proposed approach.
 
-J: may be too hard.
+may be too hard?
 
 &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
@@ -173,3 +140,43 @@ Defined.
 * L631: What does mean `this` here?
 
 Clarified.
+
+* L637: How can we use the property of control wires to optimize the evaluation of single gates? Is this future work?
+
+No, this is all implemented, we just didn't describe it in detail. Sentence clarified.
+
+* L1042. Why is it sufficient to inspect the case of A = |0...0>?
+
+It is not sufficient, but it is typical of how we run our circuits.
+
+* L1047: there is a typo: registerr -> register
+
+Fixed
+
+* L1093. What is the meaning of "those foundational ones related to the origin behind the power of quantum computation"?
+
+Rephrased to be easier to parse.
+
+  What puzzles me is the section on evaluation, especially Section 6.1,
+  because it's not clear what the authors would like to evaluate.  This
+  section also raises a question about how the symbolic evaluator is
+  supposed to be used.  The section seems to provide a few uses,
+  including circuit optimization, but it is not very clear from the writing.
+
+Clarified our intent.
+
+  Where "retrodictive" is mentioned, the paper [8] by the same set of
+  authors is cited.  Self-citation is fine, but the cited paper (arXiv
+  preprint) seems to share some materials with this submission, which I
+  felt is a bit weird.
+
+Clarified.
+
+  Section 5 is kind of isolated from the rest of the paper and it is not
+  very clear (at least to me) what should be learned from this section.
+  Perhaps, it is because the evaluation section doesn't really discuss
+  how the evaluation took advantage of the careful design.
+
+J: It's a paper about a piece of software... It's not our fault that
+many papers omit the section on careful design. 
+
