@@ -492,7 +492,10 @@ get a ``closed form,'' in ANF, for evaluation, whether forward or
 backward. Evaluating a circuit in one fixed direction is then quite
 standard. A novel approach, enabled by the reversibility of quantum
 mechanics, is what we call the \emph{retrodictive} mode of running
-circuits~\cite{retrodictive}. In that mode, illustrated in
+circuits, as explained in our preprint \cite{retrodictive} which
+further details the quantum and physics side of this work (but
+does not speak of the implementation beyond saying that it exists).
+In that mode, illustrated in
 Fig.~\ref{fig:retroflow} , we start execution in the forward direction
 with a fully static collection of inputs in order to partially
 determine a possible future; we then execute backwards from the
@@ -904,7 +907,7 @@ and-maps where the encoding of literals is now positional, and xor maps are
 again multisets of these ``bitmaps.''
 
 As a last optimization, our circuits have a very particular property: the control
-wires are not written to, so that they are all literals. This can be used to
+wires are not written to, so that they are all literals. We use this
 further optimize the evaluation of single gates.
 
 \subsection{Implementation}
@@ -937,6 +940,9 @@ checked in our code.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Evaluation}
 \label{sec5}
+
+We want to evaluate the \emph{effectiveness} of our evaluator by running it
+on standard algorithms, as well as its (relative) \emph{efficiency}.
 
 We first give interesting aspects of running the six quantum algorithms
 outlined in Sec.~\ref{sec5}, before commenting on complexity and workflow.
@@ -1430,8 +1436,8 @@ to obtain the solution efficiently for some inputs with a plain
 \emph{classical symbolic execution} as opposed to a purely quantum
 execution (involving states that belong to a complex vector space
 endowed with an inner product). This raises many questions, in
-particular, those foundational ones related to the origin behind the
-power of quantum computation.
+particular, foundational ones regarding the origin
+of the power of quantum computation.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
