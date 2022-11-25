@@ -13,13 +13,6 @@
 
 Amr?
 
-  L716: How did you identify these balanced functions using the symbolic
-  evaluator?  As far as I understand, if you know a given function is
-  either a constant or balanced function, you will know which, but how
-  do you enumerate such functions?  I think I missed something.
-
-Amr?
-
   This is a really well-written, interesting paper and I only have minor comments
   below. It's fascinating that leveraging a PL technique (symbolic evaluation)
   yields insight into which problems do not have efficient classical simulations.
@@ -179,4 +172,11 @@ Clarified.
 
 J: It's a paper about a piece of software... It's not our fault that
 many papers omit the section on careful design. 
+
+  L716: How did you identify these balanced functions using the symbolic
+  evaluator?  As far as I understand, if you know a given function is
+  either a constant or balanced function, you will know which, but how
+  do you enumerate such functions?  I think I missed something.
+
+Amr? [I think I addressed it]
 
