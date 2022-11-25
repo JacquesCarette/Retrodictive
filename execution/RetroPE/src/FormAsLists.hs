@@ -3,7 +3,7 @@ module FormAsLists where
 import Data.List (intercalate,group,sort)
 
 import Value (Value(..))
-import FormulaRepr (FormulaRepr(FR))
+import VarInFormula (VarInFormula(FR))
 
 ------------------------------------------------------------------------------
 -- Representation of formulas as xor-lists of and-lists (of strings)
@@ -117,7 +117,7 @@ instance Value Formula where
 
 -- instance as explicit dict
 
-formRepr :: FormulaRepr Formula String
-formRepr = FR fromVar fromVars
+vif :: VarInFormula Formula String
+vif = FR fromVar fromVars
 
 ------------------------------------------------------------------------------

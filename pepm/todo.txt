@@ -9,13 +9,6 @@
 
 J: Will consider.
 
-  I have a question about related work. I think partial evaluation in (classical)
-  reversible computing is also studied. Can we consider the presented method as
-  an extension of the existing work with Hadamard gates? If so, please cite the
-  paper and make the differences clear.
-
-J: Will do.
-
   In my understanding, all examples in section 6 assume that quantum oracles are
   implemented correctly. For example, the insight of Deutsch-Jozsa says that a
   given oracle must be balanced or constant. This assumption seems to be too
@@ -151,4 +144,11 @@ done for this.
 
 J: Indeed, should be careful about that. (H is a special case of
 QFT. Added a sentence)
+
+  I have a question about related work. I think partial evaluation in (classical)
+  reversible computing is also studied. Can we consider the presented method as
+  an extension of the existing work with Hadamard gates? If so, please cite the
+  paper and make the differences clear.
+
+(Amr got to this before I did)
 

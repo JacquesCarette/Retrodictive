@@ -6,7 +6,7 @@ import qualified Data.Map as Map
 import qualified Data.MultiSet as MS
 
 import Value (Value(..))
-import FormulaRepr (FormulaRepr(FR))
+import VarInFormula (VarInFormula(FR))
 
 ------------------------------------------------------------------------------
 -- Representation of formulas as xor-maps of and-maps (of Int)
@@ -149,7 +149,7 @@ instance Value Formula where
 
 -- instance as explicit dict
 
-formRepr :: FormulaRepr Formula Int
-formRepr = FR fromVar fromVars
+vif :: VarInFormula Formula Int
+vif = FR fromVar fromVars
 
 ----------------------------------------------------------------------------------------
