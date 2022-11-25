@@ -736,8 +736,7 @@ fulfill.
   \textbf{Module} & \textbf{Service} \\ \hline
   \texttt{Value} & representation of a \emph{language of values}
     (as a typeclass) and some constructors\\
-  \texttt{FormulaRepr} & abstract representation of formulae, as
-    a mapping from abstract variables to abstract formulae\\
+  \texttt{VarInFormula} & abstract representation of variables in formulae\\
   \texttt{Variable} & variables as locations holding values and
     their constructors\\
   \texttt{ModularArith} & modular arithmetic utilities useful in
@@ -819,19 +818,20 @@ this gives us requirement $3$ ``for free'' if we can write a sufficiently
 polymorphic evaluator (which we will present below).
 
 Unlike value representations that can be computed from context, we
-want to explicitly choose a formula representation (requirement 2)
-ourselves. Thus we use an explicit record instead of an implicit
-dictionary:
+want to explicitly choose how to represent variables in formulas
+ourselves (part of requirement 2).  Thus we use an explicit record instead of an
+implicit dictionary:
 
 \begin{minted}{haskell}
-data FormulaRepr f r = FR
-  { fromVar  :: r -> f
-  , fromVars :: Int -> r -> [ f ]
+data VarInFormula f v = FR
+  { fromVar  :: v -> f
+  , fromVars :: Int -> v -> [ f ]
   }
 \end{minted}
-\noindent The main methods are about \emph{variable representation} \texttt{r}
+Each formula representation may have different
+\emph{variable representation} \texttt{v}
 and how to insert them into the current \emph{formula representation} \texttt{f},
-singly or $n$ at once.
+singly or as $n$ formulas.
 
 A generalized Toffoli gate can be represented by a list of representation of
 value accessors \texttt{br} (short for boolean representation) along with a list

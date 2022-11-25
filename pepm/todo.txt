@@ -1,14 +1,3 @@
-  The main points of section 5 are not clear to me. What are the advantages of
-  introducing several representations of boolean variables and formulas? I guess
-  you use them properly to optimize the evaluator, as described at the end of
-  this section, but I cannot understand how to optimize it. How about
-  illustrating concrete examples of and-list, and-maps, xor-list, and xor-maps?
-  The methods of `FormulaRepr` does not also make sense to me. I think the last
-  paragraph in this section explains the detail of the implementation too much,
-  so how about omitting it and adding an example?
-
-J: Will consider.
-
   In my understanding, all examples in section 6 assume that quantum oracles are
   implemented correctly. For example, the insight of Deutsch-Jozsa says that a
   given oracle must be balanced or constant. This assumption seems to be too
@@ -150,5 +139,19 @@ QFT. Added a sentence)
   an extension of the existing work with Hadamard gates? If so, please cite the
   paper and make the differences clear.
 
-(Amr got to this before I did)
+Done.
+
+  The main points of section 5 are not clear to me. What are the advantages of
+  introducing several representations of boolean variables and formulas? I guess
+  you use them properly to optimize the evaluator, as described at the end of
+  this section, but I cannot understand how to optimize it. How about
+  illustrating concrete examples of and-list, and-maps, xor-list, and xor-maps?
+  The methods of `FormulaRepr` does not also make sense to me. I think the last
+  paragraph in this section explains the detail of the implementation too much,
+  so how about omitting it and adding an example?
+
+J: Yes, it's about optimization. `FormulaRepr` was badly named (and thus confusing),
+it is now `VarInFormula`. We don't think the paper explains the implementation "too
+much", as we see explaining the implementation as a core part of this particular
+paper.
 
