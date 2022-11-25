@@ -23,7 +23,7 @@ import qualified EvalZ (interp)
 import SymbEval (run)
 import qualified SymbEvalSpecialized (run) -- for Grover
 import BoolUtils (toInt)
-import FormulaRepr (FormulaRepr(..))
+import VarInFormula (VarInFormula(..))
 import qualified FormAsLists as FL
 import qualified FormAsBitmaps as FB
 
@@ -50,7 +50,7 @@ mkGen (Just seed) = newAtomicGenM (mkStdGen seed)
 --  Set up the circuits and run them
 ----------------------------------------------------------------------------------------
 
-retroDeutsch :: (Show f, Value f) => FormulaRepr f r -> r -> ([Bool] -> [Bool]) -> IO ()
+retroDeutsch :: (Show f, Value f) => VarInFormula f r -> r -> ([Bool] -> [Bool]) -> IO ()
 retroDeutsch fr base f = print $ runST $ do
   x <- newVar (fromVar fr base)
   y <- newVar zero
@@ -63,12 +63,12 @@ retroDeutsch fr base f = print $ runST $ do
   readSTRef y
 
 runRetroDeutsch :: ([Bool] -> [Bool]) -> IO ()
-runRetroDeutsch = retroDeutsch FL.formRepr "x"
+runRetroDeutsch = retroDeutsch FL.vif "x"
 
 ----------------------------------------------------------------------------------------
 
 initDeutschJozsaCircuit :: Value f =>
-  FormulaRepr f r -> r -> Int -> ([Bool] -> [Bool]) -> ST s (Circuit s f)
+  VarInFormula f r -> r -> Int -> ([Bool] -> [Bool]) -> ST s (Circuit s f)
 initDeutschJozsaCircuit fr base n f = do
   xs <- newVars (fromVars fr n base)
   y <- newVar zero
@@ -82,16 +82,16 @@ initDeutschJozsaCircuit fr base n f = do
               }
 
 retroDeutschJozsa :: (Show f, Value f) =>
-                     FormulaRepr f r -> r -> Int -> ([Bool] -> [Bool]) -> IO ()
+                     VarInFormula f r -> r -> Int -> ([Bool] -> [Bool]) -> IO ()
 retroDeutschJozsa fr base n f = print $ runST $ do
   circ <- initDeutschJozsaCircuit fr base n f
   run circ
   readSTRef (head (ancillaIns circ))
 
 runRetroDeutschJozsa :: Int -> ([Bool] -> [Bool]) -> IO ()
-runRetroDeutschJozsa = retroDeutschJozsa FL.formRepr "x"
+runRetroDeutschJozsa = retroDeutschJozsa FL.vif "x"
 
-timeRetroDJ :: Value f => FormulaRepr f r -> r -> Int -> ([Bool] -> [Bool]) -> IO ()
+timeRetroDJ :: Value f => VarInFormula f r -> r -> Int -> ([Bool] -> [Bool]) -> IO ()
 timeRetroDJ fr base n f = do
   circ <- stToIO (initDeutschJozsaCircuit fr base n f)
   let bigN = toInteger $ (2^n :: Integer)
@@ -102,7 +102,7 @@ timeRetroDJ fr base n f = do
     
 ----------------------------------------------------------------------------------------
 
-retroBernsteinVazirani :: Value a => FormulaRepr a [Char] -> IO ()
+retroBernsteinVazirani :: Value a => VarInFormula a [Char] -> IO ()
 retroBernsteinVazirani fr = print $ runST $ do
   xs <- newVars (fromVars fr 8 "x")
   y <- newVar zero
@@ -116,11 +116,11 @@ retroBernsteinVazirani fr = print $ runST $ do
   readSTRef y
 
 runRetroBernsteinVazirani :: IO ()
-runRetroBernsteinVazirani = retroBernsteinVazirani FL.formRepr
+runRetroBernsteinVazirani = retroBernsteinVazirani FL.vif
 
 ----------------------------------------------------------------------------------------
 
-retroSimon :: Value b => FormulaRepr b [Char] -> IO ()
+retroSimon :: Value b => VarInFormula b [Char] -> IO ()
 retroSimon fr = print $ runST $ do
   xs <- newVars (fromVars fr 2 "x")
   as <- newVars (fromInt 2 0)
@@ -134,27 +134,27 @@ retroSimon fr = print $ runST $ do
   mapM readSTRef as
 
 runRetroSimon :: IO ()
-runRetroSimon = retroSimon FL.formRepr
+runRetroSimon = retroSimon FL.vif
 
 ----------------------------------------------------------------------------------------
 
 runRetroGrover :: Int -> Integer -> IO ()
 runRetroGrover n w = do
-  let c = runST (retroGrover FB.formRepr 0 n w)
+  let c = runST (retroGrover FB.vif 0 n w)
   let d = MS.findMin $ FB.ands c
   print d
 
 runRetroGrover' :: Int -> Integer -> IO ()
 runRetroGrover' n w = do
-  let c = runST (retroGrover' FB.formRepr 0 n w)
+  let c = runST (retroGrover' FB.vif 0 n w)
   let d = MS.findMin $ FB.ands c
   print d
 
 runGrover :: Int -> Integer -> IO ()
-runGrover = predictGrover FB.formRepr 0
+runGrover = predictGrover FB.vif 0
 
 groverCircuit :: Value f =>
-  FormulaRepr f r -> r -> Int -> Integer -> ST s (Circuit s f)
+  VarInFormula f r -> r -> Int -> Integer -> ST s (Circuit s f)
 groverCircuit fr base n w = do
   xs <- newVars (fromVars fr n base)
   y <- newVar zero
@@ -167,20 +167,20 @@ groverCircuit fr base n w = do
            }
 
 retroGrover :: (Show f, Value f) =>
-  FormulaRepr f r -> r -> Int -> Integer -> ST a f
+  VarInFormula f r -> r -> Int -> Integer -> ST a f
 retroGrover fr base n w = do
   circ <- groverCircuit fr base n w
   run circ
   readSTRef (head (ancillaIns circ))
 
-retroGrover' :: FormulaRepr FB.Formula r -> r -> Int -> Integer -> ST a FB.Formula 
+retroGrover' :: VarInFormula FB.Formula r -> r -> Int -> Integer -> ST a FB.Formula 
 retroGrover' fr base n w = do
   circ <- groverCircuit fr base n w
   SymbEvalSpecialized.run circ
   readSTRef (head (ancillaIns circ))
 
 predictGrover :: (Show f, Value f) =>
-  FormulaRepr f r -> r -> Int -> Integer -> IO ()
+  VarInFormula f r -> r -> Int -> Integer -> IO ()
 predictGrover fr base n w = print $ runST $ do
   circ <- groverCircuit fr base n w
   run circ { op = S.reverse (op circ) } -- reverse twice
@@ -188,7 +188,7 @@ predictGrover fr base n w = print $ runST $ do
 --
 
 timeRetroGrover :: (Show f, Value f) =>
-  FormulaRepr f r -> r -> Int -> Integer -> IO ()
+  VarInFormula f r -> r -> Int -> Integer -> IO ()
 timeRetroGrover fr base n w = do
   circ <- stToIO $ groverCircuit fr base n w
   let bigN = toInteger $ (2^n :: Integer)
@@ -198,7 +198,7 @@ timeRetroGrover fr base n w = do
     bigN w (head (words (show form))) time
     
 timeRetroGrover' :: (Show f, Value f) =>
-  FormulaRepr f r -> r -> Int -> Integer -> f
+  VarInFormula f r -> r -> Int -> Integer -> f
 timeRetroGrover' fr base n w = runST $ do
   circ <- groverCircuit fr base n w
   run circ 
@@ -211,7 +211,7 @@ timeRetroGrover' fr base n w = runST $ do
 -- r is observed result 
 
 expModCircuit :: (Show f, Value f) =>
-            FormulaRepr f r -> r -> Int -> Integer -> Integer -> Integer -> 
+            VarInFormula f r -> r -> Int -> Integer -> Integer -> Integer -> 
             ST s ([(f,f)], [(Int,Int)])
 expModCircuit fr base n a m r = do
   circ <- expm n a m
@@ -223,7 +223,7 @@ expModCircuit fr base n a m r = do
   return (eqs, sizeOP $ op circ)
 
 retroShor21 :: (Show f, Value f) =>
-               FormulaRepr f r -> r -> Integer -> IO ()
+               VarInFormula f r -> r -> Integer -> IO ()
 retroShor21 fr base w = print $ runST $ do
   cs <- newVars (fromVars fr 3 base)
   qs <- newVars (fromInt 2 w)
@@ -246,13 +246,13 @@ runShor21 c w = runST $ do
 -- observed input is 2 bits
 
 runRetroShor21 :: Integer -> IO ()
-runRetroShor21 = retroShor21 FL.formRepr "x"
+runRetroShor21 = retroShor21 FL.vif "x"
 
 -- can choose seed or let system choose
 -- can choose 'a' or let system choose
 -- can choose observed result or use 1
 
-retroShor :: (Show f, Value f) => FormulaRepr f r -> r ->
+retroShor :: (Show f, Value f) => VarInFormula f r -> r ->
              Maybe Int -> Maybe Integer -> Maybe Integer -> Integer -> IO ()
 retroShor fr base seed maybea mayber m = do
       gen <- mkGen seed
@@ -273,5 +273,5 @@ retroShor fr base seed maybea mayber m = do
 -- seed a r m
 
 runRetroShor :: Maybe Int -> Maybe Integer -> Maybe Integer -> Integer -> IO ()
-runRetroShor = retroShor FB.formRepr 0
+runRetroShor = retroShor FB.vif 0
 

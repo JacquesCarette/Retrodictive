@@ -21,67 +21,67 @@ main = do
   -- Deutsch-Jozsa (takes a size and a function)
   -- For running deutschJozsaBal3 (unfortunately is instantaneous)
   {-
-  timeRetroDJ FL.formRepr "x" 6 deutschJozsaBal3
-  timeRetroDJ FM.formRepr 0 6 deutschJozsaBal3
-  timeRetroDJ FB.formRepr 0 6 deutschJozsaBal3
+  timeRetroDJ FL.vif "x" 6 deutschJozsaBal3
+  timeRetroDJ FM.vif 0 6 deutschJozsaBal3
+  timeRetroDJ FB.vif 0 6 deutschJozsaBal3
   -}
   {-
-  timeRetroDJ FL.formRepr "x" 10 deutschJozsaBal2 -- 0.03
-  timeRetroDJ FM.formRepr 0 10 deutschJozsaBal2   -- 0.04
-  timeRetroDJ FB.formRepr 0 10 deutschJozsaBal2   -- 0.03
-  timeRetroDJ FL.formRepr "x" 11 deutschJozsaBal2 -- 0.14
-  timeRetroDJ FM.formRepr 0 11 deutschJozsaBal2   -- 0.14
-  timeRetroDJ FB.formRepr 0 11 deutschJozsaBal2   -- 0.14
-  timeRetroDJ FL.formRepr "x" 12 deutschJozsaBal2 -- 0.63
-  timeRetroDJ FM.formRepr 0 12 deutschJozsaBal2   -- 0.59
-  timeRetroDJ FB.formRepr 0 12 deutschJozsaBal2   -- 0.67
-  timeRetroDJ FL.formRepr "x" 13 deutschJozsaBal2 -- 2.78
-  timeRetroDJ FM.formRepr 0 13 deutschJozsaBal2   -- 3.85
-  timeRetroDJ FB.formRepr 0 13 deutschJozsaBal2   -- 3.25
-  timeRetroDJ FL.formRepr "x" 14 deutschJozsaBal2 -- 12.29
-  timeRetroDJ FM.formRepr 0 14 deutschJozsaBal2   -- 11.20
-  timeRetroDJ FB.formRepr 0 14 deutschJozsaBal2   -- 11.23
-  timeRetroDJ FL.formRepr "x" 15 deutschJozsaBal2 -- 53.64
-  timeRetroDJ FM.formRepr 0 15 deutschJozsaBal2   -- 55.20
-  timeRetroDJ FB.formRepr 0 15 deutschJozsaBal2   -- 55.63
-  timeRetroDJ FL.formRepr "x" 10 deutschJozsaBal1 -- 0.02
-  timeRetroDJ FM.formRepr 0 10 deutschJozsaBal1   -- 0.02
-  timeRetroDJ FB.formRepr 0 10 deutschJozsaBal1   -- 0.02
-  timeRetroDJ FL.formRepr "x" 11 deutschJozsaBal1 -- 0.13
-  timeRetroDJ FM.formRepr 0 11 deutschJozsaBal1   -- 0.13
-  timeRetroDJ FB.formRepr 0 11 deutschJozsaBal1   -- 0.13
-  timeRetroDJ FL.formRepr "x" 12 deutschJozsaBal1 -- 0.58
-  timeRetroDJ FM.formRepr 0 12 deutschJozsaBal1   -- 0.60
-  timeRetroDJ FB.formRepr 0 12 deutschJozsaBal1   -- 0.62
-  timeRetroDJ FL.formRepr "x" 13 deutschJozsaBal1 -- 2.62
-  timeRetroDJ FM.formRepr 0 13 deutschJozsaBal1   -- 2.76
-  timeRetroDJ FB.formRepr 0 13 deutschJozsaBal1   -- 2.70
-  timeRetroDJ FL.formRepr "x" 14 deutschJozsaBal1 -- 12.96
-  timeRetroDJ FM.formRepr 0 14 deutschJozsaBal1   -- 12.35
-  timeRetroDJ FB.formRepr 0 14 deutschJozsaBal1   -- 13.42
-  timeRetroDJ FL.formRepr "x" 15 deutschJozsaBal1 -- 57.55
-  timeRetroDJ FM.formRepr 0 15 deutschJozsaBal1   -- 59.79
-  timeRetroDJ FB.formRepr 0 15 deutschJozsaBal1   -- 60.25
+  timeRetroDJ FL.vif "x" 10 deutschJozsaBal2 -- 0.03
+  timeRetroDJ FM.vif 0 10 deutschJozsaBal2   -- 0.04
+  timeRetroDJ FB.vif 0 10 deutschJozsaBal2   -- 0.03
+  timeRetroDJ FL.vif "x" 11 deutschJozsaBal2 -- 0.14
+  timeRetroDJ FM.vif 0 11 deutschJozsaBal2   -- 0.14
+  timeRetroDJ FB.vif 0 11 deutschJozsaBal2   -- 0.14
+  timeRetroDJ FL.vif "x" 12 deutschJozsaBal2 -- 0.63
+  timeRetroDJ FM.vif 0 12 deutschJozsaBal2   -- 0.59
+  timeRetroDJ FB.vif 0 12 deutschJozsaBal2   -- 0.67
+  timeRetroDJ FL.vif "x" 13 deutschJozsaBal2 -- 2.78
+  timeRetroDJ FM.vif 0 13 deutschJozsaBal2   -- 3.85
+  timeRetroDJ FB.vif 0 13 deutschJozsaBal2   -- 3.25
+  timeRetroDJ FL.vif "x" 14 deutschJozsaBal2 -- 12.29
+  timeRetroDJ FM.vif 0 14 deutschJozsaBal2   -- 11.20
+  timeRetroDJ FB.vif 0 14 deutschJozsaBal2   -- 11.23
+  timeRetroDJ FL.vif "x" 15 deutschJozsaBal2 -- 53.64
+  timeRetroDJ FM.vif 0 15 deutschJozsaBal2   -- 55.20
+  timeRetroDJ FB.vif 0 15 deutschJozsaBal2   -- 55.63
+  timeRetroDJ FL.vif "x" 10 deutschJozsaBal1 -- 0.02
+  timeRetroDJ FM.vif 0 10 deutschJozsaBal1   -- 0.02
+  timeRetroDJ FB.vif 0 10 deutschJozsaBal1   -- 0.02
+  timeRetroDJ FL.vif "x" 11 deutschJozsaBal1 -- 0.13
+  timeRetroDJ FM.vif 0 11 deutschJozsaBal1   -- 0.13
+  timeRetroDJ FB.vif 0 11 deutschJozsaBal1   -- 0.13
+  timeRetroDJ FL.vif "x" 12 deutschJozsaBal1 -- 0.58
+  timeRetroDJ FM.vif 0 12 deutschJozsaBal1   -- 0.60
+  timeRetroDJ FB.vif 0 12 deutschJozsaBal1   -- 0.62
+  timeRetroDJ FL.vif "x" 13 deutschJozsaBal1 -- 2.62
+  timeRetroDJ FM.vif 0 13 deutschJozsaBal1   -- 2.76
+  timeRetroDJ FB.vif 0 13 deutschJozsaBal1   -- 2.70
+  timeRetroDJ FL.vif "x" 14 deutschJozsaBal1 -- 12.96
+  timeRetroDJ FM.vif 0 14 deutschJozsaBal1   -- 12.35
+  timeRetroDJ FB.vif 0 14 deutschJozsaBal1   -- 13.42
+  timeRetroDJ FL.vif "x" 15 deutschJozsaBal1 -- 57.55
+  timeRetroDJ FM.vif 0 15 deutschJozsaBal1   -- 59.79
+  timeRetroDJ FB.vif 0 15 deutschJozsaBal1   -- 60.25
   -} 
 
-  timeRetroDJ FB.formRepr 0 10 deutschJozsaBal4   -- 0.02
-  timeRetroDJ FB.formRepr 0 11 deutschJozsaBal4   -- 0.12
-  timeRetroDJ FB.formRepr 0 12 deutschJozsaBal4   -- 0.56
-  timeRetroDJ FB.formRepr 0 13 deutschJozsaBal4   -- 2.52
-  timeRetroDJ FB.formRepr 0 14 deutschJozsaBal4   -- 11.39
-  timeRetroDJ FB.formRepr 0 15 deutschJozsaBal4   -- 54.75
+  timeRetroDJ FB.vif 0 10 deutschJozsaBal4   -- 0.02
+  timeRetroDJ FB.vif 0 11 deutschJozsaBal4   -- 0.12
+  timeRetroDJ FB.vif 0 12 deutschJozsaBal4   -- 0.56
+  timeRetroDJ FB.vif 0 13 deutschJozsaBal4   -- 2.52
+  timeRetroDJ FB.vif 0 14 deutschJozsaBal4   -- 11.39
+  timeRetroDJ FB.vif 0 15 deutschJozsaBal4   -- 54.75
   -- mapM_ (retroGrover 5) [0..31]
   -- runRetroGrover' 23 0
 
   {-
   defaultMain [
     bgroup "RetroGrover" 
-      [ bench "List 10"  $ nf (\rep -> head $ words $ show $ timeRetroGrover' rep "x" 10 0) FL.formRepr
-      , bench "Map  10"  $ nf (\rep -> head $ words $ show $ timeRetroGrover' rep 0 10 0) FM.formRepr
-      , bench "BitM 10"  $ nf (\rep -> head $ words $ show $ timeRetroGrover' rep 0 10 0) FB.formRepr
-      , bench "List 12"  $ nf (\rep -> head $ words $ show $ timeRetroGrover' rep "x" 12 0) FL.formRepr
-      , bench "Map  12"  $ nf (\rep -> head $ words $ show $ timeRetroGrover' rep 0 12 0) FM.formRepr
-      , bench "BitM 12"  $ nf (\rep -> head $ words $ show $ timeRetroGrover' rep 0 12 0) FB.formRepr
+      [ bench "List 10"  $ nf (\rep -> head $ words $ show $ timeRetroGrover' rep "x" 10 0) FL.vif
+      , bench "Map  10"  $ nf (\rep -> head $ words $ show $ timeRetroGrover' rep 0 10 0) FM.vif
+      , bench "BitM 10"  $ nf (\rep -> head $ words $ show $ timeRetroGrover' rep 0 10 0) FB.vif
+      , bench "List 12"  $ nf (\rep -> head $ words $ show $ timeRetroGrover' rep "x" 12 0) FL.vif
+      , bench "Map  12"  $ nf (\rep -> head $ words $ show $ timeRetroGrover' rep 0 12 0) FM.vif
+      , bench "BitM 12"  $ nf (\rep -> head $ words $ show $ timeRetroGrover' rep 0 12 0) FB.vif
       ]
     ]
   -}

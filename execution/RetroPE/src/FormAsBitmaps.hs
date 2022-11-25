@@ -1,5 +1,5 @@
 module FormAsBitmaps (
-  Formula, lits, ands, formRepr,
+  Formula, lits, ands, vif,
   normalize, xor
   ) where
 
@@ -11,7 +11,7 @@ import qualified Data.MultiSet as MS
 import Numeric.Natural
 
 import Value (Value(..))
-import FormulaRepr (FormulaRepr(FR))
+import VarInFormula (VarInFormula(FR))
 
 ------------------------------------------------------------------------------
 -- Representation of formulas as xor maps of bitmaps
@@ -161,8 +161,8 @@ instance Value Formula where
 
 -- instance as explicit dict
 
-formRepr :: FormulaRepr Formula Int
-formRepr = FR fromVar fromVars
+vif :: VarInFormula Formula Int
+vif = FR fromVar fromVars
 
 ------------------------------------------------------------------------------
 -- We know a lot more when doing expansion of a single gate.
