@@ -11,38 +11,27 @@
   as examples in the paper are concerned) but the title may be slightly
   misleading.
 
-J: Amr?
-
-  Section 5 is kind of isolated from the rest of the paper and it is not
-  very clear (at least to me) what should be learned from this section.
-  Perhaps, it is because the evaluation section doesn't really discuss
-  how the evaluation took advantage of the careful design.
-
-J: It's a paper about a piece of software...
+Amr?
 
   L716: How did you identify these balanced functions using the symbolic
   evaluator?  As far as I understand, if you know a given function is
   either a constant or balanced function, you will know which, but how
   do you enumerate such functions?  I think I missed something.
 
-J: clarify.
-
-===========================================================================
+Amr?
 
   This is a really well-written, interesting paper and I only have minor comments
   below. It's fascinating that leveraging a PL technique (symbolic evaluation)
   yields insight into which problems do not have efficient classical simulations.
 
-J: We should add something about this to the introduction.
-
-===========================================================================
+We should add something about this to the introduction.
 
   The graphs and explanations of the time measurements would benefit some
   extension. In particular, some discussion on how these figures relate to a
   simulation without symbolic evaluation would be beneficial for understanding
   the true impact of the proposed approach.
 
-J: may be too hard.
+may be too hard?
 
 &&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
 
@@ -182,4 +171,12 @@ Clarified our intent.
   felt is a bit weird.
 
 Clarified.
+
+  Section 5 is kind of isolated from the rest of the paper and it is not
+  very clear (at least to me) what should be learned from this section.
+  Perhaps, it is because the evaluation section doesn't really discuss
+  how the evaluation took advantage of the careful design.
+
+J: It's a paper about a piece of software... It's not our fault that
+many papers omit the section on careful design. 
 
