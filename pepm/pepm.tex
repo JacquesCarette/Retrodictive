@@ -1089,8 +1089,15 @@ a=2,8 & 1 \oplus x_0 \oplus x_1 \oplus x_0x_1 = 1 & x_0x_1 = 0 & x_1 \oplus x_0x
 \end{figure*}
 
 \paragraph*{Simon.}
-The circuit below implements the black box
-$U_f (x,a) = (x, f(x) \oplus a)$ for $n=2$ and $a = 3$.
+The circuit below implements the black box:
+\[
+  U_f (x,a) = (x, f(x) \oplus a)
+\]
+for $n=2$ and $a = 3$.
+
+f(0) = f(3) = 0
+f(1) = f(2) = 3
+
 
 \begin{center}
 \begin{quantikz}\label{eq:simon}
