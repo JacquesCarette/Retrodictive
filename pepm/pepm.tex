@@ -323,8 +323,8 @@ correlations.
 Because quantum circuits are reversible, i.e., executable forwards
 and backwards, the introduction of symbolic variables opens a host of
 new exciting possibilities beyond conventional (classical) symbolic
-evaluation: \emph{any mixture of inputs and outputs can be made
-  symbolic}. For example, consider again the Bell circuit in
+evaluation: for a given quantum circuit \emph{any mixture of inputs and outputs
+can be deemed symbolic}. For example, consider again the Bell circuit in
 Fig.~\ref{fig:bellall} but with an arbitrary initial value for the second
 qubit. The right subfigure (Fig.~\ref{fig:bellccore}) removes the
 explicit use of $H\ket{0}$ and replaces the top qubit with another
@@ -643,8 +643,8 @@ pre-image of $f(x)$ and query it to determine the period.
 
 \paragraph*{Template for Circuits.}
 All the problems above have solutions using quantum circuits that all
-fit the template in Fig.~\ref{fig:templateQC}. The $U_f$ block is
-uniformly defined as:
+fit the template in Fig.~\ref{fig:templateQC}. The $U_f$ block, often
+called the ``oracle'', is uniformly defined as:
 \begin{equation}
   U_f(\ket{x}\ket{y}) = \ket{x}\ket{f(x) \oplus y},
 \end{equation}
@@ -891,15 +891,17 @@ grouped, even length lists are removed, and then made unique. This is woefully
 inefficient, and was the clear bottleneck in our profiles.
 
 A less na\"{\i}ve approach uses a set of bits for representing literals, an
-\texttt{IntSet} for and-lists, and a normalized multiset for xor maps. We found
+\texttt{IntSet} for and-lists, and a normalized multiset for xor maps (a normalized
+multiset is one with only $0$ and $1$ as multiplicities). We found
 it more efficient to use a multiset for intermediate computations with xor maps
 which is normalized at the end instead of trying to track even/odd number of
 occurrences. Only computing Cartesian products in this representation requires
 some thought for finding a reasonably efficient algorithm.
 
-While significantly faster, this was still not sufficiently efficient. Our final
-representation uses natural numbers as and-maps where the encoding of literals is
-now positional, and xor maps are again multisets of these ``bitmaps.''
+While significantly faster, this representation still did not make our programs
+sufficiently efficient. Our final representation uses natural numbers as
+and-maps where the encoding of literals is now positional, and xor maps are
+again multisets of these ``bitmaps.''
 
 As a last optimization, our circuits have a very particular property: the control
 wires are not written to, so that they are all literals. This can be used to

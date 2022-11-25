@@ -1,27 +1,5 @@
-  In my understanding, all examples in section 6 assume that quantum oracles are
-  implemented correctly. For example, the insight of Deutsch-Jozsa says that a
-  given oracle must be balanced or constant. This assumption seems to be too
-  strong when we try to use this work to for validation. Can we inspect the bug
-  by extracting ANF equations easily? If possible, it might be better to give
-  another example for use.
-
-J: no clue.
-
-  The Oqimp programming language proposed in the following paper has a feature
-  for partial evaluation, so it may be related to your work. This comment can be
-  ignored if it is not related to your work.
-
-  > Li, Liyi, Finn Voichick, Kesha Hietala, Yuxiang Peng, Xiaodi Wu, and Michael Hicks. “Verified Compilation of Quantum Oracles.” ArXiv:2112.06700 [Quant-Ph], April 20, 2022. http://arxiv.org/abs/2112.06700.
-
-J: will investigate.
-
 ### Minor comments
 
-* L169: The sentence "any mixture of inputs and outputs can be made symbolic" does not make sense to me. Does it mean that if the number of input and output wires are the same, it can be made reversible, so symbolic partial evaluation such as retrodictive execution can be achieved?
-* L374: How about saying that the unitary $U_f$ called oracle in this paragraph?
-* L573: Is it essential to separate data qubits and ancillae qubits in this analysis?
-* L601: What is a "normalized" multiset?
-* L631: What does mean `this` here?
 * L637: How can we use the property of control wires to optimize the evaluation of single gates? Is this future work?
 * Fig 12, 14: The axis labels are missing.
 * All Figures: The fonts in the figures are too small.
@@ -155,3 +133,43 @@ it is now `VarInFormula`. We don't think the paper explains the implementation "
 much", as we see explaining the implementation as a core part of this particular
 paper.
 
+  In my understanding, all examples in section 6 assume that quantum oracles are
+  implemented correctly. For example, the insight of Deutsch-Jozsa says that a
+  given oracle must be balanced or constant. This assumption seems to be too
+  strong when we try to use this work to for validation. Can we inspect the bug
+  by extracting ANF equations easily? If possible, it might be better to give
+  another example for use.
+
+J: That's correct, we assume that the oracles are implemented correctly, and our
+codes will give randum junk as output if not. We are not trying to do validation,
+interesting as that is. Future work.
+
+  The Oqimp programming language proposed in the following paper has a feature
+  for partial evaluation, so it may be related to your work. This comment can be
+  ignored if it is not related to your work.
+
+  > Li, Liyi, Finn Voichick, Kesha Hietala, Yuxiang Peng, Xiaodi Wu, and Michael Hicks. “Verified Compilation of Quantum Oracles.” ArXiv:2112.06700 [Quant-Ph], April 20, 2022. http://arxiv.org/abs/2112.06700.
+
+J: it was related enough to warrant citation and some explanation.
+
+* L169: The sentence "any mixture of inputs and outputs can be made symbolic" does not make sense to me. Does it mean that if the number of input and output wires are the same, it can be made reversible, so symbolic partial evaluation such as retrodictive execution can be achieved?
+
+Tried to clarify. The circuit is always reversible, so symbolic execution, forwards and backwards,
+can always be achieved.
+
+* L374: How about saying that the unitary $U_f$ called oracle in this paragraph?
+
+Done
+
+* L573: Is it essential to separate data qubits and ancillae qubits in this analysis?
+
+It is convenient, as that makes it clear that the ancillae should be |0>, without
+further intervention.
+
+* L601: What is a "normalized" multiset?
+
+Defined.
+
+* L631: What does mean `this` here?
+
+Clarified.
