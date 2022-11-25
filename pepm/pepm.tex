@@ -697,9 +697,9 @@ template in Fig.~\ref{fig:CircuitAbstraction}.
 \label{sec4}
 
 Our exposition of the design and implementation of our system will
-follow Parnas' advice on \emph{faking it}~\cite{parnas1986rational}: a
-reconstruction of the requirements as we should have had them if we'd
-been all-knowing, and a design that fits those requirements. The
+follow the advice of~\citet{parnas1986rational} on \emph{faking it}:
+a reconstruction of the requirements as we should have had them if
+we'd been all-knowing, and a design that fits those requirements. The
 version history in our GitHub repository can be inspected for anyone
 who wants to see our actual path.
 
@@ -716,25 +716,28 @@ We also wanted to write out circuits only once, and have them be valid
 across these representation changes and be executable forwards,
 backwards, and mixed retrodictive mode.
 
-A number of quantum algorithms are expressed in the ``black-box
-model'' where the $U_f$ block defines arbitrary boolean functions
-(given as black boxes at ``compile time''). To actually execute these
-algorithms, we want to, offline, synthesize a circuit from the boolean
-specification. In other words for $f : \Bool^n \rightarrow\Bool$, we
+With the notable exception of Shor's algorithm, all the algorithms we
+study are expressed in the ``black-box model.'' In that model, the
+circuit implementing the $U_f$ is collapsed to just one function
+call. Of course, in any actual use of the algorithm, this circuit must
+be implemented and its execution time must be accounted
+for. Therefore, we want to---offline--- synthesize a circuit from the
+boolean specification, i.e., for $f : \Bool^n \rightarrow\Bool$, we
 wish to generate the circuit for
 $g : \Bool^{n+1} \rightarrow \Bool^{n+1}$ such that for
 $\overline{x} : \Bool^n$ we have
 $g(\overline{x},y) = (\overline{x}, y \oplus f(\overline{x}))$.
 
-This leads us to the requirements our code must fulfill.
+This leads us to the following requirements that our code must
+fulfill.
 
 \begin{figure*}[t]
 \begin{tabular}{l | p{13cm}}
   \textbf{Module} & \textbf{Service} \\ \hline
   \texttt{Value} & representation of a \emph{language of values}
     (as a typeclass) and some constructors\\
-  \texttt{FormulaRepr} & abstract representation of formulas, as
-    a mapping from abstract variables to abstract formulas\\
+  \texttt{FormulaRepr} & abstract representation of formulae, as
+    a mapping from abstract variables to abstract formulae\\
   \texttt{Variable} & variables as locations holding values and
     their constructors\\
   \texttt{ModularArith} & modular arithmetic utilities useful in
@@ -749,11 +752,11 @@ This leads us to the requirements our code must fulfill.
     properties\\
   \texttt{ArithCirc} & creation of arithmetic circuits\\
   \texttt{EvalZ} & evaluation of circuits on concrete values\\
-  \texttt{FormAsList} & representation of formulas as xor-lists
+  \texttt{FormAsList} & representation of formulae as xor-lists
     of and-lists of literals-as-strings\\
-  \texttt{FormAsMaps} & representation of formulas as xor-maps
+  \texttt{FormAsMaps} & representation of formulae as xor-maps
     of and-maps of literals-as-Int\\
-  \texttt{FormAsBitmaps} & representation of formulas as xor-maps
+  \texttt{FormAsBitmaps} & representation of formulae as xor-maps
     of bitmaps\\
   \texttt{SymbEval} & Symbolic evaluation of circuits\\
   \texttt{SymbEvalSpecialized} & Symbolic evaluation of circuits
@@ -771,7 +774,7 @@ This leads us to the requirements our code must fulfill.
 We need to be able to deal with the following variabilities:
 \begin{enumerate}
   \item multiple representations of \emph{boolean values},
-  \item multiple representations of \emph{boolean formulas},
+  \item multiple representations of \emph{boolean formulae},
   \item different evaluation means (directly, symbolically, forwards,
     backwards, retrodictive),
 \end{enumerate}
@@ -830,7 +833,7 @@ data FormulaRepr f r = FR
 and how to insert them into the current \emph{formula representation} \texttt{f},
 singly or $n$ at once.
 
-A Generalized Toffoli gates can be represented by a list of representation of
+A generalized Toffoli gate can be represented by a list of representation of
 value accessors \texttt{br} (short for boolean representation) along with a list
 of \emph{controls} that tell us whether to use the bit directly or negated,
 along with which value will potentially be flipped. The implementation of very
@@ -912,7 +915,7 @@ utilities are not counted in the above.
 
 The code that occupies the most volume is that for running the examples, as each
 circuit needs its own setup for the input and ancilla wires. Next is the implementation
-of symbolic representations of formulas in ANF. This is largely because there are a
+of symbolic representations of formulae in ANF. This is largely because there are a
 lot of pieces that need to be defined, including many instances; the algorithmic aspect
 rarely span more than $15$ lines in total. The code for generating arithmetic circuits
 is voluminous as well as largely computational, but is a re-implementation of known
@@ -1282,11 +1285,11 @@ functions: \texttt{bal1} is $x_0$, \texttt{bal2} is $x0\oplus\ldots\oplus x_n$
 and \texttt{bal4} is $x_n$. All three show
 clear exponential behaviour that does not depend on the size of the final
 answer. We show the timings only for a single implementation of the
-representation of formulas as, somewhat mysteriously, this makes no
+representation of formulae as, somewhat mysteriously, this makes no
 difference in this case, we get essentially the same result in all cases.
 
 Fig.~\ref{fig:GroverWC} shows timings of different calls to Grover's
-algorithm, uses the best representation for formulas (as bitmaps) but varies
+algorithm, uses the best representation for formulae (as bitmaps) but varies
 what ``secret value $u$'' we are looking for. Here
 the binary representation of $u$ matters greatly, ranging from what looks
 like essentially constant time to exponential time.
