@@ -942,23 +942,29 @@ outlined in Sec.~\ref{sec5}, before commenting on complexity and workflow.
 \subsection{Symbolic execution of the Algorithms}
 
 Most of the algorithms end up generating differently shaped constraint
-systems, and thus each need to be examined on its own. It is worth noting
-that all these algorithms do not have known fast classical versions.
-We spend more time on the analysis of Shor's algorithm, as it is both
-more important and displays subtle behaviour.
+systems, and thus each need to be examined on its own. It is worth
+noting that all these algorithms are not known to have fast classical
+versions except for a few special cases~\cite{calude,djdeq}. We spend more
+time on the analysis of Shor's algorithm, as it is both more important
+and displays subtle behavior.
 
 \paragraph*{Deutsch and Deutsch-Jozsa}
 
-We perform a retrodictive execution of
-the $U_f$ block with an ancilla measurement~$0$, i.e., with the state
-$\ket{x_{n-1}\cdots x_1x_00}$.  The result of the execution is a
-symbolic formula $r$ that determines the conditions under which
-$f(x_{n-1},\cdots,x_0) = 0$. When the function is constant, the
-results are $0=0$ (always) or $1=0$ (never)
+We perform a retrodictive execution of the $U_f$ block with an ancilla
+measurement~$0$, i.e., with the state $\ket{x_{n-1}\cdots x_1x_00}$.
+The result of the execution is a symbolic formula $r$ that determines
+the conditions under which $f(x_{n-1},\cdots,x_0) = 0$. When the
+function is constant, the results are $0=0$ (always) or $1=0$ (never)
 \emph{regardless of how large the circuit is}. When the function is
-balanced, we get a formula that mentions the relevant variables. For
-example, here are the results of three executions for balanced
-functions $\finset{2^6} \rightarrow \finset{2}$:
+balanced, we get a formula that mentions the relevant variables. As
+examples, we generated all 12872 functions
+$\finset{2^6} \rightarrow \finset{2}$ that are valid inputs to the
+algorithm; the 2 constant functions and the 12870 balanced functions
+at that type. The result of the symbolic execution immediately
+provides the answer but with the understanding that the generation of
+the formulae takes time depending on the distribution of zeros and
+ones. For example, here are the results of three executions for
+balanced functions $\finset{2^6} \rightarrow \finset{2}$:
 \begin{itemize}
 \item $x_0 = 0$,
 \item $x_0 \oplus x_1 \oplus x_2 \oplus x_3 \oplus
@@ -980,22 +986,39 @@ of a balanced function. The last case is a cryptographically strong
 balanced function whose output pattern is balanced but, by design,
 difficult to discern~\cite{quteprints21763}.
 
-\begin{insight} In these algorithms, we actually do not care about the exact
-formula. Indeed, since we are \emph{promised} that the function is either
-constant or balanced, then any formula that refers to at least one
-variable must indicate a balanced function. In other words, the
-outcome of the algorithm can be immediately decided if the formula is
-anything other than 0 or 1.
+\begin{insight} In these algorithms, we actually do not care about the
+  exact formula. Indeed, since we are \emph{promised} that the
+  function is either constant or balanced, then any formula that
+  refers to at least one variable must indicate a balanced function:
+  the outcome of the algorithm can be immediately decided if the
+  formula is anything other than 0 or 1.  Since the symbolic
+  evaluation executes the $U_f$ block ``once,'' one might conclude
+  that it is a ``de-quantization'' of the algorithm in the black-box
+  model, producing immediate answers even in cases when the quantum
+  algorithm generates complicated entangled patterns during quantum
+  evolution~\cite{djdeq}. However, it is important to remember that
+  our circuits are ``white-box'' rather than ``black-box'' and that
+  the time taken to execute the circuit is part of the overall
+  complexity of the algorithm. We defer to Sec.~\ref{sub:complexity}
+  for a more detailed discussion of this point and refer to
+  \citet{10.1145/3341106} for another perspective on black-box
+  vs. white-box complexity in the context of graph algorithms.
 \end{insight}
 
-Indeed, our implementation correctly
-identifies all 12870 balanced functions $\finset{2^4} \rightarrow
-\finset{2}$. This is significant as some of these functions produce
-complicated entangled patterns during quantum evolution and could not
-be de-quantized using previous approaches~\cite{djdeq}.
-However, it is important to remember that our circuits are ``white-box''
-rather than ``black-box'', which yields a very different complexity
-model~\cite{10.1145/3341106}.
+\begin{signif}
+  That the details of the equations do not matter is crucial as the
+  satisfiability of generally boolean equation is, in general, an
+  $\mathit{NP}$-complete
+  problem~\cite{4640789,Karp1972,10.1145/800157.805047}. More
+  directly, the answer to the algorithm does \emph{not} require an
+  exact calculation of the pre-image of the boolean function. Indeed,
+  based on the conjectured existence of one-way functions which itself
+  implies $\mathit{P} \neq \mathit{NP}$, pre-images calculations are
+  believed to be computationally intractable in their most general
+  setting.  What is intriguing is that quantum algorithms appear to be
+  able to answer certain general queries about pre-images without
+  explicitly calculating the pre-image.
+\end{signif}
 
 \begin{figure*}
 \begin{tabular}{ll}
@@ -1035,13 +1058,6 @@ $u=15$ &
 \end{tabular}
 \caption{\label{fig:Grover}Result of retrodictive execution for the Grover oracle ($n=4$, $w$ in the range $\{0..15\}$). The highlighted red subformula is the binary representation of the hidden input $u$.}
 \end{figure*}
-
-\begin{signif}
-That the details of the equations do not matter is crucial as the
-satisfiability of generally boolean equation is, in
-general, an $\mathit{NP}$-complete
-problem~\cite{4640789,Karp1972,10.1145/800157.805047}.
-\end{signif}
 
 \paragraph*{Bernstein-Vazirani}
 
@@ -1283,7 +1299,7 @@ Fig.~\ref{fig:DJ} shows that happens when we vary the
 size of the problem for Deutsch-Josza on three different balanced
 functions: \texttt{bal1} is $x_0$, \texttt{bal2} is $x0\oplus\ldots\oplus x_n$
 and \texttt{bal4} is $x_n$. All three show
-clear exponential behaviour that does not depend on the size of the final
+clear exponential behavior that does not depend on the size of the final
 answer. We show the timings only for a single implementation of the
 representation of formulae as, somewhat mysteriously, this makes no
 difference in this case, we get essentially the same result in all cases.
@@ -1301,6 +1317,7 @@ on the timings. This is not just a constant improvement, it is also a complexity
 improvement.
 
 \subsection{Complexity}
+\label{sub:complexity}
 
 In the general case, we have a circuit containing $T$ generalized
 Toffoli gates over $n+m$ qubits split in two registers $A$ ($n$
