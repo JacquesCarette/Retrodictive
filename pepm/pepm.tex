@@ -287,7 +287,7 @@ algorithm in question.
 \caption{\label{fig:bellccore}Symbolic variant}
 \end{subfigure}
 \caption{\label{fig:bellall}A conventional quantum circuit for
-  generating a Bell state (a); its classical symbolic variant.}
+  generating a Bell state (a); its classical symbolic variant (b).}
 \end{figure*}
 
 Our observation is that a qubit in the special superposition
@@ -517,7 +517,7 @@ Let $\finset{n}$ denote the finite set $\{ 0,1,\ldots,(n-1)\}$. The
 parameter~$n$ determines the problem size for all the problems below
 (except Deutsch which is a fixed sized problem). In the review below,
 we adapt the usual presentation of the
-algorithms~\cite{doi:10.1137/S0097539796300921,deutsch,deutschJozsa,365701,doi:10.1137/S0097539795293172,nielsen_chuang_2010,10.1145/237814.237866}.
+algorithms~\cite{doi:10.1137/S0097539796300921,deutsch,deutschJozsa,365701,doi:10.1137/S0097539795293172,nielsen_chuang_2010,10.1145/237814.237866}
 to one better suited to our context. In particular, we focus on the
 heart of the algorithm, the quantum oracle, which encapsulates the
 underlying boolean function of interest. Furthermore, instead of using
@@ -1275,7 +1275,7 @@ circuits~\cite{shorFermat}. This is confirmed with our implementation
 which smoothly deals with unoptimized circuits for factoring such
 products. Factoring 3*17=51 using the unoptimized circuit of 177,450
 generalized Toffoli gates produces just the 4 equations: $1 \oplus x_1
-= 1$, $x_0 = 0$, $x_0 \oplus x_0x_1 = 0$, and $x_1 \oplus x0x1 =
+= 1$, $x_0 = 0$, $x_0 \oplus x_0x_1 = 0$, and $x_1 \oplus x_0x_1 =
 0$. Even for 3*65537=196611 whose circuit has 4,328,778 generalized
 Toffoli gates, the execution produces 16 small equations that refer to
 just the four variables $x_0$, $x_1$, $x_2$, and $x_3$ constraining
@@ -1360,7 +1360,7 @@ the period to be 3.
 We show a few representative set of timings for the Deutsch-Jozsa and
 Grover problems.
 
-Fig.~\ref{fig:DJ} shows that happens when we vary the
+Fig.~\ref{fig:DJ} shows what happens when we vary the
 size of the problem for Deutsch-Josza on three different balanced
 functions: \texttt{bal1} is $x_0$, \texttt{bal2} is $x0\oplus\ldots\oplus x_n$
 and \texttt{bal4} is $x_n$. All three show
