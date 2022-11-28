@@ -207,7 +207,7 @@ The general state of a quantum bit (qubit) is mathematically modeled
 using an equation parameterized by two angles $\theta$ and $\phi$ as
 follows:
 \[
-\cos{\frac{\theta}{2}} \ket{0} + e^{i\phi} \sin{\frac{\theta}{2}} \ket{1}
+\cos{\frac{\theta}{2}} \ket{0} + e^{i\phi} \sin{\frac{\theta}{2}} \ket{1} .
 \]
 The description models the fact that the qubit is in a superposition
 of false $\ket{0}$ and true $\ket{1}$. The angle $\theta$
@@ -216,7 +216,7 @@ $\phi$ determines the relative phase between them. A particular case
 when $\theta = \pi/2$ and $\phi=0$ is ubiquitous in quantum
 algorithms. In those cases, the general representation reduces to:
 \[
-1/\sqrt{2}~ (\ket{0} + \ket{1} )
+1/\sqrt{2}~ (\ket{0} + \ket{1} ) ,
 \]
 which represents a qubit in an equal superposition of false and
 true and with no relative phase between them.
@@ -226,7 +226,7 @@ common template for quantum algorithms is to start with qubits
 initialized to $\ket{0}$ and immediately apply a Hadamard $H$ transformation
 whose action is:
 \[
-  \ket{0} \mapsto 1/\sqrt{2} ~(\ket{0} + \ket{1})
+  \ket{0} \mapsto 1/\sqrt{2} ~(\ket{0} + \ket{1}) .
 \]
 This superposition is then further manipulated depending on the
 algorithm in question.
@@ -483,7 +483,7 @@ right, symbolic evaluation proceeds as follows:
                 &\mapsto& \ket{z0z(1\oplus z)} \\
                 &\mapsto& \ket{zzz(1\oplus z)} \\
                 &\mapsto& \ket{zz0(1\oplus z)} \\
-                &\mapsto& \ket{zz0(1\oplus z)}
+                &\mapsto& \ket{zz0(1\oplus z)} ,
 \end{array}\]
 which is the same ANF representation as the first circuit.
 
@@ -555,7 +555,7 @@ that hides a secret number $s \in \finset{2^{\it n}}$. We are promised the
 function is defined using the binary representations $\sum_i^{n-1}
 x_i$ and $\sum_i^{n-1} s_i$ of $x$ and $s$ respectively as follows:
 \[
-f(x) = \sum_{i=0}^{n-1} s_ix_i \mod{2}
+f(x) = \sum_{i=0}^{n-1} s_ix_i \mod{2} \ .
 \]
 The goal is to determine the secret number $s$.
 
@@ -661,11 +661,11 @@ After replacing $H\ket{0}$ by a symbolic variable, the $U_f$ block
 ends up being completely classical, albeit performing mixed mode
 execution of the circuit. More precisely, it means that in all these
 algorithms, the top collection of wires (which we will call the
-computational register) is prepared in a uniform superposition which
+input register) is prepared in a uniform superposition which
 can be represented using symbolic variables. The measurement of the
-bottom collection of wires (which we call the ancilla register) after
+bottom collection of wires (which we call the output register) after
 barrier 2 provides partial information about the future which is,
-together with the initial conditions of the ancilla register,
+together with the initial conditions of the output register,
 sufficient to symbolically execute the circuit. In each case, instead
 of the conventional execution flow depicted in
 Fig.~\ref{fig:templateQC}(a), we find a possible measurement
@@ -919,7 +919,7 @@ comments, module declaration, so that $809$ are ``code.'' Testing and printing
 utilities are not counted in the above.
 
 The code that occupies the most volume is that for running the examples, as each
-circuit needs its own setup for the input and ancilla wires. Next is the implementation
+circuit needs its own setup for the input and output wires. Next is the implementation
 of symbolic representations of formulae in ANF. This is largely because there are a
 lot of pieces that need to be defined, including many instances; the algorithmic aspect
 rarely span more than $15$ lines in total. The code for generating arithmetic circuits
@@ -957,7 +957,7 @@ time on the analysis of Shor's algorithm, as it is both more important
 and displays subtle behavior.
 
 \paragraph*{Deutsch and Deutsch-Jozsa.}
-We perform a retrodictive execution of the $U_f$ block with an ancilla
+We perform a retrodictive execution of the $U_f$ block with an output
 measurement~$0$, i.e., with the state $\ket{x_{n-1}\cdots x_1x_00}$.
 The result of the execution is a symbolic formula $r$ that determines
 the conditions under which $f(x_{n-1},\cdots,x_0) = 0$. When the
@@ -1064,7 +1064,7 @@ runRetroBernsteinVazirani =
 \end{minted}
 As can be seen, \h{retroBernsteinVazirani} is parameterized by a
 representation of formulae: it allocates 8 symbolic variables,
-initializes the ancilla to \h{zero}, generates the circuit, and runs
+initializes the output to \h{zero}, generates the circuit, and runs
 it. The top level call \h{runRetroBernsteinVazirani} just needs to
 pick a particular representation of formulae. The result is the ANF
 representation of the circuit, from which the secret string can be
@@ -1094,7 +1094,7 @@ where $\oplus$ is applied bitwise, i.e., the secret value $a=3$. To
 extract this~$a$ via symbolic execution we proceed as follows. We
 first pick a random $x$, say $x = 3$, fix the initial condition
 $a = 0$ and run the circuit forward. This execution produces, in the
-second register, the value of $f(x) = 0$. We now run a symbolic
+output register, the value of $f(x) = 0$. We now run a symbolic
 retrodictive execution with $a = 0$ at the output site. That execution
 produces information on all values of $a$ that are consistent with the
 observed result. In this case, we get: $a_0 = x_0 \oplus x_1$ and
@@ -1226,26 +1226,26 @@ is:
 \frac{1}{2\sqrt{2}} (
   (\ket{0} + \ket{2} + \ket{4} + \ket{6}) \ket{1} +
   (\ket{1} + \ket{3} + \ket{5} + \ket{7}) \ket{4}
-  )
+  ) .
 \]
-At this point, the ancilla register is measured to be either $\ket{1}$ or
-$\ket{4}$. In either case, the computational register snaps to a state
+At this point, the output register is measured to be either $\ket{1}$ or
+$\ket{4}$. In either case, the input register snaps to a state
 of the form $\sum_{r=0}^3 \ket{a+2r}$ whose QFT has peaks at $\ket{0}$
 or~$\ket{4}$ making them the most likely outcomes of measurements of
-the computational register. If we measure $\ket{0}$, we repeat the
+the input register. If we measure $\ket{0}$, we repeat the
 experiment; otherwise we infer that the period is~2.
 
 In the backwards execution, we can start with the state
-$\ket{x_2x_1x_0001}$ since 1 is guaranteed to be a possible ancilla
+$\ket{x_2x_1x_0001}$ since 1 is guaranteed to be a possible output
 measurement (corresponding to $f(0)$). The first \cx-gate changes the
 state to $\ket{x_2x_1x_0x_001}$ and the second \cx-gate produces
 $\ket{x_2x_1x_0x_00x_0}$. At that point, we reconcile the retrodictive
-result of the ancilla register $\ket{x_00x_0}$ with the initial
+result of the output register $\ket{x_00x_0}$ with the initial
 condition $\ket{000}$ to conclude that $x_0=0$. In other words, in
-order to observe the ancilla at $001$, the computational register must
+order to observe the output at $001$, the input register must
 be initialized to a superposition of the form $\ket{??0}$ where the
 least significant bit must be 0 and the other two bits are
-unconstrained. Expanding the possibilities, the first register needs
+unconstrained. Expanding the possibilities, the input register needs
 to be in a superposition of the states
 $\ket{000}, \ket{010}, \ket{100}$ or $\ket{110}$ and we have just
 inferred using purely classical but retrodictive reasoning that the
