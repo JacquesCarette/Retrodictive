@@ -21,6 +21,7 @@ cabal.sandbox.config
 *.toc
 *.hp
 *.eventlog
+*.synctex.gz
 .stack-work/
 cabal.project.local
 cabal.project.local~
