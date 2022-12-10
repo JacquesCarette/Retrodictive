@@ -79,13 +79,13 @@
   \postcode{47408}
   \country{USA}
 }
-\email{sabry@indiana.edu}
+\email{sabry@iu.edu}
 
 \begin{abstract}
   The simulation of quantum programs by classical computers is a critical endeavor
   for several reasons: it provides proof-of-concept validation of
   quantum algorithms; it provides opportunities to experiment with new
-  programming abstractions suitable for the quantum domain, and most
+  programming abstractions suitable for the quantum domain; and most
   significantly it is a way to explore the elusive boundary at which a
   quantum advantage may materialize. Here, we show that traditional
   techniques of symbolic evaluation and partial evaluation yield
@@ -135,7 +135,6 @@
 \ccsdesc[500]{Computing methodologies~Symbolic and algebraic algorithms}
 \ccsdesc[500]{Applied computing~Physics}
 
-
 \keywords{{quantum computation}, {partial evaluation}, {symbolic
     evaluation}, {retrodictive quantum computing}, {algebraic normal
     form}, {boolean circuits}, {quantum oracles}}
@@ -148,7 +147,7 @@ Classical models of computation are widely believed to be
 less powerful than quantum ones. Nevertheless, it is of utmost
 importance to establish when, for a given problem,  a classical
 algorithm is as resource efficient as its quantum counterpart.
-In this paper we address this question from a new angle, apparently,
+In this paper we address this question from a new angle, apparently
 not explored before. We consider traditional techniques of
 symbolic and partial evaluation to classically simulate quantum
 circuits assembled from Hadamard and Toffoli gates. The latter
@@ -189,15 +188,15 @@ modeled using this symbolic representation by using the algebraic
 normal form (ANF) of boolean formulae. Sec.~\ref{sec3} reviews the
 family of quantum algorithms that is the focus of our approach and
 highlights the new perspective brought by symbolic execution. Our main
-technical contribution, the design and implementation, of a symbolic
+technical contribution, the design and implementation of a symbolic
 evaluator for Hadamard-Toffoli quantum circuits, is explained in
 Sec.~\ref{sec4}. The next section (Sec.~\ref{sec5}) includes a
 complexity analysis and a performance evaluation of our symbolic
 evaluator on major textbook algorithms. Sec.~\ref{sec6} concludes with
 a summary and a discussion of the broader implications of our approach
 to the understanding of the classical / quantum performance
-characteristics. Our code is available online\footnote{
-  \url{https://github.com/JacquesCarette/Retrodictive/tree/main/execution/RetroPE}}.
+characteristics. Our code is available
+online.\footnote{\url{https://github.com/JacquesCarette/Retrodictive/tree/main/execution/RetroPE}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Qubits as Symbolic Variables}
@@ -253,7 +252,7 @@ algorithm in question.
   \end{yquant*}
 \end{tikzpicture}
 \end{center}
-\caption{\label{fig:bell2}Bell and GHZ States}
+\caption{\label{fig:bell2}Circuits for constructing Bell and GHZ States}
 \end{figure}
 
 \begin{figure*}[t]
@@ -331,7 +330,7 @@ explicit use of $H\ket{0}$ and replaces the top qubit with another
 symbolic variable. Because quantum circuits are reversible, we can, at
 this point, ``partially evaluate'' the circuit under various
 regimes. For example, we can set $y_1=0$ and $y_2=1$ and ask about
-values of $x_1$ and $x_2$ that would be consistent with this
+values of~$x_1$ and $x_2$ that would be consistent with this
 setting. We can calculate backwards from $\ket{x_21}$ as follows. The
 state evolves to $\ket{x_2(1 \oplus x_2)}$ which can be reconciled
 with the initial conditions yielding the constraints $x_1=x_2$ and
@@ -493,21 +492,19 @@ backward. Evaluating a circuit in one fixed direction is then quite
 standard. A novel approach, enabled by the reversibility of quantum
 mechanics, is what we call the \emph{retrodictive} mode of running
 circuits, as explained in our preprint \cite{retrodictive} which
-further details the quantum and physics side of this work (but
-does not speak of the implementation beyond saying that it exists).
-In that mode, illustrated in
-Fig.~\ref{fig:retroflow} , we start execution in the forward direction
-with a fully static collection of inputs in order to partially
-determine a possible future; we then execute backwards from the
-partially specified possible future (with the unknown values
-represented symbolically). This combination of static and dynamic
-knowledge of the output produces as its result a \emph{system of
-constraints} equating the resulting logical polynomials to the
-circuit's inputs. If the system of constraints has a solution, then
-that output was feasible. What we will actually see is that for many
-quantum circuits, we can ``read off'' the information we need from the
-system of constraint themselves, \emph{without needing to actually
-solve them}.
+further details the quantum and physics side of this work (but does
+not speak of the implementation beyond saying that it exists).  In
+that mode, illustrated in Fig.~\ref{fig:retroflow} , we start
+execution in the forward direction with a fully static collection of
+inputs in order to partially determine a possible future; we then
+execute backwards from the partially specified possible future (with
+the unknown values represented symbolically). This combination of
+static and dynamic knowledge of the output produces as its result a
+\emph{system of constraints} equating the resulting logical
+polynomials to the circuit's inputs. What we will actually see is that
+for many quantum circuits, we can ``read off'' the information we need
+from the system of constraint themselves, \emph{without needing to
+  actually solve them}.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Quantum Algorithms}
@@ -647,7 +644,7 @@ pre-image of $f(x)$ and query it to determine the period.
 \paragraph*{Template for Circuits.}
 All the problems above have solutions using quantum circuits that all
 fit the template in Fig.~\ref{fig:templateQC}. The $U_f$ block, often
-called the ``oracle'', is uniformly defined as:
+called the ``oracle,'' is uniformly defined as:
 \begin{equation}
   U_f(\ket{x}\ket{y}) = \ket{x}\ket{f(x) \oplus y},
 \end{equation}
@@ -712,12 +709,12 @@ essentially the same code, but with minor differences in representation.
 From these early experiments, we could see the major variation points:
 \begin{itemize}
   \item representation of \emph{boolean values} and \emph{boolean functions},
-  \item representation of ANF,
+  \item representation of ANF, and
   \item representation of circuits.
 \end{itemize}
 We also wanted to write out circuits only once, and have them be valid
 across these representation changes and be executable forwards,
-backwards, and mixed retrodictive mode.
+backwards, and in mixed retrodictive mode.
 
 With the notable exception of Shor's algorithm, all the algorithms we
 study are expressed in the ``black-box model.'' In that model, the
@@ -776,7 +773,7 @@ fulfill.
 We need to be able to deal with the following variabilities:
 \begin{enumerate}
   \item multiple representations of \emph{boolean values},
-  \item multiple representations of \emph{boolean formulae},
+  \item multiple representations of \emph{boolean formulae}, 
   \item different evaluation means (directly, symbolically, forwards,
     backwards, retrodictive),
 \end{enumerate}
@@ -821,7 +818,7 @@ this gives us requirement $3$ ``for free'' if we can write a sufficiently
 polymorphic evaluator (which we will present below).
 
 Unlike value representations that can be computed from context, we
-want to explicitly choose how to represent variables in formulas
+want to explicitly choose how to represent variables in formulae
 ourselves (part of requirement 2).  Thus we use an explicit record instead of an
 implicit dictionary:
 
@@ -834,13 +831,14 @@ data VarInFormula f v = FR
 Each formula representation may have different
 \emph{variable representation} \texttt{v}
 and how to insert them into the current \emph{formula representation} \texttt{f},
-singly or as $n$ formulas.
+singly or as $n$ formulae.
 
-A generalized Toffoli gate can be represented by a list of representation of
-value accessors \texttt{br} (short for boolean representation) along with a list
-of \emph{controls} that tell us whether to use the bit directly or negated,
-along with which value will potentially be flipped. The implementation of very
-common gates (negation and controlled not) are also shown.
+A generalized Toffoli gate can be represented by a list of value
+accessors \texttt{br} (short for boolean representation) along with a
+list of \emph{controls} that tell us whether to use the bit directly
+or negated, along with which value will potentially be flipped. The
+implementation of very common gates (negation and controlled not) are
+also shown.
 \begin{minted}{haskell}
 data GToffoli br = GToffoli [Bool] [br] br
 
@@ -1163,16 +1161,17 @@ synthesisGrover ::
 synthesisGrover n (viewL -> (xs,y)) u =
   S.singleton $ GToffoli (fromInt n u) xs y
 \end{minted}
-The ANF representation of the circuit is sensitive to the value
-$u$ as shown in Fig.~\ref{fig:Grover} and the running time of symbolic
-execution varies accordingly. What is interesting is that the shortest
-subformula in the ANF representation is guaranteed to be the binary
-representation of $u$. As an example, if $u=3$, then
+The ANF representation of the circuit is sensitive to the
+value~$u$ as shown in Fig.~\ref{fig:Grover} and the running time of
+symbolic execution varies accordingly. What is interesting is that the
+shortest subformula in the ANF representation is guaranteed to be the
+binary representation of $u$. As an example, if $u=3$, then
 $x_1x_0$ must be a subformula in the ANF representation. By itself,
 this subformula would satisfy not just 3 but also 7, 11, and 15.  To
 exclude this latter values, the ANF representation includes the clause
-$x_2x_1x_0$ to exclude 7, the formula $x_3x_1x_0$ to exclude 11, and
-the formula $x_3x_2x_1x_0$ to exclude~15. 
+$x_2x_1x_0$ to exclude 7, the clause
+$x_3x_1x_0$ to exclude 11, and the clause
+$x_3x_2x_1x_0$ to exclude~15.
 
 \begin{insight}
   For Grover as well, the result can be immediately read off the formula.
@@ -1198,7 +1197,8 @@ the formula $x_3x_2x_1x_0$ to exclude~15.
 \end{quantikz}
 };\end{tikzpicture}
 \end{center}
-\caption{\label{fig:shor15}Finding the period of $4^x \mod{15}$}
+\caption{\label{fig:shor15}Hand optimized quantum circuit for finding
+  the period of $4^x \mod{15}$}
 \end{figure}
 \begin{figure*}
 \[\begin{array}{l@{\quad}lllll}
@@ -1211,7 +1211,7 @@ a=2,8 & 1 \oplus x_0 \oplus x_1 \oplus x_0x_1 = 1 & x_0x_1 = 0 & x_1 \oplus x_0x
 \end{array}\]
 \caption{\label{fig:shor-eqs}Equations generated by retrodictive
   execution of $a^x \mod{15}$ for different values of $a$, starting
-  from observed result 1 and unknown
+  from observed result~1 and unknown
   $x_8x_7x_6x_5x_4x_3x_2x_1x_0$. The solution for the unknown
   variables is given in the last column.}
 \end{figure*}
@@ -1296,7 +1296,7 @@ them to be all 0, i.e., asserting that the period is 16.
    cnot a2 | x0;
   \end{yquant*}
 \end{tikzpicture}
-\caption{\label{fig:shor21}Finding the period of $4^x \mod{21}$ using
+\caption{\label{fig:shor21}Quantum circuit for finding the period of $4^x \mod{21}$ using
   qutrits. The three gates are from left to right are the $X$,
   $\textrm{SUM}$, and $C(X)$ gates for ternary
   arithmetic~\cite{10.5555/3179473.3179481}. The $X$ gate adds 1
@@ -1344,30 +1344,38 @@ the period to be 3.
 
 \begin{figure}
  \includegraphics[scale=0.32]{Figure12.pdf}
-  \caption{\label{fig:DJ} Deutsch-Jozsa on $3$ problems at different sizes}
+ \caption{\label{fig:DJ} Execution times for the retrodictive
+   execution of the Deutsch-Jozsa algorithm on $3$ balanced functions
+   at different sizes.}
 \end{figure}
 
 \begin{figure}
 \includegraphics[scale=0.32]{Figure13.pdf}
-  \caption{\label{fig:GroverWC} Grover on different ``secret'' values $u$ at different sizes}
+\caption{\label{fig:GroverWC} Execution times for the retrodictive
+  execution of the Grover algorithm on different ``secret'' values $u$
+  at different sizes.}
 \end{figure}
 
 \begin{figure}
 \includegraphics[scale=0.32]{Figure14.pdf}
-  \caption{\label{fig:GroverImpl} Grover at $2$ sizes but using different ANF representations on $u=0$}
+\caption{\label{fig:GroverImpl} Execution times for the retrodictive
+  execution of the Grover algorithm on secret value $u=0$ at two
+  sizes but using different ANF representations.}
 \end{figure}
 
 We show a few representative set of timings for the Deutsch-Jozsa and
 Grover problems.
 
-Fig.~\ref{fig:DJ} shows what happens when we vary the
-size of the problem for Deutsch-Josza on three different balanced
-functions: \texttt{bal1} is $x_0$, \texttt{bal2} is $x_0\oplus\ldots\oplus x_{n-1}$
-and \texttt{bal4} is $x_n$. All three show
-clear exponential behavior that does not depend on the size of the final
+Fig.~\ref{fig:DJ} shows what happens when we vary the size of the
+problem for Deutsch-Josza on three different balanced functions of $n$
+variables $x_0,\cdots,x_{n-1}$: one that returns $x_0$, one that
+returns $x_{n-1}$, and one that returns
+$x_0\oplus\cdots\oplus x_{n-1}$. All three examples show clear
+exponential behavior that does not depend on the size of the final
 answer. We show the timings only for a single implementation of the
 representation of formulae as, somewhat mysteriously, this makes no
-difference in this case, we get essentially the same result in all cases.
+difference in this case, we get essentially the same result in all
+cases.
 
 Fig.~\ref{fig:GroverWC} shows timings of different calls to Grover's
 algorithm, using the best representation for formulae (as bitmaps) but varying
@@ -1414,14 +1422,14 @@ $\{x_0,x_1,\ldots,x_{n-1}\}$ variables. The size of each equation
   equations.
 \end{enumerate}
 There are two potential bottlenecks: steps (3) above which has a
-worst-case complexity of $\mathcal{O}(Tm 2^n)$, and step (4)
-in the solve case, which is an NP-complete problem. The $\mathcal{O}(T)$
-factor is inevitable because we have a white box implementation of the
-oracle and we must touch every gate in that implementation. The
-$\mathcal{O}(m)$ factor is also inevitable as it represents the number
-of variables. What varies from one function to the other and, for a
-particular function, from one oracle implementation to the other is
-the $\mathcal{O}(2^n)$ factor.
+worst-case complexity of $\mathcal{O}(Tm 2^n)$, and step (4) in the
+solve case, which is an $\mathit{NP}$-complete problem. The
+$\mathcal{O}(T)$ factor is inevitable because we have a white box
+implementation of the oracle and we must touch every gate in that
+implementation. The $\mathcal{O}(m)$ factor is also inevitable as it
+represents the number of variables. What varies from one function to
+the other and, for a particular function, from one oracle
+implementation to the other is the $\mathcal{O}(2^n)$ factor.
 
 What our examples show is that while the worst-case for some
 algorithms is $\mathcal{O}(2^n)$,
