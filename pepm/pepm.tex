@@ -306,17 +306,17 @@ Fig.~\ref{fig:bell2}. On the left, the circuit generates the Bell
 state $(1/\sqrt{2})~ (\ket{00} + \ket{11})$ as follows. First the state
 evolves from $\ket{00}$ to $(1/\sqrt{2})~ (\ket{00} + \ket{10})$. Then
 we apply the \cx-gate whose action is to negate the second qubit when
-the first one is true. By using the symbol $x$ for $H\ket{0}$, the
-input to the \cx-gate is $\ket{x0}$. A simple case analysis shows that
-the action of \cx-gate on inputs $\ket{xy}$ is $\ket{x(x \oplus y)}$
+the first one is true. By using the symbol $x_1$ for $H\ket{0}$, the
+input to the \cx-gate is $\ket{x_10}$. A simple case analysis shows that
+the action of \cx-gate on inputs $\ket{x_1y_1}$ is $\ket{x_1(x_1 \oplus y_1)}$
 where $\oplus$ is the exclusive-or boolean operation. In other words,
-the \cx-gate transforms $\ket{x0}$ to $\ket{xx}$. Since any
+the \cx-gate transforms $\ket{x_10}$ to $\ket{x_1x_1}$. Since any
 measurement of the Bell state must produce either 00 or 11,
 a symbolic state that shares the same name in two positions
 accurately represents correlations of the entangled Bell state. Similarly,
 for the GHZ circuit on the right of Fig.~\ref{fig:bell2}, the state
-after the Hadamard gate is $\ket{x00}$ which evolves to $\ket{xx0}$
-and then to $\ket{xxx}$ again accurately capturing the entanglement
+after the Hadamard gate is $\ket{x_100}$ which evolves to $\ket{x_1x_10}$
+and then to $\ket{x_1x_1x_1}$ again accurately capturing the entanglement
 correlations.
 
 Because quantum circuits are reversible, i.e., executable forwards
@@ -510,8 +510,9 @@ from the system of constraint themselves, \emph{without needing to
 \section{Quantum Algorithms}
 \label{sec3}
 
-Let $\finset{2^{\it n}}$ denote the finite set $\{ 0,1,\ldots,(2^n-1)\}$. The
-parameter~$n$ determines the problem size for all the problems below. 
+Let $\finset{2^{\it n}}$ denote the finite set $\{ 0,1,\ldots, (2^n-1)\}$ with 
+elements generically denoted as $x$. 
+The integer ~$n>0$ determines the problem size for all the problems below. 
 In the review below, we adapt the usual presentation of the
 algorithms~\cite{doi:10.1137/S0097539796300921,deutsch,deutschJozsa,365701,doi:10.1137/S0097539795293172,nielsen_chuang_2010,10.1145/237814.237866}
 to one better suited to our context. In particular, we focus on the
@@ -523,11 +524,11 @@ pre-image of the classical function embedded in the quantum oracle.
 
 \paragraph*{Deutsch.}
 The conventional statement of the problem is to determine if a
-function $\finset{2} \rightarrow \finset{2}$ is constant or
+function $f: \finset{2} \rightarrow \finset{2}$ is constant or
 balanced. In this small case, there are just four possible functions;
-the function is balanced if it is the identity or boolean negation,
-and is constant otherwise. Equivalently, we can ask about the
-pre-image of an arbitrary boolean value (say false), i.e., the set of
+the function is balanced if it is the identity $f(x)=x$, or boolean negation 
+$f(x)=1\oplus x$, and is constant otherwise. Equivalently, we can ask about 
+the pre-image of an arbitrary boolean value (say false), i.e., the set of
 inputs that are mapped to false by the function, and check whether the
 pre-image has an even or odd number of elements. If the cardinality of
 the pre-image is even, i.e., 0 or 2, the function must be constant and
@@ -536,7 +537,7 @@ balanced.
 
 \paragraph*{Deutsch-Jozsa.}
 The problem is a generalization of the previous one: the question is
-to determine if a function $\finset{2^{\it n}} \rightarrow \finset{2}$ for
+to determine if a function $f: \finset{2^{\it n}} \rightarrow \finset{2}$ for
 some $n$ is constant or balanced. When expressed as a pre-image
 computation, the problem reduces to a query distinguishing the
 following three situations about the pre-image of a value in the range
