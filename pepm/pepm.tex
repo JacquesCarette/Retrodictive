@@ -284,7 +284,7 @@ algorithm in question.
 \caption{\label{fig:bellccore}Symbolic variant}
 \end{subfigure}
 \caption{\label{fig:bellall}A conventional quantum circuit for
-  generating a Bell state (a); its classical symbolic variant (b).}
+  generating a Bell state (a); its classical symbolic variant (b)}
 \end{figure*}
 
 Our observation is that a qubit in the special superposition
@@ -727,7 +727,7 @@ $f : \finset{2^{\it n}}\rightarrow \finset{2^{\it m}}$, we wish to
 generate the circuit for
 $g : \finset{2^{{\it n}+{\it m}}} \rightarrow \finset{2^{{\it n}+{\it
       m}}}$ such that for $x \in \finset{2^{\it n}}$ and
-$y \in \finset{2^{\it m}}$, we have $g(x,y) = (x, y \oplus f(x))$.
+$y \in \finset{2^{\it m}}$, we have $g(x,y) = (x, f(x) \oplus y)$.
 
 This leads us to the following requirements that our code must
 fulfill.
@@ -776,7 +776,7 @@ We need to be able to deal with the following variabilities:
   \item multiple representations of \emph{boolean values},
   \item multiple representations of \emph{boolean formulae}, 
   \item different evaluation means (directly, symbolically, forwards,
-    backwards, retrodictive),
+    backwards, retrodictive).
 \end{enumerate}
 
 \noindent It must also be possible to implement the following:
@@ -905,9 +905,11 @@ sufficiently efficient. Our final representation uses natural numbers as
 and-maps where the encoding of literals is now positional, and xor maps are
 again multisets of these ``bitmaps.''
 
+{\color{red} 
 As a last optimization, our circuits have a very particular property: the control
 wires are not written to, so that they are all literals. We use this
 further optimize the evaluation of single gates.
+}
 
 \subsection{Implementation}
 
@@ -944,7 +946,7 @@ We want to evaluate the \emph{effectiveness} of our evaluator by running it
 on standard algorithms, as well as its (relative) \emph{efficiency}.
 
 We first give interesting aspects of running the six quantum algorithms
-outlined in Sec.~\ref{sec5}, before commenting on complexity and workflow.
+outlined in Sec.~\ref{sec3}, before commenting on complexity and workflow.
 
 \subsection{Symbolic execution of the Algorithms}
 
@@ -959,14 +961,14 @@ and displays subtle behavior.
 We perform a retrodictive execution of the $U_f$ block with an output
 measurement~$0$, i.e., with the state $\ket{x_{n-1}\cdots x_1x_00}$.
 The result of the execution is a symbolic formula $r$ that determines
-the conditions under which $f(x_{n-1},\cdots,x_0) = 0$. When the
+the conditions under which $f(x_0, \cdots, x_{n-1}) = 0$. When the
 function is constant, the results are $0=0$ (always) or $1=0$ (never)
 \emph{regardless of how large the circuit is}. When the function is
 balanced, we get a formula that mentions the relevant variables. As
 examples, we generated all 12872 functions
 $\finset{2^6} \rightarrow \finset{2}$ that are valid inputs to the
-algorithm; the 2 constant functions and the 12870 balanced functions
-at that type. The result of the symbolic execution immediately
+algorithm; the 2 constant functions and the 12870 balanced functions. 
+The result of the symbolic execution immediately
 provides the answer but with the understanding that the generation of
 the formulae takes time depending on the distribution of zeros and
 ones. For example, here are the results of three executions for
@@ -998,11 +1000,11 @@ difficult to discern~\cite{quteprints21763}.
   refers to at least one variable must indicate a balanced function:
   the outcome of the algorithm can be immediately decided if the
   formula is anything other than 0 or 1.  Since the symbolic
-  evaluation executes the $U_f$ block ``once,'' one might conclude
+  evaluation executes the $U_f$ block ``once,'' {\it one might conclude
   that it is a ``de-quantization'' of the algorithm in the black-box
   model, producing immediate answers even in cases when the quantum
   algorithm generates complicated entangled patterns during quantum
-  evolution~\cite{djdeq}. However, it is important to remember that
+  evolution}~\cite{djdeq}. However, it is important to remember that
   our circuits are ``white-box'' rather than ``black-box'' and that
   the time taken to execute the circuit is part of the overall
   complexity of the algorithm. We defer to Sec.~\ref{sub:complexity}
@@ -1028,7 +1030,7 @@ difficult to discern~\cite{quteprints21763}.
 
 \paragraph*{Bernstein-Vazirani.}
 We show a complete small example. Let $n=8$ and let the secret string
-$s = 00111010$. In this case, the problem becomes: given a circuit for
+be $s = 00111010$. In this case, the problem becomes: given a circuit for
 $f(x) = x_1 \oplus x_3 \oplus x_4 \oplus x_5$, determine the secret
 string. There are naturally many circuits that realize the function
 $f$; in our ``white-box'' model the running time of the symbolic
@@ -1088,7 +1090,7 @@ that $f(0) = f(3) = 0$ and $f(1) = f(2) = 3$:
 \end{quantikz}
 \end{center}
 
-\noindent We have for all $x \in [0..3]$ that $f(x) = f(x \oplus 3)$
+\noindent We have for all $x \in [2^2]$ that $f(x) = f(x \oplus 3)$
 where $\oplus$ is applied bitwise, i.e., the secret value $a=3$. To
 extract this~$a$ via symbolic execution we proceed as follows. We
 first pick a random $x$, say $x = 3$, fix the initial condition
@@ -1148,7 +1150,7 @@ $u=14$ &
 $u=15$ &
   $\red{x_0x_1x_2x_3}$
 \end{tabular}
-\caption{\label{fig:Grover}Result of retrodictive execution for the Grover oracle ($n=4$, $w$ in the range $\{0..15\}$). The highlighted red subformula is the binary representation of the hidden input $u$.}
+\caption{\label{fig:Grover}Result of retrodictive execution for the Grover oracle ($n=4$, $w$ in the range $\{0..15\}$). The highlighted red subformula is the binary representation of the hidden input $u$}
 \end{figure*}
 
 \paragraph*{Grover.}
@@ -1214,7 +1216,7 @@ a=2,8 & 1 \oplus x_0 \oplus x_1 \oplus x_0x_1 = 1 & x_0x_1 = 0 & x_1 \oplus x_0x
   execution of $a^x \mod{15}$ for different values of $a$, starting
   from observed result~1 and unknown
   $x_8x_7x_6x_5x_4x_3x_2x_1x_0$. The solution for the unknown
-  variables is given in the last column.}
+  variables is given in the last column}
 \end{figure*}
 
 \paragraph*{Shor.}
@@ -1303,7 +1305,7 @@ them to be all 0, i.e., asserting that the period is 16.
   arithmetic~\cite{10.5555/3179473.3179481}. The $X$ gate adds 1
   modulo 3; the controlled version $C(X)$ only increments when the
   control is equal to 2, and the \textrm{SUM} gates maps $\ket{a,b}$
-  to $\ket{a,a+b}$.}
+  to $\ket{a,a+b}$}
 \end{figure}
 Since periods that are powers of 2 are rare and special, we turn our
 attention to factoring problems with other periods. The simplest such
@@ -1338,7 +1340,7 @@ become unwieldy. The manually optimized circuit in
 Fig.~\ref{fig:shor21} consists of just three gates; its retrodictive
 execution produces two equations: $x_0=0$ and $x_0 \neq 2$, setting
 $x_0=0$ and leaving $x_1$ unconstrained. The matching values in the
-qutrit system as 00, 10, 20 or in decimal 0, 3, 6 clearly identifying
+qutrit system are 00, 10, 20 or in decimal 0, 3, 6 clearly identifying
 the period to be 3. 
 
 \subsection{Time Measurements}
@@ -1347,21 +1349,21 @@ the period to be 3.
  \includegraphics[scale=0.30]{Figure12.pdf}
  \caption{\label{fig:DJ} Execution times for the retrodictive
    execution of the Deutsch-Jozsa algorithm on $3$ balanced functions
-   at different sizes.}
+   at different sizes}
 \end{figure}
 
 \begin{figure}
 \includegraphics[scale=0.29]{Figure13.pdf}
 \caption{\label{fig:GroverWC} Execution times for the retrodictive
   execution of the Grover algorithm on different ``secret'' values $u$
-  at different sizes.}
+  at different sizes}
 \end{figure}
 
 \begin{figure}
 \includegraphics[scale=0.30]{Figure14.pdf}
 \caption{\label{fig:GroverImpl} Execution times for the retrodictive
   execution of the Grover algorithm on secret value $u=0$ at two
-  sizes but using different ANF representations.}
+  sizes but using different ANF representations}
 \end{figure}
 
 We show a few representative set of timings for the Deutsch-Jozsa and
@@ -1411,7 +1413,7 @@ it takes $T$ steps where each step takes constant time. The result of
 this evaluation will leave $A$ intact and produce some value $b$ for
 the $B$ register.
 \item We now run the circuit backwards with the symbolic
-values $A = \ket{x_0 x_1 \ldots x_{n-1}}$ and $B = \ket{b}$. This
+values $A = \ket{ x_{n-1} \ldots x_1 x_0}$ and $B = \ket{b}$. This
 takes $T$ steps. At each step, we have $m$ ANF equations over the
 $\{x_0,x_1,\ldots,x_{n-1}\}$ variables. The size of each equation
   might be $\mathcal{O}(2^n)$ in the worst case. So the overall
@@ -1460,7 +1462,7 @@ equations or constraints. So far, this way of execution has been
 limited to the classical realm. In this work, we extended these ideas
 to the quantum realm by considering the computational quantum
 universality of Hadamard and Toffoli gates. The proposed replacement
-of $H \ket{0}$ by $\ket{x}$, where $x$ is a symbol, provides the key
+of $H \ket{0}$ by $\ket{z}$, where $z$ is a symbol, provides the key
 to capturing some of the entanglement (non-local correlations) present
 in those programs; however, the execution is classical. Surprisingly,
 in many well-known quantum algorithms (such as Deutsch, Deutsch-Jozsa,
