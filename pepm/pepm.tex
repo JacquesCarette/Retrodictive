@@ -34,9 +34,7 @@
 \newcommand{\finset}[1]{[\mathbf{#1}]}
 \newcommand{\red}[1]{{\color{red}{#1}}}
 \newcommand{\todo}[1]{\fbox{\begin{minipage}{40em}{\red{#1}}\end{minipage}}}
-
 \newcommand{\Cplx}{\ensuremath{\mathbb{C}}}
-\newcommand{\Bool}{\ensuremath{\mathbb{B}}}
 
 \theoremstyle{definition}
 \newtheorem*{insight}{Insight}
@@ -377,17 +375,16 @@ gates. It is worth noting the following special cases:
 
 The \emph{algebraic normal form}~\cite{TOKAREVA20151,10.5555/35517}
 (ANF also called ring sum normal form, Zhegalkin normal form or
-Reed-Muller expansion) of boolean functions $\Bool^n\rightarrow\Bool$
-is the exclusive-or of $\wedge$-clauses where each clause is the
-conjunction of 0 or more inputs $x_i$. Note that the conjunction of
-$0$ inputs is $1$ and that $1 \oplus F$ is the negation of $F$ which
-means that negation is not needed as a separate primitive. It is then
-easy to see that generalized Toffoli gates are essentially in ANF and
-that symbolic circuit evaluation can proceed by maintaining the ANF
-representation of the circuit. Furthermore, circuits that only use \x\
-and \cx-gates never generate any conjunctions and hence lead to
-formulae that are efficiently solvable
-classically~\cite{10.5555/35517,TOKAREVA20151}.
+Reed-Muller expansion) of boolean functions is the exclusive-or of
+$\wedge$-clauses where each clause is the conjunction of 0 or more
+inputs $x_i$. Note that the conjunction of $0$ inputs is $1$ and that
+$1 \oplus F$ is the negation of $F$ which means that negation is not
+needed as a separate primitive. It is then easy to see that
+generalized Toffoli gates are essentially in ANF and that symbolic
+circuit evaluation can proceed by maintaining the ANF representation
+of the circuit. Furthermore, circuits that only use \x\ and \cx-gates
+never generate any conjunctions and hence lead to formulae that are
+efficiently solvable classically~\cite{10.5555/35517,TOKAREVA20151}.
 
 \begin{figure*}[t]
   \centering
@@ -565,12 +562,14 @@ secret $s$. Indeed, by definition, $f(2^i) = s_i$ and hence $s_i$ is 1
 iff $2^i$ is a member of the pre-image of 1.
 
 \paragraph*{Simon.}
-We are given a 2-1 function $f : \finset{2^{\it n}} \rightarrow
-\finset{2^{\it n}}$ with the property that there exists an $a$ such $f(x) =
-f(x \oplus a)$ for all~$x$; the goal is to determine $a\in \finset{2^{\it n}}$. When
-expressed as a computation of pre-images, the problem statement
-becomes the following. Pick an arbitrary $x$ and compute the pre-image
-of $f(x)$. It must contain exactly two values one of which is~$x$. The
+We are given a 2-1 function
+$f : \finset{2^{\it n}} \rightarrow \finset{2^{\it n}}$ with the
+property that there exists an $a$ such $f(x) = f(x \oplus a)$ for
+all~$x$ where $\oplus$ in this context is bitwise exclusive-or; the
+goal is to determine $a\in \finset{2^{\it n}}$. When expressed as a
+computation of pre-images, the problem statement becomes the
+following. Pick an arbitrary $x$ and compute the pre-image of
+$f(x)$. It must contain exactly two values one of which is~$x$. The
 problem then reduces to finding the other value in the pre-image.
 
 \paragraph*{Grover.}
@@ -608,7 +607,7 @@ pre-image of $f(x)$ and query it to determine the period.
     box {$\mathit{QFT}$} a;
     measure a;
     \end{yquant*}
-    \draw[line width=3pt, ->, blue] (0,-1.1) .. controls (2.5,-0.1) and (6,-1.6) .. (9,-1);
+    \draw[line width=2pt, ->, blue] (0,-1.1) .. controls (2.5,-0.1) and (6,-1.6) .. (9,-1);
   \end{tikzpicture}
   \caption{Conventional Flow}
   \end{subfigure}
@@ -634,8 +633,8 @@ pre-image of $f(x)$ and query it to determine the period.
     box {$\mathit{QFT}$} a;
     measure a;
   \end{yquant*}
-  \draw[line width=3pt, blue] (0,-1.6) .. controls (5.5,-2) and (11,-1.6) .. (2,-1.2);
-  \draw[line width=3pt, ->, blue] (2,-1.2) .. controls (0.5,-0.8) and (7,-0.2) .. (9,-1.2);
+  \draw[line width=2pt, blue] (0,-1.6) .. controls (5.5,-2.1) and (10,-1.4) .. (2.1,-1.45);
+  \draw[line width=2pt, ->, blue] (2.11,-1.45) .. controls (0.5,-0.7) and (7,-0.2) .. (9,-1.2);
   \end{tikzpicture}
   \caption{\label{fig:retroflow}Retrodictive Flow}
   \end{subfigure}
@@ -677,12 +676,12 @@ constraints on $x$ that enable us to solve the problem in question.
         operator/minimum width=7mm,
         operator/separation=3mm,
         register/separation=10mm]
-    qubits {$\ket{\phi}_n$} a;
+    qubits {$\ket{x}_n$} a;
     qubits {$\ket{\psi}_m$} b;
     [x radius=7mm, y radius=7mm]
     box {$U_f$} (a,b);
-    output {$\ket{\phi}_n$} a;
-    output {$\ket{f(\phi) \oplus  \psi }_m$} b;
+    output {$\ket{x}_n$} a;
+    output {$\ket{f(x) \oplus  \psi }_m$} b;
     \end{yquant*}
   \end{tikzpicture}
 \caption{\label{fig:CircuitAbstraction}Circuit Abstraction}
@@ -723,11 +722,12 @@ circuit implementing the $U_f$ is collapsed to just one function
 call. Of course, in any actual use of the algorithm, this circuit must
 be implemented and its execution time must be accounted
 for. Therefore, we want to---offline--- synthesize a circuit from the
-boolean specification, i.e., for $f : \Bool^n \rightarrow\Bool$, we
-wish to generate the circuit for
-$g : \Bool^{n+1} \rightarrow \Bool^{n+1}$ such that for
-$\overline{x} : \Bool^n$ we have
-$g(\overline{x},y) = (\overline{x}, y \oplus f(\overline{x}))$.
+boolean specification, i.e., for
+$f : \finset{2^{\it n}}\rightarrow \finset{2^{\it m}}$, we wish to
+generate the circuit for
+$g : \finset{2^{{\it n}+{\it m}}} \rightarrow \finset{2^{{\it n}+{\it
+      m}}}$ such that for $x \in \finset{2^{\it n}}$ and
+$y \in \finset{2^{\it m}}$, we have $g(x,y) = (x, y \oplus f(x))$.
 
 This leads us to the following requirements that our code must
 fulfill.
