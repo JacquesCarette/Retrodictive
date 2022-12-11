@@ -313,7 +313,7 @@ where $\oplus$ is the exclusive-or boolean operation. In other words,
 the \cx-gate transforms $\ket{x0}$ to $\ket{xx}$. Since any
 measurement of the Bell state must produce either 00 or 11,
 a symbolic state that shares the same name in two positions
-accurately represents the entangled Bell state. Similarly,
+accurately represents correlations of the entangled Bell state. Similarly,
 for the GHZ circuit on the right of Fig.~\ref{fig:bell2}, the state
 after the Hadamard gate is $\ket{x00}$ which evolves to $\ket{xx0}$
 and then to $\ket{xxx}$ again accurately capturing the entanglement
@@ -366,7 +366,7 @@ exclusive-or of the target $c$ with the conjunction of the result of
 testing each qubit against its corresponding target boolean. Note that
 $\left(a_i == 1\right)$ can be expressed as just $a_i$, and
 $\left(a_i == 0\right)$ can be expressed as $1 \oplus a_i$.  Such
-generalized Toffoli gates with~$n$ control qubits are called $c^nx$
+generalized Toffoli gates with~$n$ control qubits are called $\textsc{c}^n\x$
 gates. It is worth noting the following special cases:
 \begin{itemize}
   \item for $n=0$, we get the \emph{not} gate \x,
@@ -510,10 +510,9 @@ from the system of constraint themselves, \emph{without needing to
 \section{Quantum Algorithms}
 \label{sec3}
 
-Let $\finset{n}$ denote the finite set $\{ 0,1,\ldots,(n-1)\}$. The
-parameter~$n$ determines the problem size for all the problems below
-(except Deutsch which is a fixed sized problem). In the review below,
-we adapt the usual presentation of the
+Let $\finset{2^{\it n}}$ denote the finite set $\{ 0,1,\ldots,(2^n-1)\}$. The
+parameter~$n$ determines the problem size for all the problems below. 
+In the review below, we adapt the usual presentation of the
 algorithms~\cite{doi:10.1137/S0097539796300921,deutsch,deutschJozsa,365701,doi:10.1137/S0097539795293172,nielsen_chuang_2010,10.1145/237814.237866}
 to one better suited to our context. In particular, we focus on the
 heart of the algorithm, the quantum oracle, which encapsulates the
@@ -550,7 +549,7 @@ domain indicating that the function is balanced.
 We are given a function $f : \finset{2^{\it n}} \rightarrow \finset{2}$
 that hides a secret number $s \in \finset{2^{\it n}}$. We are promised the
 function is defined using the binary representations $\sum_i^{n-1}
-x_i$ and $\sum_i^{n-1} s_i$ of $x$ and $s$ respectively as follows:
+x_i$ and $\sum_i^{n-1} s_i$ of $x$ and $s$, respectively, as follows:
 \[
 f(x) = \sum_{i=0}^{n-1} s_ix_i \mod{2} \ .
 \]
@@ -567,7 +566,7 @@ iff $2^i$ is a member of the pre-image of 1.
 \paragraph*{Simon.}
 We are given a 2-1 function $f : \finset{2^{\it n}} \rightarrow
 \finset{2^{\it n}}$ with the property that there exists an $a$ such $f(x) =
-f(x \oplus a)$ for all~$x$; the goal is to determine $a$. When
+f(x \oplus a)$ for all~$x$; the goal is to determine $a\in \finset{2^{\it n}}$. When
 expressed as a computation of pre-images, the problem statement
 becomes the following. Pick an arbitrary $x$ and compute the pre-image
 of $f(x)$. It must contain exactly two values one of which is~$x$. The
@@ -579,7 +578,8 @@ such that there is a unique $u \in \finset{2^{\it n}}$ such that $f(u)=1$.
 The problem is to find this $u$.
 
 \paragraph*{Shor.}
-We are given a periodic function $f(x) = a^x \mod{2^n}$ and the goal
+We are given a periodic function $f(x) = a^x \mod{2^n}$, such 
+that $a<2^n$ with gcd$(a,2^n)=1$, and the goal
 is to determine the period. As a computation over pre-images, the
 problem can be recast as follows. For an arbitrary $x$, compute the
 pre-image of $f(x)$ and query it to determine the period.
@@ -666,7 +666,7 @@ together with the initial conditions of the output register,
 sufficient to symbolically execute the circuit. In each case, instead
 of the conventional execution flow depicted in
 Fig.~\ref{fig:templateQC}(a), we find a possible measurement
-outcome~$w$ at barrier (2) and perform a symbolic retrodictive
+outcome~$w$ at barrier 2 and perform a symbolic retrodictive
 execution with a state $\ket{xw}$ going backwards to collect the
 constraints on $x$ that enable us to solve the problem in question.
 
@@ -681,7 +681,7 @@ constraints on $x$ that enable us to solve the problem in question.
     [x radius=7mm, y radius=7mm]
     box {$U_f$} (a,b);
     output {$\ket{\phi}_n$} a;
-    output {$\ket{\psi \oplus f(\phi)}_m$} b;
+    output {$\ket{f(\phi) \oplus  \psi }_m$} b;
     \end{yquant*}
   \end{tikzpicture}
 \caption{\label{fig:CircuitAbstraction}Circuit Abstraction}
