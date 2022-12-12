@@ -4,7 +4,7 @@
 %%% 'Symbolic Execution of Hadamard-Toffoli Quantum Circuits'
 %%% by Jacques Carette, Gerardo Ortiz, and Amr Sabry.
 %%%
-\acmPrice{15.00}
+\acmPrice{}
 \acmDOI{10.1145/3571786.3573018}
 \acmYear{2023}
 \copyrightyear{2023}
@@ -15,7 +15,7 @@
 \received{2022-10-18}
 \received[accepted]{2022-11-15}
 
-\bibliographystyle{ACM-Reference-Format}
+%% \bibliographystyle{ACM-Reference-Format} %% at end
 \citestyle{acmauthoryear}   %% For author/year citations
 
 % 12 pages
@@ -51,32 +51,8 @@
 \newtheorem*{insight}{Insight}
 \newtheorem*{signif}{Significance}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Hacking needed for balancing
-\makeatletter
+\hyphenation{slight-ly}
 
-% Disable acmart's automatic invocation of \balance from \AtEndDocument,
-% which is usually too late.
-\global\@ACM@balancefalse
-
-% Invoke \balance from the first \bibitem on the last page of the document.
-\newif\if@balanceissued\@balanceissuedfalse
-\def\@balancelastpageonce{%
-  \if@balanceissued
-    \relax
-  \else
-    \ifnum\getrefnumber{TotPages}=\value{page}%
-      \balance
-      \@balanceissuedtrue
-    \fi
-  \fi
-}
-\pretocmd{\bibitem}{\@balancelastpageonce}
-  {} % on success
-  {\@latex@error{Patching \bibitem failed}{\@ehd}}
-
-\makeatother
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 
 \title[Symbolic Quantum Execution]{Symbolic Execution of \\
@@ -621,7 +597,7 @@ problem can be recast as follows. For an arbitrary $x$, compute the
 pre-image of $f(x)$ and query it to determine the period.
 
 \begin{figure}[t]
-  \begin{subfigure}{0.5\textwidth}
+  \begin{subfigure}{0.48\textwidth}
   \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
     \begin{yquant*}[operators/every barrier/.append style={red, thick},
         operator/minimum width=7mm,
@@ -647,7 +623,7 @@ pre-image of $f(x)$ and query it to determine the period.
   \end{tikzpicture}
   \caption{Conventional Flow}
   \end{subfigure}
-  \begin{subfigure}{0.5\textwidth}
+  \begin{subfigure}{0.48\textwidth}
   \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
     \begin{yquant*}[operators/every barrier/.append style={red, thick},
         operator/minimum width=7mm,
@@ -1511,6 +1487,8 @@ of the power of quantum computation.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\bibliographystyle{ACM-Reference-Format}
 \bibliography{cites.bib}
+
 \end{document}
 
