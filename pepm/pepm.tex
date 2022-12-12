@@ -905,11 +905,10 @@ sufficiently efficient. Our final representation uses natural numbers as
 and-maps where the encoding of literals is now positional, and xor maps are
 again multisets of these ``bitmaps.''
 
-{\color{red} 
 As a last optimization, our circuits have a very particular property: the control
 wires are not written to, so that they are all literals. We use this
-further optimize the evaluation of single gates.
-}
+further optimize the evaluation of single gates, where we eagerly and directly compute the
+ANF rather than waiting for later demand.
 
 \subsection{Implementation}
 
