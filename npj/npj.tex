@@ -67,7 +67,11 @@ TODO:
     \item Conclusion: no need for complex numbers in our examples but possible to deal with them by using two real numbers etc
     \item change tone so that we don't accidentally convey that we are more efficient in a formal and conventional complexity theoretic model. Obfuscated circuits and complexity. Universality of ANF (boolean functions). Beyond Booleans needs thinking. 
     \item Differentiate between retrodictive computation and symbolic evaluation. 
-    
+\item Quantum computing with only the states $\{\ket{0}, \ket{1}, \ket{+}\}$  (explicitly without the $\ket{-}$ state) has a local hidden variable model. Is it still faster than classical? Can we write any algorithms in that setting?
+\item General quantum state: $\cos(\theta/2) \ket{0} + \sin(\theta/2) e^{i\phi} \ket{1}$. Seems we never need $\theta$; can always express amplitude difference in phase space? when phase is always zero, we get classical computing?
+  \item Simon problem with 4 qubits; Gottesman-Knill says classically
+    simulatable Result $\ket{00}+\ket{11}$ or $\ket{01}+\ket{10}$; QFT
+    extracts hidden $a$ from either; what would AQFT do?
 \end{itemize}
 
 {\it Introduction.--} Quantum evolution is time-reversible and yet this reversibility 
