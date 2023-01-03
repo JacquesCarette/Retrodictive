@@ -16,23 +16,23 @@
 \received[accepted]{2022-11-15}
 
 %% \bibliographystyle{ACM-Reference-Format} %% at end
-\citestyle{acmauthoryear}   %% For author/year citations
 
 % 12 pages
 
 \usepackage[english]{babel}
-\usepackage{amsthm}
-\usepackage{graphicx,color}
-\usepackage{subcaption}
-\usepackage{braket}
-\usepackage{minted}
-\usepackage{yquant}
-\usepackage{multirow}
-\usepackage{enumitem}
-\usepackage{tikz}
+\usepackage{amsthm}         % insight, significance
+\usepackage{graphicx,color} % to color things in output
+\usepackage{subcaption}     % for subfigure
+\usepackage{braket}         % for bra/ket notation
+\usepackage{minted}         % for code listings
+\usepackage{yquant}         % for circuit diagrams
+\usepackage{enumitem}       % nicer enumerations
+\usepackage{tikz}           % for various diagrams
 \usetikzlibrary{quantikz,fit,quotes,svg.path}
-\usepackage{microtype}
-\usepackage{balance}
+
+% recommended
+\usepackage[T1]{fontenc}
+\usepackage{microtype}      % more precise control of spacing
 
 \newcommand{\h}[1]{\mintinline{haskell}{#1}}
 
@@ -51,11 +51,12 @@
 \newtheorem*{insight}{Insight}
 \newtheorem*{signif}{Significance}
 
-\hyphenation{slight-ly}
+\babelhyphenation[english]{slight-ly}
 
 \begin{document}
 
-\title[Symbolic Quantum Execution]{Symbolic Execution of \\
+\title[Symbolic Execution of Hadamard-Toffoli Quantum Circuits]
+ {Symbolic Execution of \\
   Hadamard-Toffoli Quantum Circuits}
 
 \author{Jacques Carette}
@@ -565,7 +566,7 @@ f(x) = \sum_{i=0}^{n-1} s_ix_i \mod{2} \ .
 \]
 The goal is to determine the secret number $s$.
 
-Expressing the problem as a pre-image calculation is slightly more
+Expressing the problem as a pre-image computation is slightly more
 involved than in the previous two cases. To determine~$s$, we compute
 the pre-image of a value in the range of the function, and then make
 $n$ queries to this pre-image. Query $i$ asks whether $2^i$ is a
@@ -959,7 +960,7 @@ on standard algorithms, as well as its (relative) \emph{efficiency}.
 We first give interesting aspects of running the six quantum algorithms
 outlined in Sec.~\ref{sec3}, before commenting on complexity and workflow.
 
-\subsection{Symbolic execution of the Algorithms}
+\subsection{Symbolic Execution of the Algorithms}
 
 Most of the algorithms end up generating differently shaped constraint
 systems, and thus each need to be examined on its own. It is worth
