@@ -128,30 +128,15 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% don't use these; but see the legend
-\begin{comment}
-\begin{frame}
+\section[Background]{Background}
 
+\subsection[Symbolic]{Qubits as symbolic variables}
+\begin{frame}
 \frametitle{Quantum Circuit}
 
 \begin{figure}[b]
   \centering
-\begin{subfigure}[b]{.25\textwidth}
-    \centering
-    \begin{tikzpicture}[scale=1.0]
-   \begin{yquant*}[register/minimum height=0.8cm]
-   qubit {$\ket0$} x;
-   qubit {$\ket0$} y;
-   box {$H$} x;
-   cnot y | x;
-   measure x;
-   measure y;
-  \end{yquant*}
-\end{tikzpicture}
-\caption{\label{fig:bell}Bell circuit}
-\end{subfigure}
-\qquad
-\begin{subfigure}[b]{.25\textwidth}
+\begin{subfigure}[b]{.45\textwidth}
     \centering
     \begin{tikzpicture}[scale=1.0]
    \begin{yquant*}[register/minimum height=0.8cm]
@@ -166,7 +151,7 @@
 \caption{\label{fig:bellqcore}Quantum core}
 \end{subfigure}
 \qquad
-\begin{subfigure}[b]{.25\textwidth}
+\begin{subfigure}[b]{.45\textwidth}
     \centering
     \begin{tikzpicture}[scale=1.0]
    \begin{yquant*}[register/minimum height=0.8cm]
@@ -179,24 +164,28 @@
 \end{tikzpicture}
 \caption{\label{fig:bellccore}Classical core}
 \end{subfigure}
-%\caption{\label{fig:bellall}A conventional quantum circuit with
-%  initial conditions and measurement (a); its quantum core without
-%  measurement and with unspecified initial and final conditions (b); and
-%  its classical core without explicit quantum superpositions (c).}
 \end{figure}
 
+To do: show trace of running and symbolic running.
 Legend:
   $$ \ket{0} = \text{false} = 0 $$
   $$ \ket{1} = \text{true} = 1 $$
 \end{frame}
-\end{comment}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\section[Background]{Background}
+\subsection[ANF]{ANF and symbolic evaluation}
 
-\subsection[Symbolic]{Qubits as symbolic variables}
-\subsection[ANF]{AND and symbolic evaluation}
+\begin{frame}
+\frametitle{Toffoli gates}
+Define generalized Toffoli
+\end{frame}
+
+\begin{frame}
+\frametitle{ANF}
+Define ANF. Show example (trace) of Figure 4 from paper. 
+\end{frame}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section[Examples]{Examples}
