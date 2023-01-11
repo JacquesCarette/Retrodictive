@@ -7,6 +7,7 @@
 
 \usepackage[english]{babel}
 \usepackage{amsthm}
+\usepackage{comment} % to let us comment stuff out
 
 \usepackage{times}
 \usepackage{physics}
@@ -28,10 +29,10 @@
 \newcommand{\red}[1]{{\color{red}{#1}}}
 \newcommand{\Bool}{\ensuremath{\mathbb{B}}}
 
-\usepackage{multirow}
-\usepackage{totpages}
+% \usepackage{multirow}
+% \usepackage{totpages}
 \usepackage{hyperref}
-\usepackage{booktabs}
+% \usepackage{booktabs}
 
 \hypersetup{
   urlcolor=blue,
@@ -120,8 +121,15 @@
 
 \section[Introduction]{Introduction}
 
+% not sure if 3 slides or just 1 with transitions?
+\subsection[ASTs]{ASTs}
+\subsection[Probabilistic]{Probabilistic Programs}
+\subsection[Quantum]{Quantum Programs}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% don't use these; but see the legend
+\begin{comment}
 \begin{frame}
 
 \frametitle{Quantum Circuit}
@@ -181,12 +189,19 @@ Legend:
   $$ \ket{0} = \text{false} = 0 $$
   $$ \ket{1} = \text{true} = 1 $$
 \end{frame}
+\end{comment}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section[Background]{Background}
+
+\subsection[Symbolic]{Qubits as symbolic variables}
+\subsection[ANF]{AND and symbolic evaluation}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section[Examples]{Examples}
+% - Examples of quantum algorithms (how much detail?)
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{frame}
 
@@ -254,6 +269,23 @@ Legend:
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section[Retrodictive]{Retrodictive Flow}
+
+% - Retrodictive flow and circuit template
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section[Software]{Software Description}
+\subsection[Requirements]{Requirements}
+\subsection[Design]{Design}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section[Evaluation]{Evaluation}
+\subsection[Running]{Running examples}
+\subsection[Timings]{Timings}
+\subsection[Complexity]{Complexity}
 
 \begin{frame}
 
@@ -416,5 +448,10 @@ $u=15$ &
 constraining them to be all 0, i.e.,
 asserting that the period is 16.
 \end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% - Conclusion (i.e. key ideas and take home msg)
+\section[Conclusion]{Conclusion}
+
 
 \end{document}
