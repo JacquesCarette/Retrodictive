@@ -128,6 +128,64 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section[Big Picture]{Big Picture}
+
+\begin{frame}
+  \frametitle{Quantum Circuits}
+    \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
+    \begin{yquant*}[operators/every barrier/.append style={red, thick},
+        operator/minimum width=7mm,
+        operator/separation=1mm,
+        register/separation=10mm]
+    qubits {$\ket0^{\otimes n}$} a;
+    qubits {$\ket{\psi}_m$} b;
+    box {$H^{\otimes n}$} a;
+    ["barrier 1"]
+    barrier (-);
+    [x radius=7mm, y radius=7mm]
+    box {$U_f$} (a,b);
+    ["barrier 2"]
+    barrier (-);
+    measure b;
+    discard b;
+    ["barrier 3"]
+    barrier (-);
+    box {$\mathit{QFT}$} a;
+    measure a;
+    \end{yquant*}
+  \end{tikzpicture}
+\begin{itemize}
+\item $U_f$ is a \emph{classical reversible} circuit representing the
+  function of interest; 
+\item $H$ is the Hadamard gate; it is used to introduce \emph{quantum
+    parallelism} to evaluate $U_f$ for many inputs simultaneously.
+\item $\mathit{QFT}$ is the Quantum Fourier Transform used to analyze
+  the spectral properties of the output.  
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Cost Models}
+  \begin{itemize}
+\item White-box model: \emph{We} implement $U_f$ and the cost of
+  implementing it and the cost of using it is counted as part of the
+  overall complexity
+\item Black-box model: ``Someone'' implements $U_f$ and gives us
+  access to it; the complexity analysis only counts the number of
+  times $U_f$ is used. There are different cases based on what kind of
+  access we are given:
+  \begin{itemize}
+    \item Query $U_f$ on a classical input 
+    \item Query $U_f$ on a quantum superposition
+    \item Query $U_f$ on a \emph{symbolic formula} (\textbf{NEW!})
+  \end{itemize}
+    \end{itemize}
+  
+
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section[Background]{Background}
 
 \subsection[Symbolic]{Qubits as symbolic variables}
