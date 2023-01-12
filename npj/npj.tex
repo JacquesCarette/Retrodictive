@@ -62,6 +62,25 @@ Bernstein-Vazirani, Simon, Grover, and Shor's algorithms.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 TODO:
 \begin{itemize}
+\item Cost model:
+  \begin{itemize}
+  \item White-box model: \emph{We} implement $U_f$ and the cost of
+  implementing it and the cost of using it is counted as part of the
+  overall complexity
+  \item Black-box model: ``Someone'' implements $U_f$ and gives us
+  access to it; the complexity analysis only counts the number of
+  times $U_f$ is used. There are different cases based on what kind of
+  access we are given:
+  \begin{itemize}
+    \item Query $U_f$ on a classical input 
+    \item Query $U_f$ on a quantum superposition
+    \item Query $U_f$ on a \emph{symbolic formula} (\textbf{NEW!})
+  \end{itemize}
+  \end{itemize}
+\item Retro important because when input is $\ket{1}$ (or anything
+  other than $\ket{0}$ really, we can't use symbolic eval; but we can
+ in those cases use $\ket{0}$ as a possble future and use symbolic in
+ a retrodictive manner. (Need to work out Deutsch in super detail)
 \item Van den Nest ??
   \item Given prob. program: (1) greedy algorithm: pick the best
     option locally at every step; (2) generate exponential tree
