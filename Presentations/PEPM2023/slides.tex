@@ -224,12 +224,12 @@ H\ket{0} &=& \shalf\ket{0} + \shalf\ket{1}
 
 \begin{overprint}
 \onslide<1>
-So on two qubits:
-\[\begin{array}{rcl}
-H\otimes H\quad\ket{00} &=& H \otimes \mathsf{id} \quad\shalf(\ket{00} + \ket{01}) \\
-                   &=& \shalf\shalf(\ket{00} + \ket{10} + \ket{01} + \ket{11}) \\
-                   &=& \half(\ket{00} + \ket{10} + \ket{01} + \ket{11}) \\
-\end{array}\]
+So the top two wires are in the state
+\[ \shalf(\ket{0}+\ket{1}) \otimes 
+   \shalf(\ket{0}+\ket{1}) 
+   = 
+\half(\ket{00} + \ket{10} + \ket{01} + \ket{11})
+\]
 \onslide<2>
 Thus for the whole circuit:
 \[\begin{array}{rcl}
@@ -310,8 +310,11 @@ So
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section[Big Picture]{Big Picture}
 
+\subsection[Retrodictive]{Template and Retrodictive}
 \begin{frame}
   \frametitle{Quantum Circuits}
+\begin{overprint}
+\onslide<1>
     \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
     \begin{yquant*}[operators/every barrier/.append style={red, thick},
         operator/minimum width=7mm,
@@ -334,6 +337,59 @@ So
     measure a;
     \end{yquant*}
   \end{tikzpicture}
+
+\onslide<2>
+  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
+    \begin{yquant*}[operators/every barrier/.append style={red, thick},
+        operator/minimum width=7mm,
+        operator/separation=1mm,
+        register/separation=10mm]
+    qubits {$\ket0^{\otimes n}$} a;
+    qubits {$\ket{\psi}_m$} b;
+    box {$H^{\otimes n}$} a;
+    ["barrier 1"]
+    barrier (-);
+    [x radius=7mm, y radius=7mm]
+    box {$U_f$} (a,b);
+    ["barrier 2"]
+    barrier (-);
+    measure b;
+    discard b;
+    ["barrier 3"]
+    barrier (-);
+    box {$\mathit{QFT}$} a;
+    measure a;
+    \end{yquant*}
+    \draw[line width=2pt, ->, blue] (0,-1.1) .. controls (2.5,-0.1) and (6,-1.6) .. (9,-1);
+  \end{tikzpicture}
+
+\onslide<3>
+  \begin{tikzpicture}[scale=0.7,every label/.style={rotate=40, anchor=south west}]
+    \begin{yquant*}[operators/every barrier/.append style={red, thick},
+        operator/minimum width=7mm,
+        operator/separation=1mm,
+        register/separation=10mm]
+    qubits {$\ket0^{\otimes n}$} a;
+    qubits {$\ket{\psi}_m$} b;
+    box {$H^{\otimes n}$} a;
+    ["barrier 1"]
+    barrier (-);
+    [x radius=7mm, y radius=7mm]
+    box {$U_f$} (a,b);
+    ["barrier 2"]
+    barrier (-);
+    measure b;
+    discard b;
+    ["barrier 3"]
+    barrier (-);
+    box {$\mathit{QFT}$} a;
+    measure a;
+  \end{yquant*}
+  \draw[line width=2pt, blue] (0,-1.6) .. controls (5.5,-2.1) and (10,-1.4) .. (2.1,-1.45);
+  \draw[line width=2pt, ->, blue] (2.11,-1.45) .. controls (0.5,-0.7) and (7,-0.2) .. (9,-1.2);
+  \end{tikzpicture}
+
+\end{overprint}
 \begin{itemize}
 \item $U_f$ is a \emph{classical reversible} circuit representing the
   function of interest; 
@@ -343,6 +399,8 @@ So
   the spectral properties of the output.  
 \end{itemize}
 \end{frame}
+
+\subsection[Cost Models]{Cost Models}
 
 \begin{frame}
   \frametitle{Cost Models}
@@ -365,115 +423,14 @@ So
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\begin{frame}
-\frametitle{Quantum Circuit}
-
-\begin{figure}[b]
-  \centering
-\begin{subfigure}[b]{.45\textwidth}
-    \centering
-    \begin{tikzpicture}[scale=1.0]
-   \begin{yquant*}[register/minimum height=0.8cm]
-   qubit {$\ket{x_1}$} x;
-   qubit {$\ket{y_1}$} y;
-   box {$H$} x;
-   cnot y | x;
-   output {$\ket{x_2}$} x;
-   output {$\ket{y_2}$} y;
-  \end{yquant*}
-\end{tikzpicture}
-\caption{\label{fig:bellqcore}Quantum core}
-\end{subfigure}
-\qquad
-\begin{subfigure}[b]{.45\textwidth}
-    \centering
-    \begin{tikzpicture}[scale=1.0]
-   \begin{yquant*}[register/minimum height=0.8cm]
-   qubit {$\ket{x_1}$} x;
-   qubit {$\ket{y_1}$} y;
-   cnot y | x;
-   output {$\ket{x_2}$} x;
-   output {$\ket{y_2}$} y;
-  \end{yquant*}
-\end{tikzpicture}
-\caption{\label{fig:bellccore}Classical core}
-\end{subfigure}
-\end{figure}
-
-To do: show trace of running and symbolic running.
-Legend:
-  $$ \ket{0} = \text{false} = 0 $$
-  $$ \ket{1} = \text{true} = 1 $$
-\end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\subsection[ANF]{ANF and symbolic evaluation}
-
-\begin{frame}
-\frametitle{Toffoli gates}
-Define generalized Toffoli
-\end{frame}
-
-\begin{frame}
-\frametitle{ANF}
-Define ANF. Show example (trace) of Figure 4 from paper. 
-\end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 \section[Examples]{Examples}
 % - Examples of quantum algorithms (how much detail?)
 
-
-\begin{frame}
-
-\frametitle{Examples part I}
-
-\begin{figure}[b]
-    \centering
-    \begin{tikzpicture}[scale=1.0]
-   \begin{yquant*}[register/minimum height=1.5cm]
-   qubit {$\ket{x_1}$} x;
-   qubit {$\ket{y_1}$} y;
-   box {$H$} x;
-   cnot y | x;
-   output {$\ket{x_2}$} x;
-   output {$\ket{y_2}$} y;
-  \end{yquant*}
-\end{tikzpicture}
-\caption{\label{fig:bellqcore2}Quantum core}
-\end{figure}
-
-\end{frame}
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{frame}
 
-\frametitle{Examples part II}
-
-\begin{figure}[b]
-    \centering
-  \begin{tikzpicture}[scale=1.0]
-   \begin{yquant*}[register/minimum height=1.5cm]
-   qubit {$\ket{x_1}$} x;
-   qubit {$\ket{y_1}$} y;
-   cnot y | x;
-   output {$\ket{x_2}$} x;
-   output {$\ket{y_2}$} y;
-   \end{yquant*}
-  \end{tikzpicture}
-\caption{\label{fig:bellccore2}Classical core}
-\end{figure}
-
-\end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\begin{frame}
-
-\frametitle{Real Examples}
+\frametitle{Examples}
 
 \begin{enumerate}
   \item Deutsch
@@ -484,18 +441,7 @@ Define ANF. Show example (trace) of Figure 4 from paper.
   \item Shor
 \end{enumerate}
 
-\pause
-
-\vspace*{1cm}
-\red{caveat: Black-Box vs White Box}
-
 \end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\section[Retrodictive]{Retrodictive Flow}
-
-% - Retrodictive flow and circuit template
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
