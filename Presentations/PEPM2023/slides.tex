@@ -87,7 +87,7 @@
 \newcommand{\half}{\frac{1}{2}}
 \newcommand{\shalf}{\frac{1}{\sqrt{2}}}
 
-% \newcommand{\pub}[1]{\textcolor{purple}{#1}}
+\newcommand{\pub}[1]{\textcolor{purple}{#1}}
 
 \begin{document}
 
@@ -148,8 +148,8 @@
 \end{minipage}
 \begin{minipage}{0.48\textwidth}
 \[\begin{array}{rcl}
-\cx(0,b) &=& b \\
-\cx(1,b) &=& \overline{b}
+\cx(0,b) &=& (0,b) \\
+\cx(1,b) &=& (1,\overline{b})
 \end{array}\]
 \end{minipage}
 
@@ -250,28 +250,50 @@ Thus for the whole circuit:
 \subsection[Symbolic]{Qubits as symbolic variables}
 
 \begin{frame}
-  \frametitle{Symbolic Execution (NEW)}
+  \frametitle{Symbolic Execution (\pub{new})}
   
+Replace $\shalf (\ket{0} + \ket{1})$ by a symbolic variable:
+
 \begin{tikzpicture}[scale=1.0,every label/.style={rotate=40, anchor=south west}]
 \begin{yquant*}[operators/every barrier/.append style={red, thick}]
-    qubit {$a_0=x$} a0;
-    qubit {$a_1=y$} a1;
-    qubit {$b_0=\ket0$} b0;
-    qubit {$b_1=\ket0$} b1;
+    qubit {$\ket0$} a0;
+    qubit {$\ket0$} a1;
+    qubit {$\ket0$} b0;
+    qubit {$\ket0$} b1;
+    box {$H$} a0;
+    box {$H$} a1;
     cnot b0 | a0;
     cnot b1 | a0;
     cnot b0 | a1;
     cnot b1 | a1;
     align -;
-    output {$m_0$} a0;
-    output {$m_1$} a1;
-    output {$r_0$} b0;
-    output {$r_1$} b1;
+    output {} a0;
+    output {}  a1;
+    output {}  b0;
+    output {}  b1;
 \end{yquant*}
 \end{tikzpicture}
-\medskip
-Replace $1/\sqrt{2} (\ket{0} + \ket{1})$ by a symbolic variable.
-Maintain formula in algebraic normal form.
+$\rightsquigarrow$
+\begin{tikzpicture}[scale=1.0,every label/.style={rotate=40, anchor=south west}]
+\begin{yquant*}[operators/every barrier/.append style={red, thick}]
+    qubit {$x$} a0;
+    qubit {$y$} a1;
+    qubit {$\ket0$} b0;
+    qubit {$\ket0$} b1;
+    cnot b0 | a0;
+    cnot b1 | a0;
+    cnot b0 | a1;
+    cnot b1 | a1;
+    align -;
+    output {}  a0;
+    output {}  a1;
+    output {}  b0;
+    output {}  b1;
+\end{yquant*}
+\end{tikzpicture}
+
+Maintain formula in algebraic normal form (ANF).
+
 So
 \[\begin{array}{rcl}
     \ket{xy00} &\Rightarrow&
