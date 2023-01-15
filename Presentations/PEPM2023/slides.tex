@@ -89,25 +89,10 @@
 \newcommand{\shalf}{\frac{1}{\sqrt{2}}}
 
 \newcommand{\pub}[1]{\textcolor{purple}{#1}}
+\newcommand{\blu}[1]{\textcolor{blue}{#1}}
 
 \begin{document}
 
-%% Outline
-%
-% - Introduction
-%   - probabilistic programs  (pictures + trace)
-%   - quantum programs        (pictures + trace)
-% - Qubits as symbolic variables
-% - ANF and symbolic evaluation
-% - Examples of quantum algorithms (how much detail?)
-% - Retrodictive flow and circuit template
-% - Requirement
-% - Design, some impl. details
-% - Evaluation
-%   - results on some of the examples
-%   - timings
-%   - complexity
-% - Conclusion (i.e. key ideas and take home msg)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \hoffset=-.4in %removing side bar for these frames
@@ -285,14 +270,6 @@ Replace $\shalf (\ket{0} + \ket{1})$ by a symbolic variable:
 \end{yquantgroup}
 \end{center}
 
-
-
-
-
-
-
-
-
 Maintain formula in algebraic normal form (ANF).
 
 So
@@ -448,6 +425,34 @@ So
 
 \section[Software]{Software Description}
 \subsection[Requirements]{Requirements}
+\begin{frame}
+  \frametitle{Requirements}
+  Variabilities:
+\begin{enumerate}
+  \item \pub{multiple representations} of boolean \blu{values},
+  \item \pub{multiple representations} of boolean \blu{formulae}, 
+  \item \pub{different evaluation} means (directly, symbolically, forwards,
+    backwards, retrodictive).
+\end{enumerate}
+
+\noindent Possible to implement:
+\begin{enumerate}
+    \setcounter{enumi}{3}
+  \item a \pub{reusable representation} of our circuits,
+  \item a \pub{reusable representation} of the inputs, outputs and ancillae,
+  \item a \pub{synthesis algorithm} for $\Bool^n\rightarrow\Bool$ functions
+  \item a \pub{reusable library} of circuits
+\end{enumerate}
+
+Also, non-functional characteristics to hold:
+\begin{enumerate}
+    \setcounter{enumi}{7}
+  \item evaluation of \blu{reasonably-sized circuits} should be 
+    \pub{relatively efficient}.
+\end{enumerate}
+
+\end{frame}
+
 \subsection[Design]{Design}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
