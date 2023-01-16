@@ -708,7 +708,31 @@ asserting that the period is 16.
 
 \begin{frame}
   \frametitle{Complexity}
-  Some complexity words here
+Problem: circuit with $T$ generalized Toffoli gates over $n+m$
+  qubits split into two registers ($A$,$B$).
+
+\begin{enumerate}
+\item Design oracle / circuit.
+\item Let $A = \ket{00\ldots 0}$ and $B = \ket{00\ldots 0}$ and run classically.
+    $\mathcal{O}(T)$.
+Leaves $A$ intact, produce $b$ in $B$.
+\item Run backwards (symbolically) with
+$A = \ket{ x_{n-1} \ldots x_1 x_0}$ and $B = \ket{b}$. Worst case,
+    equations sized $\mathcal{O}(2^n)$, so $\mathcal{O}(Tm 2^n)$.
+\item Answer by inspecting/solving resulting~$m$ equations. 
+\end{enumerate}
+
+\pause
+  Bottlenecks:
+  \begin{itemize}
+    \item step (3) at worst case $\mathcal{O}(Tm 2^n)$, 
+    \item step (4) ``solve'', which is $\mathit{NP}$-complete.
+  \end{itemize}
+  However:
+  \begin{itemize}
+    \item Sometimes expected cases depends on bit-size of the
+      information contained in the answer.
+  \end{itemize}
 \end{frame}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -717,8 +741,21 @@ asserting that the period is 16.
 
 \begin{frame}
   \frametitle{Conclusion}
-  Symbolic evaluation of quantum circuits is fun and intriguing.
-  Can work really fast. Can give one-shot answers. Is no panacea.
+  \begin{itemize}
+    \item Different algorithms \pub{need} different analyses to extract answer.
+    \item (Not shown in slides) Shor seems to need qutrits/qudits in general.
+    \item For a number of classical \pub{quantum} algorithms, 
+      classical but \blu{symbolic} execution works just as well.
+    \item Even better: symbolic execute \pub{once} instead of ``enough'' times
+      to get probabilistic answer.
+    \item Symbolic execution sometimes is \pub{really bad}.
+  \end{itemize}
+  \pause
+  \vspace*{5mm}
+  \begin{itemize}
+    \item \blu{Speculation}: some common quantum algorithms might not need
+      quantum after all.
+  \end{itemize}
 \end{frame}
 
 
