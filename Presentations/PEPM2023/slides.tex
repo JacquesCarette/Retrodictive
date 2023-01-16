@@ -361,7 +361,7 @@ So
 \end{overprint}
 \begin{itemize}
 \item $U_f$ is a \emph{classical reversible} circuit representing $f$, i.e.
-  $U_f(\vec{x},\vec{y}) = \ket{\vec{x} \quad(\vec{y \oplus f(x)})}$.
+  $U_f(\mathbf{x},\mathbf{y}) = \ket{\mathbf{x} \quad(\mathbf{y \oplus f(x)})}$.
 \item $H$ is the Hadamard gate; introduces \emph{quantum
     parallelism} to evaluate $U_f$ for many inputs simultaneously.
 \item $\mathit{QFT}$ is the Quantum Fourier Transform used to analyze
@@ -417,8 +417,8 @@ Given $f : \Bool\rightarrow\Bool$, decide if $f$ is
   \frametitle{Examples: Grover and Shor}
   \pub{Grover}:
 \begin{prob}
-    Given $f : \Bool^n\rightarrow\Bool$ where there exists a unique $x$
-    such that $f(x)=1$. Find $x$.
+    Given $f : \Bool^n\rightarrow\Bool$ where there exists a unique $u$
+    such that $f(u)=1$. Find $u$.
 \end{prob}
 
   \vspace*{8mm}
@@ -556,101 +556,42 @@ type XORF = MS.MultiSet Ands
 
 \section[Evaluation]{Evaluation}
 \subsection[Running]{Running examples}
-\subsection[Timings]{Timings}
-\subsection[Complexity]{Complexity}
 
 \begin{frame}
-
-\frametitle{Deutsch}
-
-  \begin{prob}
-Given $f : \Bool\rightarrow\Bool$, decide if $f$ is 
-\emph{constant} or \emph{balanced}.
-  \end{prob}
-
-\pause
-
-\begin{defn}
-  A boolean function is \textbf{balanced} if it outputs the same number of
-  0/1 outputs.
-\end{defn}
-
-\pause
-
-\vspace*{1cm}
-$\ket{x}\ket{y} \rightarrow\ket{x}\ket{f(x)\oplus y}$
-\end{frame}
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\begin{frame}
-
-\frametitle{Deutsch-Josza}
-
-  \begin{prob}Given $f : \Bool^n\rightarrow\Bool$, where $f$ is known to be
-\emph{constant} or \emph{balanced}, decide which one it is.
-  \end{prob}
-
-\pause
-
+\frametitle{Running Deutsch-Josza}
+\begin{itemize}
+  \item \pub{Retrodictive} \textcolor{red}{once} on output measurement $0$
+  \item Output symbolic formula that decides $f(\ket{\mathbf{x}})=0$.
+  \item $f$ constant $\Rightarrow$ $0=0$ or $1=0$ regardless of circuit size.
+\end{itemize}
+  \pause
 Sample outputs:
 \begin{itemize}
-\item $0 = 0$
 \item $x_0 = 0$,
 \item $x_0 \oplus x_1 \oplus x_2 \oplus x_3 \oplus
     x_4 \oplus x_5 = 0$, and
-\item $1 \oplus x_3x_5 \oplus x_2x_4 \oplus x_1x_5
+  \item \textcolor<3>{red}{$1 \oplus x_3x_5 \oplus x_2x_4 \oplus x_1x_5
 \oplus x_0x_3 \oplus x_0x_2 \oplus x_3x_4x_5 \oplus x_2x_3x_5 \oplus
 x_1x_3x_5 \oplus x_0x_3x_5 \oplus x_0x_1x_4 \oplus x_0x_1x_2 \oplus
 x_2x_3x_4x_5 \oplus x_1x_3x_4x_5 \oplus x_1x_2x_4x_5 \oplus
 x_1x_2x_3x_5 \oplus x_0x_3x_4x_5 \oplus x_0x_2x_4x_5 \oplus
 x_0x_2x_3x_5 \oplus x_0x_1x_4x_5 \oplus x_0x_1x_3x_5 \oplus
 x_0x_1x_3x_4 \oplus x_0x_1x_2x_4 \oplus x_0x_1x_2x_4x_5 \oplus
-x_0x_1x_2x_3x_5 \oplus x_0x_1x_2x_3x_4 = 0$.
+    x_0x_1x_2x_3x_5 \oplus x_0x_1x_2x_3x_4 = 0$.}
 \end{itemize}
 
-  But how to \emph{decide}? Easy: if it mentions a variable, it's balanced.
+  \blu{How} to \pub{decide}? If it mentions a variable, it's balanced.
+
+  We tested all $12872$ functions $\Bool^6\rightarrow\Bool$.
 \end{frame}
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 \begin{frame}
+  \frametitle{Running Grover}
+  Recall: guess the position of the single $1$ bit.
 
-\frametitle{Bernstein-Varizani, Simon}
-
-Bernstein-Varizani
-\begin{prob}
-    Given $f : \Bool^n\rightarrow\Bool$, where $f$ is known to be
-of the shape $\sum_i s_i x_i \mod 2$ for some $s\in\Bool^n$ and $s_i$ is its
-bit decomposition. Find $s$.
-\end{prob}
-
-\pause
-
-Simon
-\begin{prob}
-    Given $f : \Bool^n\rightarrow\Bool$, where it is known that
-    there exist $a$ such that $\forall x. f(x) = f(x + a)$. Find $a$.
-\end{prob}
-
-\end{frame}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-\begin{frame}
-
-  \frametitle{Grover}
-
-\begin{prob}
-    Given $f : \Bool^n\rightarrow\Bool$ where there exists a unique $x$
-    such that $f(x)=1$. Find $x$.
-\end{prob}
-
-\pause
-
+\vspace*{4mm}
 $n=4$, $w$ in the range $\{0..15\}$
-  {\tiny
+{\tiny
 \begin{tabular}{ll}
 $u=0$ & 
   $\red{1} \oplus x_3 \oplus x_2 \oplus x_1 \oplus x_0 \oplus x_2x_3 \oplus x_1x_3 \oplus x_1x_2 \oplus x_0x_3 \oplus x_0x_2 \oplus x_0x_1 \oplus x_1x_2x_3 \oplus x_0x_2x_3$ \\
@@ -689,7 +630,6 @@ $u=15$ &
   }
 
 \end{frame}
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \begin{frame}
@@ -701,15 +641,17 @@ $u=15$ &
   $f : \Bool^Q \rightarrow \Bool^Q$ with $Q = \lceil \log_2 \left(N^2\right) \rceil$.
 \end{prob}
 
-  {\tiny
+Factoring $15$:
+\vspace*{-2mm}
+{\tiny
 \[\begin{array}{l@{\quad}lllll}
-  \hspace*{-8mm}\textrm{Base} & \multicolumn{4}{c}{\textrm{Equations}} & \textrm{Solution} \\[2ex]
-  \hspace*{-8mm} a=11 & x_0 = 0 &&&& \red{x_0 = 0} \\
-  \hspace*{-8mm} a=4,14 & 1 \oplus x_0 = 1 & x_0 = 0 && & \red{x_0 = 0} \\
-  \hspace*{-8mm} a=7,13 & 1 \oplus x_1 \oplus x_0x_1 = 1 & x_0x_1 = 0 & x_0 \oplus x_1 \oplus x_0x_1 = 0 &  x_0 \oplus x_0x_1 = 0 & \red{x_0=x_1=0} \\
-  \hspace*{-8mm} a=2,8 & 1 \oplus x_0 \oplus x_1 \oplus x_0x_1 = 1 & x_0x_1 = 0 & x_1 \oplus x_0x_1 = 0 & x_0 \oplus x_0x_1 = 0  & \red{x_0=x_1=0}
+  \hspace*{-5mm}\textrm{Base} & \multicolumn{4}{c}{\textrm{Equations}} & \textrm{Solution} \\[2ex]
+  \hspace*{-5mm} a=11 & x_0 = 0 &&&& \red{x_0 = 0} \\
+  \hspace*{-5mm} a=4,14 & 1 \oplus x_0 = 1 & x_0 = 0 && & \red{x_0 = 0} \\
+  \hspace*{-5mm} a=7,13 & 1 \oplus x_1 \oplus x_0x_1 = 1 & x_0x_1 = 0 & x_0 \oplus x_1 \oplus x_0x_1 = 0 &  x_0 \oplus x_0x_1 = 0 & \red{x_0=x_1=0} \\
+  \hspace*{-5mm} a=2,8 & 1 \oplus x_0 \oplus x_1 \oplus x_0x_1 = 1 & x_0x_1 = 0 & x_1 \oplus x_0x_1 = 0 & x_0 \oplus x_0x_1 = 0  & \red{x_0=x_1=0}
 \end{array}\]
-  }
+}
 
   Auto-generated circuits: 56,538 generalized Toffoli gates. 
 
@@ -721,9 +663,51 @@ constraining them to be all 0, i.e.,
 asserting that the period is 16.
 \end{frame}
 
+\subsection[Timings]{Timings}
+\begin{frame}
+  \frametitle{Timings: Deutsch-Jozsa}
+  \begin{figure}
+ \includegraphics[scale=0.30]{../../pepm/Figure12.pdf}
+ \caption{Retrodictive execution on $3$ balanced functions at different sizes}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Timings: Grover on different values}
+\begin{figure}
+\includegraphics[scale=0.29]{../../pepm/Figure13.pdf}
+\caption{Retrodictive
+  execution of the Grover algorithm on different ``secret'' values $u$
+  at different sizes}
+\end{figure}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Timings: Grover with different representations}
+\begin{figure}
+\includegraphics[scale=0.30]{../../pepm/Figure14.pdf}
+\caption{Retrodictive
+  execution of the Grover algorithm on secret value $u=0$ at two
+  sizes but using different ANF representations}
+\end{figure}
+\end{frame}
+
+\subsection[Complexity]{Complexity}
+
+\begin{frame}
+  \frametitle{Complexity}
+  Some complexity words here
+\end{frame}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % - Conclusion (i.e. key ideas and take home msg)
 \section[Conclusion]{Conclusion}
+
+\begin{frame}
+  \frametitle{Conclusion}
+  Symbolic evaluation of quantum circuits is fun and intriguing.
+  Can work really fast. Can give one-shot answers. Is no panacea.
+\end{frame}
 
 
 \section[Extras]{Extras}
