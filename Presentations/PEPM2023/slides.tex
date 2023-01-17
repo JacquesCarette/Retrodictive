@@ -437,7 +437,8 @@ Given $f : \Bool\rightarrow\Bool$, decide if $f$ is
   \pub{Shor}:
 \begin{prob}
   Factor a given $N$. Do this by using $f(x) = a^x \mod N$ for suitable $a$ and
-  $f : \Bool^Q \rightarrow \Bool^Q$ with $Q = \lceil \log_2 \left(N^2\right) \rceil$.
+  $f : \Bool^Q \rightarrow \Bool^n$ with $Q = \lceil \log_2 \left(N^2\right) \rceil$,
+  $n = \lceil \log_2 N \rceil$.
 \end{prob}
 
 \end{frame}
@@ -650,7 +651,8 @@ $u=15$ &
 
 \begin{prob}
   Factor a given $N$. Do this by using $f(x) = a^x \mod N$ for suitable $a$ and
-  $f : \Bool^Q \rightarrow \Bool^Q$ with $Q = \lceil \log_2 \left(N^2\right) \rceil$.
+  $f : \Bool^Q \rightarrow \Bool^n$ with $Q = \lceil \log_2 \left(N^2\right) \rceil$,
+  $n = \lceil \log_2 N \rceil$.
 \end{prob}
 
 Factoring $15$:
@@ -730,7 +732,7 @@ $A = \ket{ x_{n-1} \ldots x_1 x_0}$ and $B = \ket{b}$. Worst case,
   \end{itemize}
   However:
   \begin{itemize}
-    \item Sometimes expected cases depends on bit-size of the
+    \item Sometimes `typical' case has expected run-time depending on bit-size of the
       information contained in the answer.
   \end{itemize}
 \end{frame}
