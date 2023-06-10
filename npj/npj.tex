@@ -24,35 +24,27 @@
 \newcommand{\qket}[1]{\ket{\tilde{#1}}}
 \newcommand{\preim}[2]{\{\cdot\stackrel{#1}{\longleftarrow}{#2}\}}
 \newcommand{\finset}[1]{[\mathbf{#1}]}
-\newcommand{\red}[1]{{\color{red}{#1}}}
+\newcommand{\red}[1]{{\color{red}{f#1}}}
 \newcommand{\blue}[1]{{\color{blue}{#1}}}
 \newcommand{\todo}[1]{\fbox{\begin{minipage}{40em}{\red{#1}}\end{minipage}}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 
-\title{Retrodictive Quantum Computing}
+\title{Retrodictive Quantum Computing with \\
+Algebraic Normal Forms}
 
 \begin{abstract}
-Quantum models of computation are widely believed to be more powerful
-than classical ones. Efforts center on proving that, for a given
-problem, quantum algorithms are more resource efficient than any
-classical one. All this, however, assumes a standard predictive
-paradigm of reasoning where, given initial conditions, the future
-holds the answer. How about bringing information from the future to
-the present and exploit it to one's advantage? This is a radical new
-approach for reasoning, so-called Retrodictive Computation, that
-benefits from the specific form of the computed functions. We
-demonstrate how to use tools of symbolic computation to realize
-retrodictive quantum computing at scale and exploit it to efficiently,
-and classically, solve instances of the quantum Deutsch-Jozsa,
-Bernstein-Vazirani, Simon, Grover, and Shor's algorithms.
+The canonical representation of boolean formulae in Algebraic Normal
+Form (ANF) is surprisingly effective for simulating a class of quantum
+algorithms.
+
+oracles, white black
 \end{abstract}
 
 \author{Jacques Carette \orcidlink{0000-0001-8993-9804}}
 \affiliation{\mbox{Department of Computer Science, McMaster University, Hamilton, Ontario L8S 4K1, Canada}}
 \author{Gerardo Ortiz \orcidlink{0000-0003-3254-4494}}
-\email{ortizg@iu.edu}
 \affiliation{\mbox{Department of Physics, Indiana University, Bloomington, Indiana 47405, USA}}
 \author{Amr Sabry \orcidlink{0000-0002-1025-7331}}
 \affiliation{\mbox{Department of Computer Science, Indiana University, Bloomington, Indiana 47405, USA}}
@@ -60,74 +52,37 @@ Bernstein-Vazirani, Simon, Grover, and Shor's algorithms.
 \maketitle
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-TODO:
-\begin{itemize}
-\item Cost model:
-  \begin{itemize}
-  \item White-box model: \emph{We} implement $U_f$ and the cost of
-  implementing it and the cost of using it is counted as part of the
-  overall complexity
-  \item Black-box model: ``Someone'' implements $U_f$ and gives us
-  access to it; the complexity analysis only counts the number of
-  times $U_f$ is used. There are different cases based on what kind of
-  access we are given:
-  \begin{itemize}
-    \item Query $U_f$ on a classical input 
-    \item Query $U_f$ on a quantum superposition
-    \item Query $U_f$ on a \emph{symbolic formula} (\textbf{NEW!})
-  \end{itemize}
-  \end{itemize}
-\item Retro important because when input is $\ket{1}$ (or anything
-  other than $\ket{0}$ really, we can't use symbolic eval; but we can
- in those cases use $\ket{0}$ as a possble future and use symbolic in
- a retrodictive manner. (Need to work out Deutsch in super detail)
-\item Van den Nest ??
-  \item Given prob. program: (1) greedy algorithm: pick the best
-    option locally at every step; (2) generate exponential tree
-    keeping the frontier of all possible choices; (3) propagate a
-    distribution and sample at the end
-\item Hidden variable model; add prob. distribution over symbolic variables
-    \item Discussion about maximally entangled states
-    \item Conclusion: no need for complex numbers in our examples but possible to deal with them by using two real numbers etc
-    \item change tone so that we don't accidentally convey that we are more efficient in a formal and conventional complexity theoretic model. Obfuscated circuits and complexity. Universality of ANF (boolean functions). Beyond Booleans needs thinking. 
-    \item Differentiate between retrodictive computation and symbolic evaluation. 
-\item Quantum computing with only the states $\{\ket{0}, \ket{1}, \ket{+}\}$  (explicitly without the $\ket{-}$ state) has a local hidden variable model. Is it still faster than classical? Can we write any algorithms in that setting?
-\item General quantum state: $\cos(\theta/2) \ket{0} + \sin(\theta/2) e^{i\phi} \ket{1}$. Seems we never need $\theta$; can always express amplitude difference in phase space? when phase is always zero, we get classical computing?
-  \item Simon problem with 4 qubits; Gottesman-Knill says classically
-    simulatable Result $\ket{00}+\ket{11}$ or $\ket{01}+\ket{10}$; QFT
-    extracts hidden $a$ from either; what would AQFT do?
-    \item Kochen-Specker symbolically?
-    \item symbolic variables with phases (taint analysis; colors)
-\end{itemize}
+{\it Introduction.--} Quantum evolution is time-reversible; and yet,
+this reversibility is not fully exploited in the circuit model of
+quantum computing. Indeed, most quantum algorithms expressed in the
+circuit model compute strictly from the present to the future,
+preparing initial states and proceeding forward with unitary
+transformations and measurements. We may call this predictive
+computation.
 
-{\it Introduction.--} Quantum evolution is time-reversible and yet this reversibility 
-is not fully exploited in the circuit model of quantum
-computing. Indeed, most quantum algorithms expressed in the circuit
-model compute strictly from the present to the future, preparing
-initial states and proceeding forward with unitary transformations and
-measurements. We may call this predictive computation. In contrast, retrodictive quantum
+In contrast, retrodictive quantum
 theory~\cite{sym13040586}, retrocausality~\cite{Aharonov2008}, and the
 time-symmetry of physical laws~\cite{RevModPhys.27.179} all suggest
 that quantum computation embodies richer --untapped-- modes of
 computation, which could exploit knowledge about the future for a
 computational advantage.
 
-We demonstrate that by using symbolic partial
-evaluation~\cite{futamura}, retrodictive reasoning can indeed be used
-as a computational resource that exhibits richer modes of computation
-at the boundary of the classical/quantum divide. Specifically, instead
-of fully specifying the initial conditions of a quantum circuit and
-computing forward, it is possible to compute, classically, in both the
-forward and backward directions starting from partially-specified
-initial and final conditions. Furthermore, this mixed mode of
-computation (i) can solve problems with fewer resources than the
-conventional forward mode of execution, sometimes even purely
-classically (de-quantization), (ii) can be expressed in a symbolic
-representation that immediately exposes global relational properties
-of the wavefunction that are needed for quantum algorithms, and (iii)
-reveals that the entanglement patterns inherent in genuine quantum
-algorithms with no known classical counterparts are artifacts of the
-chosen symbolic representation.
+We demonstrate that by adapting the conventional tools of symbolic
+partial evaluation~\cite{futamura}, retrodictive reasoning can indeed
+be used as a computational resource that exhibits richer modes of
+computation at the boundary of the classical/quantum
+divide. Specifically, instead of fully specifying the initial
+conditions of a quantum circuit and computing forward, it is possible
+to compute, classically, in both the forward and backward directions
+starting from partially-specified initial and final
+conditions. Furthermore, this mixed mode of computation (i) can solve
+problems with fewer resources than the conventional forward mode of
+execution, sometimes even purely classically (de-quantization), (ii)
+can be expressed in a symbolic representation that immediately exposes
+global relational properties of the wavefunction that are needed for
+quantum algorithms, and (iii) reveals that the entanglement patterns
+inherent in genuine quantum algorithms with no known classical
+counterparts are artifacts of the chosen symbolic representation.
 
 \begin{figure}[b]
 \subfloat[Bell circuit\label{fig:bell}]{%
@@ -979,755 +934,159 @@ The equations generated by retrodictive execution of the unoptimized
 $4^x \mod{21}$ starting from observed result 1 and unknown $x$. The
 circuit consists of 36,400 \cx-gates, 38,200 \ccx-gates, and 4,000
 \cccx-gates. There are only three equations but each equation is
-exponentially large:
+exponentially large.
 
-\bigskip
-
-$1 \oplus x0 \oplus x_1 \oplus x_2 \oplus x_0x_2 \oplus x_0x_1x_2
-\oplus x_3 \oplus x_1x_3 \oplus x_0x_1x_3 \oplus x_0x_2x_3 \oplus
-x_1x_2x_3 \oplus x_4 \oplus x_0x_4 \oplus x_0x_1x_4 \oplus x_2x_4
-\oplus x_1x_2x_4 \oplus x_0x_1x_2x_4 \oplus x_0x_3x_4 \oplus x_1x_3x_4
-\oplus x_2x_3x_4 \oplus x_0x_2x_3x_4 \oplus x_0x_1x_2x_3x_4 \oplus x_5
-\oplus x_1x_5 \oplus x_0x_1x_5 \oplus x_0x_2x_5 \oplus x_1x_2x_5
-\oplus x_3x_5 \oplus x_0x_3x_5 \oplus x_0x_1x_3x_5 \oplus x_2x_3x_5
-\oplus x_1x_2x_3x_5 \oplus x_0x_1x_2x_3x_5 \oplus x_0x_4x_5 \oplus
-x_1x_4x_5 \oplus x_2x_4x_5 \oplus x_0x_2x_4x_5 \oplus x_0x_1x_2x_4x_5
-\oplus x_3x_4x_5 \oplus x_1x_3x_4x_5 \oplus x_0x_1x_3x_4x_5 \oplus
-x_0x_2x_3x_4x_5 \oplus x_1x_2x_3x_4x_5 \oplus x_6 \oplus x_0x_6 \oplus
-x_0x_1x_6 \oplus x_2x_6 \oplus x_1x_2x_6 \oplus x_0x_1x_2x_6 \oplus
-x_0x_3x_6 \oplus x_1x_3x_6 \oplus x_2x_3x_6 \oplus x_0x_2x_3x_6 \oplus
-x_0x_1x_2x_3x_6 \oplus x_4x_6 \oplus x_1x_4x_6 \oplus x_0x_1x_4x_6
-\oplus x_0x_2x_4x_6 \oplus x_1x_2x_4x_6 \oplus x_3x_4x_6 \oplus
-x_0x_3x_4x_6 \oplus x_0x_1x_3x_4x_6 \oplus x_2x_3x_4x_6 \oplus
-x_1x_2x_3x_4x_6 \oplus x_0x_1x_2x_3x_4x_6 \oplus x_0x_5x_6 \oplus
-x_1x_5x_6 \oplus x_2x_5x_6 \oplus x_0x_2x_5x_6 \oplus x_0x_1x_2x_5x_6
-\oplus x_3x_5x_6 \oplus x_1x_3x_5x_6 \oplus x_0x_1x_3x_5x_6 \oplus
-x_0x_2x_3x_5x_6 \oplus x_1x_2x_3x_5x_6 \oplus x_4x_5x_6 \oplus
-x_0x_4x_5x_6 \oplus x_0x_1x_4x_5x_6 \oplus x_2x_4x_5x_6 \oplus
-x_1x_2x_4x_5x_6 \oplus x_0x_1x_2x_4x_5x_6 \oplus x_0x_3x_4x_5x_6
-\oplus x_1x_3x_4x_5x_6 \oplus x_2x_3x_4x_5x_6 \oplus
-x_0x_2x_3x_4x_5x_6 \oplus x_0x_1x_2x_3x_4x_5x_6 \oplus x_7 \oplus
-x_1x_7 \oplus x_0x_1x_7 \oplus x_0x_2x_7 \oplus x_1x_2x_7 \oplus
-x_3x_7 \oplus x_0x_3x_7 \oplus x_0x_1x_3x_7 \oplus x_2x_3x_7 \oplus
-x_1x_2x_3x_7 \oplus x_0x_1x_2x_3x_7 \oplus x_0x_4x_7 \oplus x_1x_4x_7
-\oplus x_2x_4x_7 \oplus x_0x_2x_4x_7 \oplus x_0x_1x_2x_4x_7 \oplus
-x_3x_4x_7 \oplus x_1x_3x_4x_7 \oplus x_0x_1x_3x_4x_7 \oplus
-x_0x_2x_3x_4x_7 \oplus x_1x_2x_3x_4x_7 \oplus x_5x_7 \oplus x_0x_5x_7
-\oplus x_0x_1x_5x_7 \oplus x_2x_5x_7 \oplus x_1x_2x_5x_7 \oplus
-x_0x_1x_2x_5x_7 \oplus x_0x_3x_5x_7 \oplus x_1x_3x_5x_7 \oplus
-x_2x_3x_5x_7 \oplus x_0x_2x_3x_5x_7 \oplus x_0x_1x_2x_3x_5x_7 \oplus
-x_4x_5x_7 \oplus x_1x_4x_5x_7 \oplus x_0x_1x_4x_5x_7 \oplus
-x_0x_2x_4x_5x_7 \oplus x_1x_2x_4x_5x_7 \oplus x_3x_4x_5x_7 \oplus
-x_0x_3x_4x_5x_7 \oplus x_0x_1x_3x_4x_5x_7 \oplus x_2x_3x_4x_5x_7
-\oplus x_1x_2x_3x_4x_5x_7 \oplus x_0x_1x_2x_3x_4x_5x_7 \oplus
-x_0x_6x_7 \oplus x_1x_6x_7 \oplus x_2x_6x_7 \oplus x_0x_2x_6x_7 \oplus
-x_0x_1x_2x_6x_7 \oplus x_3x_6x_7 \oplus x_1x_3x_6x_7 \oplus
-x_0x_1x_3x_6x_7 \oplus x_0x_2x_3x_6x_7 \oplus x_1x_2x_3x_6x_7 \oplus
-x_4x_6x_7 \oplus x_0x_4x_6x_7 \oplus x_0x_1x_4x_6x_7 \oplus
-x_2x_4x_6x_7 \oplus x_1x_2x_4x_6x_7 \oplus x_0x_1x_2x_4x_6x_7 \oplus
-x_0x_3x_4x_6x_7 \oplus x_1x_3x_4x_6x_7 \oplus x_2x_3x_4x_6x_7 \oplus
-x_0x_2x_3x_4x_6x_7 \oplus x_0x_1x_2x_3x_4x_6x_7 \oplus x_5x_6x_7
-\oplus x_1x_5x_6x_7 \oplus x_0x_1x_5x_6x_7 \oplus x_0x_2x_5x_6x_7
-\oplus x_1x_2x_5x_6x_7 \oplus x_3x_5x_6x_7 \oplus x_0x_3x_5x_6x_7
-\oplus x_0x_1x_3x_5x_6x_7 \oplus x_2x_3x_5x_6x_7 \oplus
-x_1x_2x_3x_5x_6x_7 \oplus x_0x_1x_2x_3x_5x_6x_7 \oplus x_0x_4x_5x_6x_7
-\oplus x_1x_4x_5x_6x_7 \oplus x_2x_4x_5x_6x_7 \oplus
-x_0x_2x_4x_5x_6x_7 \oplus x_0x_1x_2x_4x_5x_6x_7 \oplus x_3x_4x_5x_6x_7
-\oplus x_1x_3x_4x_5x_6x_7 \oplus x_0x_1x_3x_4x_5x_6x_7 \oplus
-x_0x_2x_3x_4x_5x_6x_7 \oplus x_1x_2x_3x_4x_5x_6x_7 \oplus x_8 \oplus
-x_0x_8 \oplus x_0x_1x_8 \oplus x_2x_8 \oplus x_1x_2x_8 \oplus
-x_0x_1x_2x_8 \oplus x_0x_3x_8 \oplus x_1x_3x_8 \oplus x_2x_3x_8 \oplus
-x_0x_2x_3x_8 \oplus x_0x_1x_2x_3x_8 \oplus x_4x_8 \oplus x_1x_4x_8
-\oplus x_0x_1x_4x_8 \oplus x_0x_2x_4x_8 \oplus x_1x_2x_4x_8 \oplus
-x_3x_4x_8 \oplus x_0x_3x_4x_8 \oplus x_0x_1x_3x_4x_8 \oplus
-x_2x_3x_4x_8 \oplus x_1x_2x_3x_4x_8 \oplus x_0x_1x_2x_3x_4x_8 \oplus
-x_0x_5x_8 \oplus x_1x_5x_8 \oplus x_2x_5x_8 \oplus x_0x_2x_5x_8 \oplus
-x_0x_1x_2x_5x_8 \oplus x_3x_5x_8 \oplus x_1x_3x_5x_8 \oplus
-x_0x_1x_3x_5x_8 \oplus x_0x_2x_3x_5x_8 \oplus x_1x_2x_3x_5x_8 \oplus
-x_4x_5x_8 \oplus x_0x_4x_5x_8 \oplus x_0x_1x_4x_5x_8 \oplus
-x_2x_4x_5x_8 \oplus x_1x_2x_4x_5x_8 \oplus x_0x_1x_2x_4x_5x_8 \oplus
-x_0x_3x_4x_5x_8 \oplus x_1x_3x_4x_5x_8 \oplus x_2x_3x_4x_5x_8 \oplus
-x_0x_2x_3x_4x_5x_8 \oplus x_0x_1x_2x_3x_4x_5x_8 \oplus x_6x_8 \oplus
-x_1x_6x_8 \oplus x_0x_1x_6x_8 \oplus x_0x_2x_6x_8 \oplus x_1x_2x_6x_8
-\oplus x_3x_6x_8 \oplus x_0x_3x_6x_8 \oplus x_0x_1x_3x_6x_8 \oplus
-x_2x_3x_6x_8 \oplus x_1x_2x_3x_6x_8 \oplus x_0x_1x_2x_3x_6x_8 \oplus
-x_0x_4x_6x_8 \oplus x_1x_4x_6x_8 \oplus x_2x_4x_6x_8 \oplus
-x_0x_2x_4x_6x_8 \oplus x_0x_1x_2x_4x_6x_8 \oplus x_3x_4x_6x_8 \oplus
-x_1x_3x_4x_6x_8 \oplus x_0x_1x_3x_4x_6x_8 \oplus x_0x_2x_3x_4x_6x_8
-\oplus x_1x_2x_3x_4x_6x_8 \oplus x_5x_6x_8 \oplus x_0x_5x_6x_8 \oplus
-x_0x_1x_5x_6x_8 \oplus x_2x_5x_6x_8 \oplus x_1x_2x_5x_6x_8 \oplus
-x_0x_1x_2x_5x_6x_8 \oplus x_0x_3x_5x_6x_8 \oplus x_1x_3x_5x_6x_8
-\oplus x_2x_3x_5x_6x_8 \oplus x_0x_2x_3x_5x_6x_8 \oplus
-x_0x_1x_2x_3x_5x_6x_8 \oplus x_4x_5x_6x_8 \oplus x_1x_4x_5x_6x_8
-\oplus x_0x_1x_4x_5x_6x_8 \oplus x_0x_2x_4x_5x_6x_8 \oplus
-x_1x_2x_4x_5x_6x_8 \oplus x_3x_4x_5x_6x_8 \oplus x_0x_3x_4x_5x_6x_8
-\oplus x_0x_1x_3x_4x_5x_6x_8 \oplus x_2x_3x_4x_5x_6x_8 \oplus
-x_1x_2x_3x_4x_5x_6x_8 \oplus x_0x_1x_2x_3x_4x_5x_6x_8 \oplus x_0x_7x_8
-\oplus x_1x_7x_8 \oplus x_2x_7x_8 \oplus x_0x_2x_7x_8 \oplus
-x_0x_1x_2x_7x_8 \oplus x_3x_7x_8 \oplus x_1x_3x_7x_8 \oplus
-x_0x_1x_3x_7x_8 \oplus x_0x_2x_3x_7x_8 \oplus x_1x_2x_3x_7x_8 \oplus
-x_4x_7x_8 \oplus x_0x_4x_7x_8 \oplus x_0x_1x_4x_7x_8 \oplus
-x_2x_4x_7x_8 \oplus x_1x_2x_4x_7x_8 \oplus x_0x_1x_2x_4x_7x_8 \oplus
-x_0x_3x_4x_7x_8 \oplus x_1x_3x_4x_7x_8 \oplus x_2x_3x_4x_7x_8 \oplus
-x_0x_2x_3x_4x_7x_8 \oplus x_0x_1x_2x_3x_4x_7x_8 \oplus x_5x_7x_8
-\oplus x_1x_5x_7x_8 \oplus x_0x_1x_5x_7x_8 \oplus x_0x_2x_5x_7x_8
-\oplus x_1x_2x_5x_7x_8 \oplus x_3x_5x_7x_8 \oplus x_0x_3x_5x_7x_8
-\oplus x_0x_1x_3x_5x_7x_8 \oplus x_2x_3x_5x_7x_8 \oplus
-x_1x_2x_3x_5x_7x_8 \oplus x_0x_1x_2x_3x_5x_7x_8 \oplus x_0x_4x_5x_7x_8
-\oplus x_1x_4x_5x_7x_8 \oplus x_2x_4x_5x_7x_8 \oplus
-x_0x_2x_4x_5x_7x_8 \oplus x_0x_1x_2x_4x_5x_7x_8 \oplus x_3x_4x_5x_7x_8
-\oplus x_1x_3x_4x_5x_7x_8 \oplus x_0x_1x_3x_4x_5x_7x_8 \oplus
-x_0x_2x_3x_4x_5x_7x_8 \oplus x_1x_2x_3x_4x_5x_7x_8 \oplus x_6x_7x_8
-\oplus x_0x_6x_7x_8 \oplus x_0x_1x_6x_7x_8 \oplus x_2x_6x_7x_8 \oplus
-x_1x_2x_6x_7x_8 \oplus x_0x_1x_2x_6x_7x_8 \oplus x_0x_3x_6x_7x_8
-\oplus x_1x_3x_6x_7x_8 \oplus x_2x_3x_6x_7x_8 \oplus
-x_0x_2x_3x_6x_7x_8 \oplus x_0x_1x_2x_3x_6x_7x_8 \oplus x_4x_6x_7x_8
-\oplus x_1x_4x_6x_7x_8 \oplus x_0x_1x_4x_6x_7x_8 \oplus
-x_0x_2x_4x_6x_7x_8 \oplus x_1x_2x_4x_6x_7x_8 \oplus x_3x_4x_6x_7x_8
-\oplus x_0x_3x_4x_6x_7x_8 \oplus x_0x_1x_3x_4x_6x_7x_8 \oplus
-x_2x_3x_4x_6x_7x_8 \oplus x_1x_2x_3x_4x_6x_7x_8 \oplus
-x_0x_1x_2x_3x_4x_6x_7x_8 \oplus x_0x_5x_6x_7x_8 \oplus x_1x_5x_6x_7x_8
-\oplus x_2x_5x_6x_7x_8 \oplus x_0x_2x_5x_6x_7x_8 \oplus
-x_0x_1x_2x_5x_6x_7x_8 \oplus x_3x_5x_6x_7x_8 \oplus x_1x_3x_5x_6x_7x_8
-\oplus x_0x_1x_3x_5x_6x_7x_8 \oplus x_0x_2x_3x_5x_6x_7x_8 \oplus
-x_1x_2x_3x_5x_6x_7x_8 \oplus x_4x_5x_6x_7x_8 \oplus x_0x_4x_5x_6x_7x_8
-\oplus x_0x_1x_4x_5x_6x_7x_8 \oplus x_2x_4x_5x_6x_7x_8 \oplus
-x_1x_2x_4x_5x_6x_7x_8 \oplus x_0x_1x_2x_4x_5x_6x_7x_8 \oplus
-x_0x_3x_4x_5x_6x_7x_8 \oplus x_1x_3x_4x_5x_6x_7x_8 \oplus
-x_2x_3x_4x_5x_6x_7x_8 \oplus x_0x_2x_3x_4x_5x_6x_7x_8 \oplus
-x_0x_1x_2x_3x_4x_5x_6x_7x_8 \oplus x_9 \oplus x_1x_9 \oplus x_0x_1x_9
-\oplus x_0x_2x_9 \oplus x_1x_2x_9 \oplus x_3x_9 \oplus x_0x_3x_9
-\oplus x_0x_1x_3x_9 \oplus x_2x_3x_9 \oplus x_1x_2x_3x_9 \oplus
-x_0x_1x_2x_3x_9 \oplus x_0x_4x_9 \oplus x_1x_4x_9 \oplus x_2x_4x_9
-\oplus x_0x_2x_4x_9 \oplus x_0x_1x_2x_4x_9 \oplus x_3x_4x_9 \oplus
-x_1x_3x_4x_9 \oplus x_0x_1x_3x_4x_9 \oplus x_0x_2x_3x_4x_9 \oplus
-x_1x_2x_3x_4x_9 \oplus x_5x_9 \oplus x_0x_5x_9 \oplus x_0x_1x_5x_9
-\oplus x_2x_5x_9 \oplus x_1x_2x_5x_9 \oplus x_0x_1x_2x_5x_9 \oplus
-x_0x_3x_5x_9 \oplus x_1x_3x_5x_9 \oplus x_2x_3x_5x_9 \oplus
-x_0x_2x_3x_5x_9 \oplus x_0x_1x_2x_3x_5x_9 \oplus x_4x_5x_9 \oplus
-x_1x_4x_5x_9 \oplus x_0x_1x_4x_5x_9 \oplus x_0x_2x_4x_5x_9 \oplus
-x_1x_2x_4x_5x_9 \oplus x_3x_4x_5x_9 \oplus x_0x_3x_4x_5x_9 \oplus
-x_0x_1x_3x_4x_5x_9 \oplus x_2x_3x_4x_5x_9 \oplus x_1x_2x_3x_4x_5x_9
-\oplus x_0x_1x_2x_3x_4x_5x_9 \oplus x_0x_6x_9 \oplus x_1x_6x_9 \oplus
-x_2x_6x_9 \oplus x_0x_2x_6x_9 \oplus x_0x_1x_2x_6x_9 \oplus x_3x_6x_9
-\oplus x_1x_3x_6x_9 \oplus x_0x_1x_3x_6x_9 \oplus x_0x_2x_3x_6x_9
-\oplus x_1x_2x_3x_6x_9 \oplus x_4x_6x_9 \oplus x_0x_4x_6x_9 \oplus
-x_0x_1x_4x_6x_9 \oplus x_2x_4x_6x_9 \oplus x_1x_2x_4x_6x_9 \oplus
-x_0x_1x_2x_4x_6x_9 \oplus x_0x_3x_4x_6x_9 \oplus x_1x_3x_4x_6x_9
-\oplus x_2x_3x_4x_6x_9 \oplus x_0x_2x_3x_4x_6x_9 \oplus
-x_0x_1x_2x_3x_4x_6x_9 \oplus x_5x_6x_9 \oplus x_1x_5x_6x_9 \oplus
-x_0x_1x_5x_6x_9 \oplus x_0x_2x_5x_6x_9 \oplus x_1x_2x_5x_6x_9 \oplus
-x_3x_5x_6x_9 \oplus x_0x_3x_5x_6x_9 \oplus x_0x_1x_3x_5x_6x_9 \oplus
-x_2x_3x_5x_6x_9 \oplus x_1x_2x_3x_5x_6x_9 \oplus x_0x_1x_2x_3x_5x_6x_9
-\oplus x_0x_4x_5x_6x_9 \oplus x_1x_4x_5x_6x_9 \oplus x_2x_4x_5x_6x_9
-\oplus x_0x_2x_4x_5x_6x_9 \oplus x_0x_1x_2x_4x_5x_6x_9 \oplus
-x_3x_4x_5x_6x_9 \oplus x_1x_3x_4x_5x_6x_9 \oplus x_0x_1x_3x_4x_5x_6x_9
-\oplus x_0x_2x_3x_4x_5x_6x_9 \oplus x_1x_2x_3x_4x_5x_6x_9 \oplus
-x_7x_9 \oplus x_0x_7x_9 \oplus x_0x_1x_7x_9 \oplus x_2x_7x_9 \oplus
-x_1x_2x_7x_9 \oplus x_0x_1x_2x_7x_9 \oplus x_0x_3x_7x_9 \oplus
-x_1x_3x_7x_9 \oplus x_2x_3x_7x_9 \oplus x_0x_2x_3x_7x_9 \oplus
-x_0x_1x_2x_3x_7x_9 \oplus x_4x_7x_9 \oplus x_1x_4x_7x_9 \oplus
-x_0x_1x_4x_7x_9 \oplus x_0x_2x_4x_7x_9 \oplus x_1x_2x_4x_7x_9 \oplus
-x_3x_4x_7x_9 \oplus x_0x_3x_4x_7x_9 \oplus x_0x_1x_3x_4x_7x_9 \oplus
-x_2x_3x_4x_7x_9 \oplus x_1x_2x_3x_4x_7x_9 \oplus x_0x_1x_2x_3x_4x_7x_9
-\oplus x_0x_5x_7x_9 \oplus x_1x_5x_7x_9 \oplus x_2x_5x_7x_9 \oplus
-x_0x_2x_5x_7x_9 \oplus x_0x_1x_2x_5x_7x_9 \oplus x_3x_5x_7x_9 \oplus
-x_1x_3x_5x_7x_9 \oplus x_0x_1x_3x_5x_7x_9 \oplus x_0x_2x_3x_5x_7x_9
-\oplus x_1x_2x_3x_5x_7x_9 \oplus x_4x_5x_7x_9 \oplus x_0x_4x_5x_7x_9
-\oplus x_0x_1x_4x_5x_7x_9 \oplus x_2x_4x_5x_7x_9 \oplus
-x_1x_2x_4x_5x_7x_9 \oplus x_0x_1x_2x_4x_5x_7x_9 \oplus
-x_0x_3x_4x_5x_7x_9 \oplus x_1x_3x_4x_5x_7x_9 \oplus x_2x_3x_4x_5x_7x_9
-\oplus x_0x_2x_3x_4x_5x_7x_9 \oplus x_0x_1x_2x_3x_4x_5x_7x_9 \oplus
-x_6x_7x_9 \oplus x_1x_6x_7x_9 \oplus x_0x_1x_6x_7x_9 \oplus
-x_0x_2x_6x_7x_9 \oplus x_1x_2x_6x_7x_9 \oplus x_3x_6x_7x_9 \oplus
-x_0x_3x_6x_7x_9 \oplus x_0x_1x_3x_6x_7x_9 \oplus x_2x_3x_6x_7x_9
-\oplus x_1x_2x_3x_6x_7x_9 \oplus x_0x_1x_2x_3x_6x_7x_9 \oplus
-x_0x_4x_6x_7x_9 \oplus x_1x_4x_6x_7x_9 \oplus x_2x_4x_6x_7x_9 \oplus
-x_0x_2x_4x_6x_7x_9 \oplus x_0x_1x_2x_4x_6x_7x_9 \oplus x_3x_4x_6x_7x_9
-\oplus x_1x_3x_4x_6x_7x_9 \oplus x_0x_1x_3x_4x_6x_7x_9 \oplus
-x_0x_2x_3x_4x_6x_7x_9 \oplus x_1x_2x_3x_4x_6x_7x_9 \oplus x_5x_6x_7x_9
-\oplus x_0x_5x_6x_7x_9 \oplus x_0x_1x_5x_6x_7x_9 \oplus
-x_2x_5x_6x_7x_9 \oplus x_1x_2x_5x_6x_7x_9 \oplus x_0x_1x_2x_5x_6x_7x_9
-\oplus x_0x_3x_5x_6x_7x_9 \oplus x_1x_3x_5x_6x_7x_9 \oplus
-x_2x_3x_5x_6x_7x_9 \oplus x_0x_2x_3x_5x_6x_7x_9 \oplus
-x_0x_1x_2x_3x_5x_6x_7x_9 \oplus x_4x_5x_6x_7x_9 \oplus
-x_1x_4x_5x_6x_7x_9 \oplus x_0x_1x_4x_5x_6x_7x_9 \oplus
-x_0x_2x_4x_5x_6x_7x_9 \oplus x_1x_2x_4x_5x_6x_7x_9 \oplus
-x_3x_4x_5x_6x_7x_9 \oplus x_0x_3x_4x_5x_6x_7x_9 \oplus
-x_0x_1x_3x_4x_5x_6x_7x_9 \oplus x_2x_3x_4x_5x_6x_7x_9 \oplus
-x_1x_2x_3x_4x_5x_6x_7x_9 \oplus x_0x_1x_2x_3x_4x_5x_6x_7x_9 \oplus
-x_0x_8x_9 \oplus x_1x_8x_9 \oplus x_2x_8x_9 \oplus x_0x_2x_8x_9 \oplus
-x_0x_1x_2x_8x_9 \oplus x_3x_8x_9 \oplus x_1x_3x_8x_9 \oplus
-x_0x_1x_3x_8x_9 \oplus x_0x_2x_3x_8x_9 \oplus x_1x_2x_3x_8x_9 \oplus
-x_4x_8x_9 \oplus x_0x_4x_8x_9 \oplus x_0x_1x_4x_8x_9 \oplus
-x_2x_4x_8x_9 \oplus x_1x_2x_4x_8x_9 \oplus x_0x_1x_2x_4x_8x_9 \oplus
-x_0x_3x_4x_8x_9 \oplus x_1x_3x_4x_8x_9 \oplus x_2x_3x_4x_8x_9 \oplus
-x_0x_2x_3x_4x_8x_9 \oplus x_0x_1x_2x_3x_4x_8x_9 \oplus x_5x_8x_9
-\oplus x_1x_5x_8x_9 \oplus x_0x_1x_5x_8x_9 \oplus x_0x_2x_5x_8x_9
-\oplus x_1x_2x_5x_8x_9 \oplus x_3x_5x_8x_9 \oplus x_0x_3x_5x_8x_9
-\oplus x_0x_1x_3x_5x_8x_9 \oplus x_2x_3x_5x_8x_9 \oplus
-x_1x_2x_3x_5x_8x_9 \oplus x_0x_1x_2x_3x_5x_8x_9 \oplus x_0x_4x_5x_8x_9
-\oplus x_1x_4x_5x_8x_9 \oplus x_2x_4x_5x_8x_9 \oplus
-x_0x_2x_4x_5x_8x_9 \oplus x_0x_1x_2x_4x_5x_8x_9 \oplus x_3x_4x_5x_8x_9
-\oplus x_1x_3x_4x_5x_8x_9 \oplus x_0x_1x_3x_4x_5x_8x_9 \oplus
-x_0x_2x_3x_4x_5x_8x_9 \oplus x_1x_2x_3x_4x_5x_8x_9 \oplus x_6x_8x_9
-\oplus x_0x_6x_8x_9 \oplus x_0x_1x_6x_8x_9 \oplus x_2x_6x_8x_9 \oplus
-x_1x_2x_6x_8x_9 \oplus x_0x_1x_2x_6x_8x_9 \oplus x_0x_3x_6x_8x_9
-\oplus x_1x_3x_6x_8x_9 \oplus x_2x_3x_6x_8x_9 \oplus
-x_0x_2x_3x_6x_8x_9 \oplus x_0x_1x_2x_3x_6x_8x_9 \oplus x_4x_6x_8x_9
-\oplus x_1x_4x_6x_8x_9 \oplus x_0x_1x_4x_6x_8x_9 \oplus
-x_0x_2x_4x_6x_8x_9 \oplus x_1x_2x_4x_6x_8x_9 \oplus x_3x_4x_6x_8x_9
-\oplus x_0x_3x_4x_6x_8x_9 \oplus x_0x_1x_3x_4x_6x_8x_9 \oplus
-x_2x_3x_4x_6x_8x_9 \oplus x_1x_2x_3x_4x_6x_8x_9 \oplus
-x_0x_1x_2x_3x_4x_6x_8x_9 \oplus x_0x_5x_6x_8x_9 \oplus x_1x_5x_6x_8x_9
-\oplus x_2x_5x_6x_8x_9 \oplus x_0x_2x_5x_6x_8x_9 \oplus
-x_0x_1x_2x_5x_6x_8x_9 \oplus x_3x_5x_6x_8x_9 \oplus x_1x_3x_5x_6x_8x_9
-\oplus x_0x_1x_3x_5x_6x_8x_9 \oplus x_0x_2x_3x_5x_6x_8x_9 \oplus
-x_1x_2x_3x_5x_6x_8x_9 \oplus x_4x_5x_6x_8x_9 \oplus x_0x_4x_5x_6x_8x_9
-\oplus x_0x_1x_4x_5x_6x_8x_9 \oplus x_2x_4x_5x_6x_8x_9 \oplus
-x_1x_2x_4x_5x_6x_8x_9 \oplus x_0x_1x_2x_4x_5x_6x_8x_9 \oplus
-x_0x_3x_4x_5x_6x_8x_9 \oplus x_1x_3x_4x_5x_6x_8x_9 \oplus
-x_2x_3x_4x_5x_6x_8x_9 \oplus x_0x_2x_3x_4x_5x_6x_8x_9 \oplus
-x_0x_1x_2x_3x_4x_5x_6x_8x_9 \oplus x_7x_8x_9 \oplus x_1x_7x_8x_9
-\oplus x_0x_1x_7x_8x_9 \oplus x_0x_2x_7x_8x_9 \oplus x_1x_2x_7x_8x_9
-\oplus x_3x_7x_8x_9 \oplus x_0x_3x_7x_8x_9 \oplus x_0x_1x_3x_7x_8x_9
-\oplus x_2x_3x_7x_8x_9 \oplus x_1x_2x_3x_7x_8x_9 \oplus
-x_0x_1x_2x_3x_7x_8x_9 \oplus x_0x_4x_7x_8x_9 \oplus x_1x_4x_7x_8x_9
-\oplus x_2x_4x_7x_8x_9 \oplus x_0x_2x_4x_7x_8x_9 \oplus
-x_0x_1x_2x_4x_7x_8x_9 \oplus x_3x_4x_7x_8x_9 \oplus x_1x_3x_4x_7x_8x_9
-\oplus x_0x_1x_3x_4x_7x_8x_9 \oplus x_0x_2x_3x_4x_7x_8x_9 \oplus
-x_1x_2x_3x_4x_7x_8x_9 \oplus x_5x_7x_8x_9 \oplus x_0x_5x_7x_8x_9
-\oplus x_0x_1x_5x_7x_8x_9 \oplus x_2x_5x_7x_8x_9 \oplus
-x_1x_2x_5x_7x_8x_9 \oplus x_0x_1x_2x_5x_7x_8x_9 \oplus
-x_0x_3x_5x_7x_8x_9 \oplus x_1x_3x_5x_7x_8x_9 \oplus x_2x_3x_5x_7x_8x_9
-\oplus x_0x_2x_3x_5x_7x_8x_9 \oplus x_0x_1x_2x_3x_5x_7x_8x_9 \oplus
-x_4x_5x_7x_8x_9 \oplus x_1x_4x_5x_7x_8x_9 \oplus x_0x_1x_4x_5x_7x_8x_9
-\oplus x_0x_2x_4x_5x_7x_8x_9 \oplus x_1x_2x_4x_5x_7x_8x_9 \oplus
-x_3x_4x_5x_7x_8x_9 \oplus x_0x_3x_4x_5x_7x_8x_9 \oplus
-x_0x_1x_3x_4x_5x_7x_8x_9 \oplus x_2x_3x_4x_5x_7x_8x_9 \oplus
-x_1x_2x_3x_4x_5x_7x_8x_9 \oplus x_0x_1x_2x_3x_4x_5x_7x_8x_9 \oplus
-x_0x_6x_7x_8x_9 \oplus x_1x_6x_7x_8x_9 \oplus x_2x_6x_7x_8x_9 \oplus
-x_0x_2x_6x_7x_8x_9 \oplus x_0x_1x_2x_6x_7x_8x_9 \oplus x_3x_6x_7x_8x_9
-\oplus x_1x_3x_6x_7x_8x_9 \oplus x_0x_1x_3x_6x_7x_8x_9 \oplus
-x_0x_2x_3x_6x_7x_8x_9 \oplus x_1x_2x_3x_6x_7x_8x_9 \oplus
-x_4x_6x_7x_8x_9 \oplus x_0x_4x_6x_7x_8x_9 \oplus x_0x_1x_4x_6x_7x_8x_9
-\oplus x_2x_4x_6x_7x_8x_9 \oplus x_1x_2x_4x_6x_7x_8x_9 \oplus
-x_0x_1x_2x_4x_6x_7x_8x_9 \oplus x_0x_3x_4x_6x_7x_8x_9 \oplus
-x_1x_3x_4x_6x_7x_8x_9 \oplus x_2x_3x_4x_6x_7x_8x_9 \oplus
-x_0x_2x_3x_4x_6x_7x_8x_9 \oplus x_0x_1x_2x_3x_4x_6x_7x_8x_9 \oplus
-x_5x_6x_7x_8x_9 \oplus x_1x_5x_6x_7x_8x_9 \oplus x_0x_1x_5x_6x_7x_8x_9
-\oplus x_0x_2x_5x_6x_7x_8x_9 \oplus x_1x_2x_5x_6x_7x_8x_9 \oplus
-x_3x_5x_6x_7x_8x_9 \oplus x_0x_3x_5x_6x_7x_8x_9 \oplus
-x_0x_1x_3x_5x_6x_7x_8x_9 \oplus x_2x_3x_5x_6x_7x_8x_9 \oplus
-x_1x_2x_3x_5x_6x_7x_8x_9 \oplus x_0x_1x_2x_3x_5x_6x_7x_8x_9 \oplus
-x_0x_4x_5x_6x_7x_8x_9 \oplus x_1x_4x_5x_6x_7x_8x_9 \oplus
-x_2x_4x_5x_6x_7x_8x_9 \oplus x_0x_2x_4x_5x_6x_7x_8x_9 \oplus
-x_0x_1x_2x_4x_5x_6x_7x_8x_9 \oplus x_3x_4x_5x_6x_7x_8x_9 \oplus
-x_1x_3x_4x_5x_6x_7x_8x_9 \oplus x_0x_1x_3x_4x_5x_6x_7x_8x_9 \oplus
-x_0x_2x_3x_4x_5x_6x_7x_8x_9 \oplus x_1x_2x_3x_4x_5x_6x_7x_8x_9 = 1$
-
-\bigskip
-
-$x_1 \oplus x_0x_1 \oplus x_0x_2 \oplus x_1x_2 \oplus x_3 \oplus
-x_0x_3 \oplus x_0x_1x_3 \oplus x_2x_3 \oplus x_1x_2x_3 \oplus
-x_0x_1x_2x_3 \oplus x_0x_4 \oplus x_1x_4 \oplus x_2x_4 \oplus
-x_0x_2x_4 \oplus x_0x_1x_2x_4 \oplus x_3x_4 \oplus x_1x_3x_4 \oplus
-x_0x_1x_3x_4 \oplus x_0x_2x_3x_4 \oplus x_1x_2x_3x_4 \oplus x_5 \oplus
-x_0x_5 \oplus x_0x_1x_5 \oplus x_2x_5 \oplus x_1x_2x_5 \oplus
-x_0x_1x_2x_5 \oplus x_0x_3x_5 \oplus x_1x_3x_5 \oplus x_2x_3x_5 \oplus
-x_0x_2x_3x_5 \oplus x_0x_1x_2x_3x_5 \oplus x_4x_5 \oplus x_1x_4x_5
-\oplus x_0x_1x_4x_5 \oplus x_0x_2x_4x_5 \oplus x_1x_2x_4x_5 \oplus
-x_3x_4x_5 \oplus x_0x_3x_4x_5 \oplus x_0x_1x_3x_4x_5 \oplus
-x_2x_3x_4x_5 \oplus x_1x_2x_3x_4x_5 \oplus x_0x_1x_2x_3x_4x_5 \oplus
-x_0x_6 \oplus x_1x_6 \oplus x_2x_6 \oplus x_0x_2x_6 \oplus
-x_0x_1x_2x_6 \oplus x_3x_6 \oplus x_1x_3x_6 \oplus x_0x_1x_3x_6 \oplus
-x_0x_2x_3x_6 \oplus x_1x_2x_3x_6 \oplus x_4x_6 \oplus x_0x_4x_6 \oplus
-x_0x_1x_4x_6 \oplus x_2x_4x_6 \oplus x_1x_2x_4x_6 \oplus
-x_0x_1x_2x_4x_6 \oplus x_0x_3x_4x_6 \oplus x_1x_3x_4x_6 \oplus
-x_2x_3x_4x_6 \oplus x_0x_2x_3x_4x_6 \oplus x_0x_1x_2x_3x_4x_6 \oplus
-x_5x_6 \oplus x_1x_5x_6 \oplus x_0x_1x_5x_6 \oplus x_0x_2x_5x_6 \oplus
-x_1x_2x_5x_6 \oplus x_3x_5x_6 \oplus x_0x_3x_5x_6 \oplus
-x_0x_1x_3x_5x_6 \oplus x_2x_3x_5x_6 \oplus x_1x_2x_3x_5x_6 \oplus
-x_0x_1x_2x_3x_5x_6 \oplus x_0x_4x_5x_6 \oplus x_1x_4x_5x_6 \oplus
-x_2x_4x_5x_6 \oplus x_0x_2x_4x_5x_6 \oplus x_0x_1x_2x_4x_5x_6 \oplus
-x_3x_4x_5x_6 \oplus x_1x_3x_4x_5x_6 \oplus x_0x_1x_3x_4x_5x_6 \oplus
-x_0x_2x_3x_4x_5x_6 \oplus x_1x_2x_3x_4x_5x_6 \oplus x_7 \oplus x_0x_7
-\oplus x_0x_1x_7 \oplus x_2x_7 \oplus x_1x_2x_7 \oplus x_0x_1x_2x_7
-\oplus x_0x_3x_7 \oplus x_1x_3x_7 \oplus x_2x_3x_7 \oplus x_0x_2x_3x_7
-\oplus x_0x_1x_2x_3x_7 \oplus x_4x_7 \oplus x_1x_4x_7 \oplus
-x_0x_1x_4x_7 \oplus x_0x_2x_4x_7 \oplus x_1x_2x_4x_7 \oplus x_3x_4x_7
-\oplus x_0x_3x_4x_7 \oplus x_0x_1x_3x_4x_7 \oplus x_2x_3x_4x_7 \oplus
-x_1x_2x_3x_4x_7 \oplus x_0x_1x_2x_3x_4x_7 \oplus x_0x_5x_7 \oplus
-x_1x_5x_7 \oplus x_2x_5x_7 \oplus x_0x_2x_5x_7 \oplus x_0x_1x_2x_5x_7
-\oplus x_3x_5x_7 \oplus x_1x_3x_5x_7 \oplus x_0x_1x_3x_5x_7 \oplus
-x_0x_2x_3x_5x_7 \oplus x_1x_2x_3x_5x_7 \oplus x_4x_5x_7 \oplus
-x_0x_4x_5x_7 \oplus x_0x_1x_4x_5x_7 \oplus x_2x_4x_5x_7 \oplus
-x_1x_2x_4x_5x_7 \oplus x_0x_1x_2x_4x_5x_7 \oplus x_0x_3x_4x_5x_7
-\oplus x_1x_3x_4x_5x_7 \oplus x_2x_3x_4x_5x_7 \oplus
-x_0x_2x_3x_4x_5x_7 \oplus x_0x_1x_2x_3x_4x_5x_7 \oplus x_6x_7 \oplus
-x_1x_6x_7 \oplus x_0x_1x_6x_7 \oplus x_0x_2x_6x_7 \oplus x_1x_2x_6x_7
-\oplus x_3x_6x_7 \oplus x_0x_3x_6x_7 \oplus x_0x_1x_3x_6x_7 \oplus
-x_2x_3x_6x_7 \oplus x_1x_2x_3x_6x_7 \oplus x_0x_1x_2x_3x_6x_7 \oplus
-x_0x_4x_6x_7 \oplus x_1x_4x_6x_7 \oplus x_2x_4x_6x_7 \oplus
-x_0x_2x_4x_6x_7 \oplus x_0x_1x_2x_4x_6x_7 \oplus x_3x_4x_6x_7 \oplus
-x_1x_3x_4x_6x_7 \oplus x_0x_1x_3x_4x_6x_7 \oplus x_0x_2x_3x_4x_6x_7
-\oplus x_1x_2x_3x_4x_6x_7 \oplus x_5x_6x_7 \oplus x_0x_5x_6x_7 \oplus
-x_0x_1x_5x_6x_7 \oplus x_2x_5x_6x_7 \oplus x_1x_2x_5x_6x_7 \oplus
-x_0x_1x_2x_5x_6x_7 \oplus x_0x_3x_5x_6x_7 \oplus x_1x_3x_5x_6x_7
-\oplus x_2x_3x_5x_6x_7 \oplus x_0x_2x_3x_5x_6x_7 \oplus
-x_0x_1x_2x_3x_5x_6x_7 \oplus x_4x_5x_6x_7 \oplus x_1x_4x_5x_6x_7
-\oplus x_0x_1x_4x_5x_6x_7 \oplus x_0x_2x_4x_5x_6x_7 \oplus
-x_1x_2x_4x_5x_6x_7 \oplus x_3x_4x_5x_6x_7 \oplus x_0x_3x_4x_5x_6x_7
-\oplus x_0x_1x_3x_4x_5x_6x_7 \oplus x_2x_3x_4x_5x_6x_7 \oplus
-x_1x_2x_3x_4x_5x_6x_7 \oplus x_0x_1x_2x_3x_4x_5x_6x_7 \oplus x_0x_8
-\oplus x_1x_8 \oplus x_2x_8 \oplus x_0x_2x_8 \oplus x_0x_1x_2x_8
-\oplus x_3x_8 \oplus x_1x_3x_8 \oplus x_0x_1x_3x_8 \oplus x_0x_2x_3x_8
-\oplus x_1x_2x_3x_8 \oplus x_4x_8 \oplus x_0x_4x_8 \oplus x_0x_1x_4x_8
-\oplus x_2x_4x_8 \oplus x_1x_2x_4x_8 \oplus x_0x_1x_2x_4x_8 \oplus
-x_0x_3x_4x_8 \oplus x_1x_3x_4x_8 \oplus x_2x_3x_4x_8 \oplus
-x_0x_2x_3x_4x_8 \oplus x_0x_1x_2x_3x_4x_8 \oplus x_5x_8 \oplus
-x_1x_5x_8 \oplus x_0x_1x_5x_8 \oplus x_0x_2x_5x_8 \oplus x_1x_2x_5x_8
-\oplus x_3x_5x_8 \oplus x_0x_3x_5x_8 \oplus x_0x_1x_3x_5x_8 \oplus
-x_2x_3x_5x_8 \oplus x_1x_2x_3x_5x_8 \oplus x_0x_1x_2x_3x_5x_8 \oplus
-x_0x_4x_5x_8 \oplus x_1x_4x_5x_8 \oplus x_2x_4x_5x_8 \oplus
-x_0x_2x_4x_5x_8 \oplus x_0x_1x_2x_4x_5x_8 \oplus x_3x_4x_5x_8 \oplus
-x_1x_3x_4x_5x_8 \oplus x_0x_1x_3x_4x_5x_8 \oplus x_0x_2x_3x_4x_5x_8
-\oplus x_1x_2x_3x_4x_5x_8 \oplus x_6x_8 \oplus x_0x_6x_8 \oplus
-x_0x_1x_6x_8 \oplus x_2x_6x_8 \oplus x_1x_2x_6x_8 \oplus
-x_0x_1x_2x_6x_8 \oplus x_0x_3x_6x_8 \oplus x_1x_3x_6x_8 \oplus
-x_2x_3x_6x_8 \oplus x_0x_2x_3x_6x_8 \oplus x_0x_1x_2x_3x_6x_8 \oplus
-x_4x_6x_8 \oplus x_1x_4x_6x_8 \oplus x_0x_1x_4x_6x_8 \oplus
-x_0x_2x_4x_6x_8 \oplus x_1x_2x_4x_6x_8 \oplus x_3x_4x_6x_8 \oplus
-x_0x_3x_4x_6x_8 \oplus x_0x_1x_3x_4x_6x_8 \oplus x_2x_3x_4x_6x_8
-\oplus x_1x_2x_3x_4x_6x_8 \oplus x_0x_1x_2x_3x_4x_6x_8 \oplus
-x_0x_5x_6x_8 \oplus x_1x_5x_6x_8 \oplus x_2x_5x_6x_8 \oplus
-x_0x_2x_5x_6x_8 \oplus x_0x_1x_2x_5x_6x_8 \oplus x_3x_5x_6x_8 \oplus
-x_1x_3x_5x_6x_8 \oplus x_0x_1x_3x_5x_6x_8 \oplus x_0x_2x_3x_5x_6x_8
-\oplus x_1x_2x_3x_5x_6x_8 \oplus x_4x_5x_6x_8 \oplus x_0x_4x_5x_6x_8
-\oplus x_0x_1x_4x_5x_6x_8 \oplus x_2x_4x_5x_6x_8 \oplus
-x_1x_2x_4x_5x_6x_8 \oplus x_0x_1x_2x_4x_5x_6x_8 \oplus
-x_0x_3x_4x_5x_6x_8 \oplus x_1x_3x_4x_5x_6x_8 \oplus x_2x_3x_4x_5x_6x_8
-\oplus x_0x_2x_3x_4x_5x_6x_8 \oplus x_0x_1x_2x_3x_4x_5x_6x_8 \oplus
-x_7x_8 \oplus x_1x_7x_8 \oplus x_0x_1x_7x_8 \oplus x_0x_2x_7x_8 \oplus
-x_1x_2x_7x_8 \oplus x_3x_7x_8 \oplus x_0x_3x_7x_8 \oplus
-x_0x_1x_3x_7x_8 \oplus x_2x_3x_7x_8 \oplus x_1x_2x_3x_7x_8 \oplus
-x_0x_1x_2x_3x_7x_8 \oplus x_0x_4x_7x_8 \oplus x_1x_4x_7x_8 \oplus
-x_2x_4x_7x_8 \oplus x_0x_2x_4x_7x_8 \oplus x_0x_1x_2x_4x_7x_8 \oplus
-x_3x_4x_7x_8 \oplus x_1x_3x_4x_7x_8 \oplus x_0x_1x_3x_4x_7x_8 \oplus
-x_0x_2x_3x_4x_7x_8 \oplus x_1x_2x_3x_4x_7x_8 \oplus x_5x_7x_8 \oplus
-x_0x_5x_7x_8 \oplus x_0x_1x_5x_7x_8 \oplus x_2x_5x_7x_8 \oplus
-x_1x_2x_5x_7x_8 \oplus x_0x_1x_2x_5x_7x_8 \oplus x_0x_3x_5x_7x_8
-\oplus x_1x_3x_5x_7x_8 \oplus x_2x_3x_5x_7x_8 \oplus
-x_0x_2x_3x_5x_7x_8 \oplus x_0x_1x_2x_3x_5x_7x_8 \oplus x_4x_5x_7x_8
-\oplus x_1x_4x_5x_7x_8 \oplus x_0x_1x_4x_5x_7x_8 \oplus
-x_0x_2x_4x_5x_7x_8 \oplus x_1x_2x_4x_5x_7x_8 \oplus x_3x_4x_5x_7x_8
-\oplus x_0x_3x_4x_5x_7x_8 \oplus x_0x_1x_3x_4x_5x_7x_8 \oplus
-x_2x_3x_4x_5x_7x_8 \oplus x_1x_2x_3x_4x_5x_7x_8 \oplus
-x_0x_1x_2x_3x_4x_5x_7x_8 \oplus x_0x_6x_7x_8 \oplus x_1x_6x_7x_8
-\oplus x_2x_6x_7x_8 \oplus x_0x_2x_6x_7x_8 \oplus x_0x_1x_2x_6x_7x_8
-\oplus x_3x_6x_7x_8 \oplus x_1x_3x_6x_7x_8 \oplus x_0x_1x_3x_6x_7x_8
-\oplus x_0x_2x_3x_6x_7x_8 \oplus x_1x_2x_3x_6x_7x_8 \oplus
-x_4x_6x_7x_8 \oplus x_0x_4x_6x_7x_8 \oplus x_0x_1x_4x_6x_7x_8 \oplus
-x_2x_4x_6x_7x_8 \oplus x_1x_2x_4x_6x_7x_8 \oplus x_0x_1x_2x_4x_6x_7x_8
-\oplus x_0x_3x_4x_6x_7x_8 \oplus x_1x_3x_4x_6x_7x_8 \oplus
-x_2x_3x_4x_6x_7x_8 \oplus x_0x_2x_3x_4x_6x_7x_8 \oplus
-x_0x_1x_2x_3x_4x_6x_7x_8 \oplus x_5x_6x_7x_8 \oplus x_1x_5x_6x_7x_8
-\oplus x_0x_1x_5x_6x_7x_8 \oplus x_0x_2x_5x_6x_7x_8 \oplus
-x_1x_2x_5x_6x_7x_8 \oplus x_3x_5x_6x_7x_8 \oplus x_0x_3x_5x_6x_7x_8
-\oplus x_0x_1x_3x_5x_6x_7x_8 \oplus x_2x_3x_5x_6x_7x_8 \oplus
-x_1x_2x_3x_5x_6x_7x_8 \oplus x_0x_1x_2x_3x_5x_6x_7x_8 \oplus
-x_0x_4x_5x_6x_7x_8 \oplus x_1x_4x_5x_6x_7x_8 \oplus x_2x_4x_5x_6x_7x_8
-\oplus x_0x_2x_4x_5x_6x_7x_8 \oplus x_0x_1x_2x_4x_5x_6x_7x_8 \oplus
-x_3x_4x_5x_6x_7x_8 \oplus x_1x_3x_4x_5x_6x_7x_8 \oplus
-x_0x_1x_3x_4x_5x_6x_7x_8 \oplus x_0x_2x_3x_4x_5x_6x_7x_8 \oplus
-x_1x_2x_3x_4x_5x_6x_7x_8 \oplus x_9 \oplus x_0x_9 \oplus x_0x_1x_9
-\oplus x_2x_9 \oplus x_1x_2x_9 \oplus x_0x_1x_2x_9 \oplus x_0x_3x_9
-\oplus x_1x_3x_9 \oplus x_2x_3x_9 \oplus x_0x_2x_3x_9 \oplus
-x_0x_1x_2x_3x_9 \oplus x_4x_9 \oplus x_1x_4x_9 \oplus x_0x_1x_4x_9
-\oplus x_0x_2x_4x_9 \oplus x_1x_2x_4x_9 \oplus x_3x_4x_9 \oplus
-x_0x_3x_4x_9 \oplus x_0x_1x_3x_4x_9 \oplus x_2x_3x_4x_9 \oplus
-x_1x_2x_3x_4x_9 \oplus x_0x_1x_2x_3x_4x_9 \oplus x_0x_5x_9 \oplus
-x_1x_5x_9 \oplus x_2x_5x_9 \oplus x_0x_2x_5x_9 \oplus x_0x_1x_2x_5x_9
-\oplus x_3x_5x_9 \oplus x_1x_3x_5x_9 \oplus x_0x_1x_3x_5x_9 \oplus
-x_0x_2x_3x_5x_9 \oplus x_1x_2x_3x_5x_9 \oplus x_4x_5x_9 \oplus
-x_0x_4x_5x_9 \oplus x_0x_1x_4x_5x_9 \oplus x_2x_4x_5x_9 \oplus
-x_1x_2x_4x_5x_9 \oplus x_0x_1x_2x_4x_5x_9 \oplus x_0x_3x_4x_5x_9
-\oplus x_1x_3x_4x_5x_9 \oplus x_2x_3x_4x_5x_9 \oplus
-x_0x_2x_3x_4x_5x_9 \oplus x_0x_1x_2x_3x_4x_5x_9 \oplus x_6x_9 \oplus
-x_1x_6x_9 \oplus x_0x_1x_6x_9 \oplus x_0x_2x_6x_9 \oplus x_1x_2x_6x_9
-\oplus x_3x_6x_9 \oplus x_0x_3x_6x_9 \oplus x_0x_1x_3x_6x_9 \oplus
-x_2x_3x_6x_9 \oplus x_1x_2x_3x_6x_9 \oplus x_0x_1x_2x_3x_6x_9 \oplus
-x_0x_4x_6x_9 \oplus x_1x_4x_6x_9 \oplus x_2x_4x_6x_9 \oplus
-x_0x_2x_4x_6x_9 \oplus x_0x_1x_2x_4x_6x_9 \oplus x_3x_4x_6x_9 \oplus
-x_1x_3x_4x_6x_9 \oplus x_0x_1x_3x_4x_6x_9 \oplus x_0x_2x_3x_4x_6x_9
-\oplus x_1x_2x_3x_4x_6x_9 \oplus x_5x_6x_9 \oplus x_0x_5x_6x_9 \oplus
-x_0x_1x_5x_6x_9 \oplus x_2x_5x_6x_9 \oplus x_1x_2x_5x_6x_9 \oplus
-x_0x_1x_2x_5x_6x_9 \oplus x_0x_3x_5x_6x_9 \oplus x_1x_3x_5x_6x_9
-\oplus x_2x_3x_5x_6x_9 \oplus x_0x_2x_3x_5x_6x_9 \oplus
-x_0x_1x_2x_3x_5x_6x_9 \oplus x_4x_5x_6x_9 \oplus x_1x_4x_5x_6x_9
-\oplus x_0x_1x_4x_5x_6x_9 \oplus x_0x_2x_4x_5x_6x_9 \oplus
-x_1x_2x_4x_5x_6x_9 \oplus x_3x_4x_5x_6x_9 \oplus x_0x_3x_4x_5x_6x_9
-\oplus x_0x_1x_3x_4x_5x_6x_9 \oplus x_2x_3x_4x_5x_6x_9 \oplus
-x_1x_2x_3x_4x_5x_6x_9 \oplus x_0x_1x_2x_3x_4x_5x_6x_9 \oplus x_0x_7x_9
-\oplus x_1x_7x_9 \oplus x_2x_7x_9 \oplus x_0x_2x_7x_9 \oplus
-x_0x_1x_2x_7x_9 \oplus x_3x_7x_9 \oplus x_1x_3x_7x_9 \oplus
-x_0x_1x_3x_7x_9 \oplus x_0x_2x_3x_7x_9 \oplus x_1x_2x_3x_7x_9 \oplus
-x_4x_7x_9 \oplus x_0x_4x_7x_9 \oplus x_0x_1x_4x_7x_9 \oplus
-x_2x_4x_7x_9 \oplus x_1x_2x_4x_7x_9 \oplus x_0x_1x_2x_4x_7x_9 \oplus
-x_0x_3x_4x_7x_9 \oplus x_1x_3x_4x_7x_9 \oplus x_2x_3x_4x_7x_9 \oplus
-x_0x_2x_3x_4x_7x_9 \oplus x_0x_1x_2x_3x_4x_7x_9 \oplus x_5x_7x_9
-\oplus x_1x_5x_7x_9 \oplus x_0x_1x_5x_7x_9 \oplus x_0x_2x_5x_7x_9
-\oplus x_1x_2x_5x_7x_9 \oplus x_3x_5x_7x_9 \oplus x_0x_3x_5x_7x_9
-\oplus x_0x_1x_3x_5x_7x_9 \oplus x_2x_3x_5x_7x_9 \oplus
-x_1x_2x_3x_5x_7x_9 \oplus x_0x_1x_2x_3x_5x_7x_9 \oplus x_0x_4x_5x_7x_9
-\oplus x_1x_4x_5x_7x_9 \oplus x_2x_4x_5x_7x_9 \oplus
-x_0x_2x_4x_5x_7x_9 \oplus x_0x_1x_2x_4x_5x_7x_9 \oplus x_3x_4x_5x_7x_9
-\oplus x_1x_3x_4x_5x_7x_9 \oplus x_0x_1x_3x_4x_5x_7x_9 \oplus
-x_0x_2x_3x_4x_5x_7x_9 \oplus x_1x_2x_3x_4x_5x_7x_9 \oplus x_6x_7x_9
-\oplus x_0x_6x_7x_9 \oplus x_0x_1x_6x_7x_9 \oplus x_2x_6x_7x_9 \oplus
-x_1x_2x_6x_7x_9 \oplus x_0x_1x_2x_6x_7x_9 \oplus x_0x_3x_6x_7x_9
-\oplus x_1x_3x_6x_7x_9 \oplus x_2x_3x_6x_7x_9 \oplus
-x_0x_2x_3x_6x_7x_9 \oplus x_0x_1x_2x_3x_6x_7x_9 \oplus x_4x_6x_7x_9
-\oplus x_1x_4x_6x_7x_9 \oplus x_0x_1x_4x_6x_7x_9 \oplus
-x_0x_2x_4x_6x_7x_9 \oplus x_1x_2x_4x_6x_7x_9 \oplus x_3x_4x_6x_7x_9
-\oplus x_0x_3x_4x_6x_7x_9 \oplus x_0x_1x_3x_4x_6x_7x_9 \oplus
-x_2x_3x_4x_6x_7x_9 \oplus x_1x_2x_3x_4x_6x_7x_9 \oplus
-x_0x_1x_2x_3x_4x_6x_7x_9 \oplus x_0x_5x_6x_7x_9 \oplus x_1x_5x_6x_7x_9
-\oplus x_2x_5x_6x_7x_9 \oplus x_0x_2x_5x_6x_7x_9 \oplus
-x_0x_1x_2x_5x_6x_7x_9 \oplus x_3x_5x_6x_7x_9 \oplus x_1x_3x_5x_6x_7x_9
-\oplus x_0x_1x_3x_5x_6x_7x_9 \oplus x_0x_2x_3x_5x_6x_7x_9 \oplus
-x_1x_2x_3x_5x_6x_7x_9 \oplus x_4x_5x_6x_7x_9 \oplus x_0x_4x_5x_6x_7x_9
-\oplus x_0x_1x_4x_5x_6x_7x_9 \oplus x_2x_4x_5x_6x_7x_9 \oplus
-x_1x_2x_4x_5x_6x_7x_9 \oplus x_0x_1x_2x_4x_5x_6x_7x_9 \oplus
-x_0x_3x_4x_5x_6x_7x_9 \oplus x_1x_3x_4x_5x_6x_7x_9 \oplus
-x_2x_3x_4x_5x_6x_7x_9 \oplus x_0x_2x_3x_4x_5x_6x_7x_9 \oplus
-x_0x_1x_2x_3x_4x_5x_6x_7x_9 \oplus x_8x_9 \oplus x_1x_8x_9 \oplus
-x_0x_1x_8x_9 \oplus x_0x_2x_8x_9 \oplus x_1x_2x_8x_9 \oplus x_3x_8x_9
-\oplus x_0x_3x_8x_9 \oplus x_0x_1x_3x_8x_9 \oplus x_2x_3x_8x_9 \oplus
-x_1x_2x_3x_8x_9 \oplus x_0x_1x_2x_3x_8x_9 \oplus x_0x_4x_8x_9 \oplus
-x_1x_4x_8x_9 \oplus x_2x_4x_8x_9 \oplus x_0x_2x_4x_8x_9 \oplus
-x_0x_1x_2x_4x_8x_9 \oplus x_3x_4x_8x_9 \oplus x_1x_3x_4x_8x_9 \oplus
-x_0x_1x_3x_4x_8x_9 \oplus x_0x_2x_3x_4x_8x_9 \oplus x_1x_2x_3x_4x_8x_9
-\oplus x_5x_8x_9 \oplus x_0x_5x_8x_9 \oplus x_0x_1x_5x_8x_9 \oplus
-x_2x_5x_8x_9 \oplus x_1x_2x_5x_8x_9 \oplus x_0x_1x_2x_5x_8x_9 \oplus
-x_0x_3x_5x_8x_9 \oplus x_1x_3x_5x_8x_9 \oplus x_2x_3x_5x_8x_9 \oplus
-x_0x_2x_3x_5x_8x_9 \oplus x_0x_1x_2x_3x_5x_8x_9 \oplus x_4x_5x_8x_9
-\oplus x_1x_4x_5x_8x_9 \oplus x_0x_1x_4x_5x_8x_9 \oplus
-x_0x_2x_4x_5x_8x_9 \oplus x_1x_2x_4x_5x_8x_9 \oplus x_3x_4x_5x_8x_9
-\oplus x_0x_3x_4x_5x_8x_9 \oplus x_0x_1x_3x_4x_5x_8x_9 \oplus
-x_2x_3x_4x_5x_8x_9 \oplus x_1x_2x_3x_4x_5x_8x_9 \oplus
-x_0x_1x_2x_3x_4x_5x_8x_9 \oplus x_0x_6x_8x_9 \oplus x_1x_6x_8x_9
-\oplus x_2x_6x_8x_9 \oplus x_0x_2x_6x_8x_9 \oplus x_0x_1x_2x_6x_8x_9
-\oplus x_3x_6x_8x_9 \oplus x_1x_3x_6x_8x_9 \oplus x_0x_1x_3x_6x_8x_9
-\oplus x_0x_2x_3x_6x_8x_9 \oplus x_1x_2x_3x_6x_8x_9 \oplus
-x_4x_6x_8x_9 \oplus x_0x_4x_6x_8x_9 \oplus x_0x_1x_4x_6x_8x_9 \oplus
-x_2x_4x_6x_8x_9 \oplus x_1x_2x_4x_6x_8x_9 \oplus x_0x_1x_2x_4x_6x_8x_9
-\oplus x_0x_3x_4x_6x_8x_9 \oplus x_1x_3x_4x_6x_8x_9 \oplus
-x_2x_3x_4x_6x_8x_9 \oplus x_0x_2x_3x_4x_6x_8x_9 \oplus
-x_0x_1x_2x_3x_4x_6x_8x_9 \oplus x_5x_6x_8x_9 \oplus x_1x_5x_6x_8x_9
-\oplus x_0x_1x_5x_6x_8x_9 \oplus x_0x_2x_5x_6x_8x_9 \oplus
-x_1x_2x_5x_6x_8x_9 \oplus x_3x_5x_6x_8x_9 \oplus x_0x_3x_5x_6x_8x_9
-\oplus x_0x_1x_3x_5x_6x_8x_9 \oplus x_2x_3x_5x_6x_8x_9 \oplus
-x_1x_2x_3x_5x_6x_8x_9 \oplus x_0x_1x_2x_3x_5x_6x_8x_9 \oplus
-x_0x_4x_5x_6x_8x_9 \oplus x_1x_4x_5x_6x_8x_9 \oplus x_2x_4x_5x_6x_8x_9
-\oplus x_0x_2x_4x_5x_6x_8x_9 \oplus x_0x_1x_2x_4x_5x_6x_8x_9 \oplus
-x_3x_4x_5x_6x_8x_9 \oplus x_1x_3x_4x_5x_6x_8x_9 \oplus
-x_0x_1x_3x_4x_5x_6x_8x_9 \oplus x_0x_2x_3x_4x_5x_6x_8x_9 \oplus
-x_1x_2x_3x_4x_5x_6x_8x_9 \oplus x_7x_8x_9 \oplus x_0x_7x_8x_9 \oplus
-x_0x_1x_7x_8x_9 \oplus x_2x_7x_8x_9 \oplus x_1x_2x_7x_8x_9 \oplus
-x_0x_1x_2x_7x_8x_9 \oplus x_0x_3x_7x_8x_9 \oplus x_1x_3x_7x_8x_9
-\oplus x_2x_3x_7x_8x_9 \oplus x_0x_2x_3x_7x_8x_9 \oplus
-x_0x_1x_2x_3x_7x_8x_9 \oplus x_4x_7x_8x_9 \oplus x_1x_4x_7x_8x_9
-\oplus x_0x_1x_4x_7x_8x_9 \oplus x_0x_2x_4x_7x_8x_9 \oplus
-x_1x_2x_4x_7x_8x_9 \oplus x_3x_4x_7x_8x_9 \oplus x_0x_3x_4x_7x_8x_9
-\oplus x_0x_1x_3x_4x_7x_8x_9 \oplus x_2x_3x_4x_7x_8x_9 \oplus
-x_1x_2x_3x_4x_7x_8x_9 \oplus x_0x_1x_2x_3x_4x_7x_8x_9 \oplus
-x_0x_5x_7x_8x_9 \oplus x_1x_5x_7x_8x_9 \oplus x_2x_5x_7x_8x_9 \oplus
-x_0x_2x_5x_7x_8x_9 \oplus x_0x_1x_2x_5x_7x_8x_9 \oplus x_3x_5x_7x_8x_9
-\oplus x_1x_3x_5x_7x_8x_9 \oplus x_0x_1x_3x_5x_7x_8x_9 \oplus
-x_0x_2x_3x_5x_7x_8x_9 \oplus x_1x_2x_3x_5x_7x_8x_9 \oplus
-x_4x_5x_7x_8x_9 \oplus x_0x_4x_5x_7x_8x_9 \oplus x_0x_1x_4x_5x_7x_8x_9
-\oplus x_2x_4x_5x_7x_8x_9 \oplus x_1x_2x_4x_5x_7x_8x_9 \oplus
-x_0x_1x_2x_4x_5x_7x_8x_9 \oplus x_0x_3x_4x_5x_7x_8x_9 \oplus
-x_1x_3x_4x_5x_7x_8x_9 \oplus x_2x_3x_4x_5x_7x_8x_9 \oplus
-x_0x_2x_3x_4x_5x_7x_8x_9 \oplus x_0x_1x_2x_3x_4x_5x_7x_8x_9 \oplus
-x_6x_7x_8x_9 \oplus x_1x_6x_7x_8x_9 \oplus x_0x_1x_6x_7x_8x_9 \oplus
-x_0x_2x_6x_7x_8x_9 \oplus x_1x_2x_6x_7x_8x_9 \oplus x_3x_6x_7x_8x_9
-\oplus x_0x_3x_6x_7x_8x_9 \oplus x_0x_1x_3x_6x_7x_8x_9 \oplus
-x_2x_3x_6x_7x_8x_9 \oplus x_1x_2x_3x_6x_7x_8x_9 \oplus
-x_0x_1x_2x_3x_6x_7x_8x_9 \oplus x_0x_4x_6x_7x_8x_9 \oplus
-x_1x_4x_6x_7x_8x_9 \oplus x_2x_4x_6x_7x_8x_9 \oplus
-x_0x_2x_4x_6x_7x_8x_9 \oplus x_0x_1x_2x_4x_6x_7x_8x_9 \oplus
-x_3x_4x_6x_7x_8x_9 \oplus x_1x_3x_4x_6x_7x_8x_9 \oplus
-x_0x_1x_3x_4x_6x_7x_8x_9 \oplus x_0x_2x_3x_4x_6x_7x_8x_9 \oplus
-x_1x_2x_3x_4x_6x_7x_8x_9 \oplus x_5x_6x_7x_8x_9 \oplus
-x_0x_5x_6x_7x_8x_9 \oplus x_0x_1x_5x_6x_7x_8x_9 \oplus
-x_2x_5x_6x_7x_8x_9 \oplus x_1x_2x_5x_6x_7x_8x_9 \oplus
-x_0x_1x_2x_5x_6x_7x_8x_9 \oplus x_0x_3x_5x_6x_7x_8x_9 \oplus
-x_1x_3x_5x_6x_7x_8x_9 \oplus x_2x_3x_5x_6x_7x_8x_9 \oplus
-x_0x_2x_3x_5x_6x_7x_8x_9 \oplus x_0x_1x_2x_3x_5x_6x_7x_8x_9 \oplus
-x_4x_5x_6x_7x_8x_9 \oplus x_1x_4x_5x_6x_7x_8x_9 \oplus
-x_0x_1x_4x_5x_6x_7x_8x_9 \oplus x_0x_2x_4x_5x_6x_7x_8x_9 \oplus
-x_1x_2x_4x_5x_6x_7x_8x_9 \oplus x_3x_4x_5x_6x_7x_8x_9 \oplus
-x_0x_3x_4x_5x_6x_7x_8x_9 \oplus x_0x_1x_3x_4x_5x_6x_7x_8x_9 \oplus
-x_2x_3x_4x_5x_6x_7x_8x_9 \oplus x_1x_2x_3x_4x_5x_6x_7x_8x_9 \oplus
-x_0x_1x_2x_3x_4x_5x_6x_7x_8x_9 = 0$
-
-\bigskip
-
-$x_0 \oplus x_0x_1 \oplus x_2 \oplus x_1x_2 \oplus x_0x_1x_2 \oplus
-x_0x_3 \oplus x_1x_3 \oplus x_2x_3 \oplus x_0x_2x_3 \oplus
-x_0x_1x_2x_3 \oplus x_4 \oplus x_1x_4 \oplus x_0x_1x_4 \oplus
-x_0x_2x_4 \oplus x_1x_2x_4 \oplus x_3x_4 \oplus x_0x_3x_4 \oplus
-x_0x_1x_3x_4 \oplus x_2x_3x_4 \oplus x_1x_2x_3x_4 \oplus
-x_0x_1x_2x_3x_4 \oplus x_0x_5 \oplus x_1x_5 \oplus x_2x_5 \oplus
-x_0x_2x_5 \oplus x_0x_1x_2x_5 \oplus x_3x_5 \oplus x_1x_3x_5 \oplus
-x_0x_1x_3x_5 \oplus x_0x_2x_3x_5 \oplus x_1x_2x_3x_5 \oplus x_4x_5
-\oplus x_0x_4x_5 \oplus x_0x_1x_4x_5 \oplus x_2x_4x_5 \oplus
-x_1x_2x_4x_5 \oplus x_0x_1x_2x_4x_5 \oplus x_0x_3x_4x_5 \oplus
-x_1x_3x_4x_5 \oplus x_2x_3x_4x_5 \oplus x_0x_2x_3x_4x_5 \oplus
-x_0x_1x_2x_3x_4x_5 \oplus x_6 \oplus x_1x_6 \oplus x_0x_1x_6 \oplus
-x_0x_2x_6 \oplus x_1x_2x_6 \oplus x_3x_6 \oplus x_0x_3x_6 \oplus
-x_0x_1x_3x_6 \oplus x_2x_3x_6 \oplus x_1x_2x_3x_6 \oplus
-x_0x_1x_2x_3x_6 \oplus x_0x_4x_6 \oplus x_1x_4x_6 \oplus x_2x_4x_6
-\oplus x_0x_2x_4x_6 \oplus x_0x_1x_2x_4x_6 \oplus x_3x_4x_6 \oplus
-x_1x_3x_4x_6 \oplus x_0x_1x_3x_4x_6 \oplus x_0x_2x_3x_4x_6 \oplus
-x_1x_2x_3x_4x_6 \oplus x_5x_6 \oplus x_0x_5x_6 \oplus x_0x_1x_5x_6
-\oplus x_2x_5x_6 \oplus x_1x_2x_5x_6 \oplus x_0x_1x_2x_5x_6 \oplus
-x_0x_3x_5x_6 \oplus x_1x_3x_5x_6 \oplus x_2x_3x_5x_6 \oplus
-x_0x_2x_3x_5x_6 \oplus x_0x_1x_2x_3x_5x_6 \oplus x_4x_5x_6 \oplus
-x_1x_4x_5x_6 \oplus x_0x_1x_4x_5x_6 \oplus x_0x_2x_4x_5x_6 \oplus
-x_1x_2x_4x_5x_6 \oplus x_3x_4x_5x_6 \oplus x_0x_3x_4x_5x_6 \oplus
-x_0x_1x_3x_4x_5x_6 \oplus x_2x_3x_4x_5x_6 \oplus x_1x_2x_3x_4x_5x_6
-\oplus x_0x_1x_2x_3x_4x_5x_6 \oplus x_0x_7 \oplus x_1x_7 \oplus x_2x_7
-\oplus x_0x_2x_7 \oplus x_0x_1x_2x_7 \oplus x_3x_7 \oplus x_1x_3x_7
-\oplus x_0x_1x_3x_7 \oplus x_0x_2x_3x_7 \oplus x_1x_2x_3x_7 \oplus
-x_4x_7 \oplus x_0x_4x_7 \oplus x_0x_1x_4x_7 \oplus x_2x_4x_7 \oplus
-x_1x_2x_4x_7 \oplus x_0x_1x_2x_4x_7 \oplus x_0x_3x_4x_7 \oplus
-x_1x_3x_4x_7 \oplus x_2x_3x_4x_7 \oplus x_0x_2x_3x_4x_7 \oplus
-x_0x_1x_2x_3x_4x_7 \oplus x_5x_7 \oplus x_1x_5x_7 \oplus x_0x_1x_5x_7
-\oplus x_0x_2x_5x_7 \oplus x_1x_2x_5x_7 \oplus x_3x_5x_7 \oplus
-x_0x_3x_5x_7 \oplus x_0x_1x_3x_5x_7 \oplus x_2x_3x_5x_7 \oplus
-x_1x_2x_3x_5x_7 \oplus x_0x_1x_2x_3x_5x_7 \oplus x_0x_4x_5x_7 \oplus
-x_1x_4x_5x_7 \oplus x_2x_4x_5x_7 \oplus x_0x_2x_4x_5x_7 \oplus
-x_0x_1x_2x_4x_5x_7 \oplus x_3x_4x_5x_7 \oplus x_1x_3x_4x_5x_7 \oplus
-x_0x_1x_3x_4x_5x_7 \oplus x_0x_2x_3x_4x_5x_7 \oplus x_1x_2x_3x_4x_5x_7
-\oplus x_6x_7 \oplus x_0x_6x_7 \oplus x_0x_1x_6x_7 \oplus x_2x_6x_7
-\oplus x_1x_2x_6x_7 \oplus x_0x_1x_2x_6x_7 \oplus x_0x_3x_6x_7 \oplus
-x_1x_3x_6x_7 \oplus x_2x_3x_6x_7 \oplus x_0x_2x_3x_6x_7 \oplus
-x_0x_1x_2x_3x_6x_7 \oplus x_4x_6x_7 \oplus x_1x_4x_6x_7 \oplus
-x_0x_1x_4x_6x_7 \oplus x_0x_2x_4x_6x_7 \oplus x_1x_2x_4x_6x_7 \oplus
-x_3x_4x_6x_7 \oplus x_0x_3x_4x_6x_7 \oplus x_0x_1x_3x_4x_6x_7 \oplus
-x_2x_3x_4x_6x_7 \oplus x_1x_2x_3x_4x_6x_7 \oplus x_0x_1x_2x_3x_4x_6x_7
-\oplus x_0x_5x_6x_7 \oplus x_1x_5x_6x_7 \oplus x_2x_5x_6x_7 \oplus
-x_0x_2x_5x_6x_7 \oplus x_0x_1x_2x_5x_6x_7 \oplus x_3x_5x_6x_7 \oplus
-x_1x_3x_5x_6x_7 \oplus x_0x_1x_3x_5x_6x_7 \oplus x_0x_2x_3x_5x_6x_7
-\oplus x_1x_2x_3x_5x_6x_7 \oplus x_4x_5x_6x_7 \oplus x_0x_4x_5x_6x_7
-\oplus x_0x_1x_4x_5x_6x_7 \oplus x_2x_4x_5x_6x_7 \oplus
-x_1x_2x_4x_5x_6x_7 \oplus x_0x_1x_2x_4x_5x_6x_7 \oplus
-x_0x_3x_4x_5x_6x_7 \oplus x_1x_3x_4x_5x_6x_7 \oplus x_2x_3x_4x_5x_6x_7
-\oplus x_0x_2x_3x_4x_5x_6x_7 \oplus x_0x_1x_2x_3x_4x_5x_6x_7 \oplus
-x_8 \oplus x_1x_8 \oplus x_0x_1x_8 \oplus x_0x_2x_8 \oplus x_1x_2x_8
-\oplus x_3x_8 \oplus x_0x_3x_8 \oplus x_0x_1x_3x_8 \oplus x_2x_3x_8
-\oplus x_1x_2x_3x_8 \oplus x_0x_1x_2x_3x_8 \oplus x_0x_4x_8 \oplus
-x_1x_4x_8 \oplus x_2x_4x_8 \oplus x_0x_2x_4x_8 \oplus x_0x_1x_2x_4x_8
-\oplus x_3x_4x_8 \oplus x_1x_3x_4x_8 \oplus x_0x_1x_3x_4x_8 \oplus
-x_0x_2x_3x_4x_8 \oplus x_1x_2x_3x_4x_8 \oplus x_5x_8 \oplus x_0x_5x_8
-\oplus x_0x_1x_5x_8 \oplus x_2x_5x_8 \oplus x_1x_2x_5x_8 \oplus
-x_0x_1x_2x_5x_8 \oplus x_0x_3x_5x_8 \oplus x_1x_3x_5x_8 \oplus
-x_2x_3x_5x_8 \oplus x_0x_2x_3x_5x_8 \oplus x_0x_1x_2x_3x_5x_8 \oplus
-x_4x_5x_8 \oplus x_1x_4x_5x_8 \oplus x_0x_1x_4x_5x_8 \oplus
-x_0x_2x_4x_5x_8 \oplus x_1x_2x_4x_5x_8 \oplus x_3x_4x_5x_8 \oplus
-x_0x_3x_4x_5x_8 \oplus x_0x_1x_3x_4x_5x_8 \oplus x_2x_3x_4x_5x_8
-\oplus x_1x_2x_3x_4x_5x_8 \oplus x_0x_1x_2x_3x_4x_5x_8 \oplus
-x_0x_6x_8 \oplus x_1x_6x_8 \oplus x_2x_6x_8 \oplus x_0x_2x_6x_8 \oplus
-x_0x_1x_2x_6x_8 \oplus x_3x_6x_8 \oplus x_1x_3x_6x_8 \oplus
-x_0x_1x_3x_6x_8 \oplus x_0x_2x_3x_6x_8 \oplus x_1x_2x_3x_6x_8 \oplus
-x_4x_6x_8 \oplus x_0x_4x_6x_8 \oplus x_0x_1x_4x_6x_8 \oplus
-x_2x_4x_6x_8 \oplus x_1x_2x_4x_6x_8 \oplus x_0x_1x_2x_4x_6x_8 \oplus
-x_0x_3x_4x_6x_8 \oplus x_1x_3x_4x_6x_8 \oplus x_2x_3x_4x_6x_8 \oplus
-x_0x_2x_3x_4x_6x_8 \oplus x_0x_1x_2x_3x_4x_6x_8 \oplus x_5x_6x_8
-\oplus x_1x_5x_6x_8 \oplus x_0x_1x_5x_6x_8 \oplus x_0x_2x_5x_6x_8
-\oplus x_1x_2x_5x_6x_8 \oplus x_3x_5x_6x_8 \oplus x_0x_3x_5x_6x_8
-\oplus x_0x_1x_3x_5x_6x_8 \oplus x_2x_3x_5x_6x_8 \oplus
-x_1x_2x_3x_5x_6x_8 \oplus x_0x_1x_2x_3x_5x_6x_8 \oplus x_0x_4x_5x_6x_8
-\oplus x_1x_4x_5x_6x_8 \oplus x_2x_4x_5x_6x_8 \oplus
-x_0x_2x_4x_5x_6x_8 \oplus x_0x_1x_2x_4x_5x_6x_8 \oplus x_3x_4x_5x_6x_8
-\oplus x_1x_3x_4x_5x_6x_8 \oplus x_0x_1x_3x_4x_5x_6x_8 \oplus
-x_0x_2x_3x_4x_5x_6x_8 \oplus x_1x_2x_3x_4x_5x_6x_8 \oplus x_7x_8
-\oplus x_0x_7x_8 \oplus x_0x_1x_7x_8 \oplus x_2x_7x_8 \oplus
-x_1x_2x_7x_8 \oplus x_0x_1x_2x_7x_8 \oplus x_0x_3x_7x_8 \oplus
-x_1x_3x_7x_8 \oplus x_2x_3x_7x_8 \oplus x_0x_2x_3x_7x_8 \oplus
-x_0x_1x_2x_3x_7x_8 \oplus x_4x_7x_8 \oplus x_1x_4x_7x_8 \oplus
-x_0x_1x_4x_7x_8 \oplus x_0x_2x_4x_7x_8 \oplus x_1x_2x_4x_7x_8 \oplus
-x_3x_4x_7x_8 \oplus x_0x_3x_4x_7x_8 \oplus x_0x_1x_3x_4x_7x_8 \oplus
-x_2x_3x_4x_7x_8 \oplus x_1x_2x_3x_4x_7x_8 \oplus x_0x_1x_2x_3x_4x_7x_8
-\oplus x_0x_5x_7x_8 \oplus x_1x_5x_7x_8 \oplus x_2x_5x_7x_8 \oplus
-x_0x_2x_5x_7x_8 \oplus x_0x_1x_2x_5x_7x_8 \oplus x_3x_5x_7x_8 \oplus
-x_1x_3x_5x_7x_8 \oplus x_0x_1x_3x_5x_7x_8 \oplus x_0x_2x_3x_5x_7x_8
-\oplus x_1x_2x_3x_5x_7x_8 \oplus x_4x_5x_7x_8 \oplus x_0x_4x_5x_7x_8
-\oplus x_0x_1x_4x_5x_7x_8 \oplus x_2x_4x_5x_7x_8 \oplus
-x_1x_2x_4x_5x_7x_8 \oplus x_0x_1x_2x_4x_5x_7x_8 \oplus
-x_0x_3x_4x_5x_7x_8 \oplus x_1x_3x_4x_5x_7x_8 \oplus x_2x_3x_4x_5x_7x_8
-\oplus x_0x_2x_3x_4x_5x_7x_8 \oplus x_0x_1x_2x_3x_4x_5x_7x_8 \oplus
-x_6x_7x_8 \oplus x_1x_6x_7x_8 \oplus x_0x_1x_6x_7x_8 \oplus
-x_0x_2x_6x_7x_8 \oplus x_1x_2x_6x_7x_8 \oplus x_3x_6x_7x_8 \oplus
-x_0x_3x_6x_7x_8 \oplus x_0x_1x_3x_6x_7x_8 \oplus x_2x_3x_6x_7x_8
-\oplus x_1x_2x_3x_6x_7x_8 \oplus x_0x_1x_2x_3x_6x_7x_8 \oplus
-x_0x_4x_6x_7x_8 \oplus x_1x_4x_6x_7x_8 \oplus x_2x_4x_6x_7x_8 \oplus
-x_0x_2x_4x_6x_7x_8 \oplus x_0x_1x_2x_4x_6x_7x_8 \oplus x_3x_4x_6x_7x_8
-\oplus x_1x_3x_4x_6x_7x_8 \oplus x_0x_1x_3x_4x_6x_7x_8 \oplus
-x_0x_2x_3x_4x_6x_7x_8 \oplus x_1x_2x_3x_4x_6x_7x_8 \oplus x_5x_6x_7x_8
-\oplus x_0x_5x_6x_7x_8 \oplus x_0x_1x_5x_6x_7x_8 \oplus
-x_2x_5x_6x_7x_8 \oplus x_1x_2x_5x_6x_7x_8 \oplus x_0x_1x_2x_5x_6x_7x_8
-\oplus x_0x_3x_5x_6x_7x_8 \oplus x_1x_3x_5x_6x_7x_8 \oplus
-x_2x_3x_5x_6x_7x_8 \oplus x_0x_2x_3x_5x_6x_7x_8 \oplus
-x_0x_1x_2x_3x_5x_6x_7x_8 \oplus x_4x_5x_6x_7x_8 \oplus
-x_1x_4x_5x_6x_7x_8 \oplus x_0x_1x_4x_5x_6x_7x_8 \oplus
-x_0x_2x_4x_5x_6x_7x_8 \oplus x_1x_2x_4x_5x_6x_7x_8 \oplus
-x_3x_4x_5x_6x_7x_8 \oplus x_0x_3x_4x_5x_6x_7x_8 \oplus
-x_0x_1x_3x_4x_5x_6x_7x_8 \oplus x_2x_3x_4x_5x_6x_7x_8 \oplus
-x_1x_2x_3x_4x_5x_6x_7x_8 \oplus x_0x_1x_2x_3x_4x_5x_6x_7x_8 \oplus
-x_0x_9 \oplus x_1x_9 \oplus x_2x_9 \oplus x_0x_2x_9 \oplus
-x_0x_1x_2x_9 \oplus x_3x_9 \oplus x_1x_3x_9 \oplus x_0x_1x_3x_9 \oplus
-x_0x_2x_3x_9 \oplus x_1x_2x_3x_9 \oplus x_4x_9 \oplus x_0x_4x_9 \oplus
-x_0x_1x_4x_9 \oplus x_2x_4x_9 \oplus x_1x_2x_4x_9 \oplus
-x_0x_1x_2x_4x_9 \oplus x_0x_3x_4x_9 \oplus x_1x_3x_4x_9 \oplus
-x_2x_3x_4x_9 \oplus x_0x_2x_3x_4x_9 \oplus x_0x_1x_2x_3x_4x_9 \oplus
-x_5x_9 \oplus x_1x_5x_9 \oplus x_0x_1x_5x_9 \oplus x_0x_2x_5x_9 \oplus
-x_1x_2x_5x_9 \oplus x_3x_5x_9 \oplus x_0x_3x_5x_9 \oplus
-x_0x_1x_3x_5x_9 \oplus x_2x_3x_5x_9 \oplus x_1x_2x_3x_5x_9 \oplus
-x_0x_1x_2x_3x_5x_9 \oplus x_0x_4x_5x_9 \oplus x_1x_4x_5x_9 \oplus
-x_2x_4x_5x_9 \oplus x_0x_2x_4x_5x_9 \oplus x_0x_1x_2x_4x_5x_9 \oplus
-x_3x_4x_5x_9 \oplus x_1x_3x_4x_5x_9 \oplus x_0x_1x_3x_4x_5x_9 \oplus
-x_0x_2x_3x_4x_5x_9 \oplus x_1x_2x_3x_4x_5x_9 \oplus x_6x_9 \oplus
-x_0x_6x_9 \oplus x_0x_1x_6x_9 \oplus x_2x_6x_9 \oplus x_1x_2x_6x_9
-\oplus x_0x_1x_2x_6x_9 \oplus x_0x_3x_6x_9 \oplus x_1x_3x_6x_9 \oplus
-x_2x_3x_6x_9 \oplus x_0x_2x_3x_6x_9 \oplus x_0x_1x_2x_3x_6x_9 \oplus
-x_4x_6x_9 \oplus x_1x_4x_6x_9 \oplus x_0x_1x_4x_6x_9 \oplus
-x_0x_2x_4x_6x_9 \oplus x_1x_2x_4x_6x_9 \oplus x_3x_4x_6x_9 \oplus
-x_0x_3x_4x_6x_9 \oplus x_0x_1x_3x_4x_6x_9 \oplus x_2x_3x_4x_6x_9
-\oplus x_1x_2x_3x_4x_6x_9 \oplus x_0x_1x_2x_3x_4x_6x_9 \oplus
-x_0x_5x_6x_9 \oplus x_1x_5x_6x_9 \oplus x_2x_5x_6x_9 \oplus
-x_0x_2x_5x_6x_9 \oplus x_0x_1x_2x_5x_6x_9 \oplus x_3x_5x_6x_9 \oplus
-x_1x_3x_5x_6x_9 \oplus x_0x_1x_3x_5x_6x_9 \oplus x_0x_2x_3x_5x_6x_9
-\oplus x_1x_2x_3x_5x_6x_9 \oplus x_4x_5x_6x_9 \oplus x_0x_4x_5x_6x_9
-\oplus x_0x_1x_4x_5x_6x_9 \oplus x_2x_4x_5x_6x_9 \oplus
-x_1x_2x_4x_5x_6x_9 \oplus x_0x_1x_2x_4x_5x_6x_9 \oplus
-x_0x_3x_4x_5x_6x_9 \oplus x_1x_3x_4x_5x_6x_9 \oplus x_2x_3x_4x_5x_6x_9
-\oplus x_0x_2x_3x_4x_5x_6x_9 \oplus x_0x_1x_2x_3x_4x_5x_6x_9 \oplus
-x_7x_9 \oplus x_1x_7x_9 \oplus x_0x_1x_7x_9 \oplus x_0x_2x_7x_9 \oplus
-x_1x_2x_7x_9 \oplus x_3x_7x_9 \oplus x_0x_3x_7x_9 \oplus
-x_0x_1x_3x_7x_9 \oplus x_2x_3x_7x_9 \oplus x_1x_2x_3x_7x_9 \oplus
-x_0x_1x_2x_3x_7x_9 \oplus x_0x_4x_7x_9 \oplus x_1x_4x_7x_9 \oplus
-x_2x_4x_7x_9 \oplus x_0x_2x_4x_7x_9 \oplus x_0x_1x_2x_4x_7x_9 \oplus
-x_3x_4x_7x_9 \oplus x_1x_3x_4x_7x_9 \oplus x_0x_1x_3x_4x_7x_9 \oplus
-x_0x_2x_3x_4x_7x_9 \oplus x_1x_2x_3x_4x_7x_9 \oplus x_5x_7x_9 \oplus
-x_0x_5x_7x_9 \oplus x_0x_1x_5x_7x_9 \oplus x_2x_5x_7x_9 \oplus
-x_1x_2x_5x_7x_9 \oplus x_0x_1x_2x_5x_7x_9 \oplus x_0x_3x_5x_7x_9
-\oplus x_1x_3x_5x_7x_9 \oplus x_2x_3x_5x_7x_9 \oplus
-x_0x_2x_3x_5x_7x_9 \oplus x_0x_1x_2x_3x_5x_7x_9 \oplus x_4x_5x_7x_9
-\oplus x_1x_4x_5x_7x_9 \oplus x_0x_1x_4x_5x_7x_9 \oplus
-x_0x_2x_4x_5x_7x_9 \oplus x_1x_2x_4x_5x_7x_9 \oplus x_3x_4x_5x_7x_9
-\oplus x_0x_3x_4x_5x_7x_9 \oplus x_0x_1x_3x_4x_5x_7x_9 \oplus
-x_2x_3x_4x_5x_7x_9 \oplus x_1x_2x_3x_4x_5x_7x_9 \oplus
-x_0x_1x_2x_3x_4x_5x_7x_9 \oplus x_0x_6x_7x_9 \oplus x_1x_6x_7x_9
-\oplus x_2x_6x_7x_9 \oplus x_0x_2x_6x_7x_9 \oplus x_0x_1x_2x_6x_7x_9
-\oplus x_3x_6x_7x_9 \oplus x_1x_3x_6x_7x_9 \oplus x_0x_1x_3x_6x_7x_9
-\oplus x_0x_2x_3x_6x_7x_9 \oplus x_1x_2x_3x_6x_7x_9 \oplus
-x_4x_6x_7x_9 \oplus x_0x_4x_6x_7x_9 \oplus x_0x_1x_4x_6x_7x_9 \oplus
-x_2x_4x_6x_7x_9 \oplus x_1x_2x_4x_6x_7x_9 \oplus x_0x_1x_2x_4x_6x_7x_9
-\oplus x_0x_3x_4x_6x_7x_9 \oplus x_1x_3x_4x_6x_7x_9 \oplus
-x_2x_3x_4x_6x_7x_9 \oplus x_0x_2x_3x_4x_6x_7x_9 \oplus
-x_0x_1x_2x_3x_4x_6x_7x_9 \oplus x_5x_6x_7x_9 \oplus x_1x_5x_6x_7x_9
-\oplus x_0x_1x_5x_6x_7x_9 \oplus x_0x_2x_5x_6x_7x_9 \oplus
-x_1x_2x_5x_6x_7x_9 \oplus x_3x_5x_6x_7x_9 \oplus x_0x_3x_5x_6x_7x_9
-\oplus x_0x_1x_3x_5x_6x_7x_9 \oplus x_2x_3x_5x_6x_7x_9 \oplus
-x_1x_2x_3x_5x_6x_7x_9 \oplus x_0x_1x_2x_3x_5x_6x_7x_9 \oplus
-x_0x_4x_5x_6x_7x_9 \oplus x_1x_4x_5x_6x_7x_9 \oplus x_2x_4x_5x_6x_7x_9
-\oplus x_0x_2x_4x_5x_6x_7x_9 \oplus x_0x_1x_2x_4x_5x_6x_7x_9 \oplus
-x_3x_4x_5x_6x_7x_9 \oplus x_1x_3x_4x_5x_6x_7x_9 \oplus
-x_0x_1x_3x_4x_5x_6x_7x_9 \oplus x_0x_2x_3x_4x_5x_6x_7x_9 \oplus
-x_1x_2x_3x_4x_5x_6x_7x_9 \oplus x_8x_9 \oplus x_0x_8x_9 \oplus
-x_0x_1x_8x_9 \oplus x_2x_8x_9 \oplus x_1x_2x_8x_9 \oplus
-x_0x_1x_2x_8x_9 \oplus x_0x_3x_8x_9 \oplus x_1x_3x_8x_9 \oplus
-x_2x_3x_8x_9 \oplus x_0x_2x_3x_8x_9 \oplus x_0x_1x_2x_3x_8x_9 \oplus
-x_4x_8x_9 \oplus x_1x_4x_8x_9 \oplus x_0x_1x_4x_8x_9 \oplus
-x_0x_2x_4x_8x_9 \oplus x_1x_2x_4x_8x_9 \oplus x_3x_4x_8x_9 \oplus
-x_0x_3x_4x_8x_9 \oplus x_0x_1x_3x_4x_8x_9 \oplus x_2x_3x_4x_8x_9
-\oplus x_1x_2x_3x_4x_8x_9 \oplus x_0x_1x_2x_3x_4x_8x_9 \oplus
-x_0x_5x_8x_9 \oplus x_1x_5x_8x_9 \oplus x_2x_5x_8x_9 \oplus
-x_0x_2x_5x_8x_9 \oplus x_0x_1x_2x_5x_8x_9 \oplus x_3x_5x_8x_9 \oplus
-x_1x_3x_5x_8x_9 \oplus x_0x_1x_3x_5x_8x_9 \oplus x_0x_2x_3x_5x_8x_9
-\oplus x_1x_2x_3x_5x_8x_9 \oplus x_4x_5x_8x_9 \oplus x_0x_4x_5x_8x_9
-\oplus x_0x_1x_4x_5x_8x_9 \oplus x_2x_4x_5x_8x_9 \oplus
-x_1x_2x_4x_5x_8x_9 \oplus x_0x_1x_2x_4x_5x_8x_9 \oplus
-x_0x_3x_4x_5x_8x_9 \oplus x_1x_3x_4x_5x_8x_9 \oplus x_2x_3x_4x_5x_8x_9
-\oplus x_0x_2x_3x_4x_5x_8x_9 \oplus x_0x_1x_2x_3x_4x_5x_8x_9 \oplus
-x_6x_8x_9 \oplus x_1x_6x_8x_9 \oplus x_0x_1x_6x_8x_9 \oplus
-x_0x_2x_6x_8x_9 \oplus x_1x_2x_6x_8x_9 \oplus x_3x_6x_8x_9 \oplus
-x_0x_3x_6x_8x_9 \oplus x_0x_1x_3x_6x_8x_9 \oplus x_2x_3x_6x_8x_9
-\oplus x_1x_2x_3x_6x_8x_9 \oplus x_0x_1x_2x_3x_6x_8x_9 \oplus
-x_0x_4x_6x_8x_9 \oplus x_1x_4x_6x_8x_9 \oplus x_2x_4x_6x_8x_9 \oplus
-x_0x_2x_4x_6x_8x_9 \oplus x_0x_1x_2x_4x_6x_8x_9 \oplus x_3x_4x_6x_8x_9
-\oplus x_1x_3x_4x_6x_8x_9 \oplus x_0x_1x_3x_4x_6x_8x_9 \oplus
-x_0x_2x_3x_4x_6x_8x_9 \oplus x_1x_2x_3x_4x_6x_8x_9 \oplus x_5x_6x_8x_9
-\oplus x_0x_5x_6x_8x_9 \oplus x_0x_1x_5x_6x_8x_9 \oplus
-x_2x_5x_6x_8x_9 \oplus x_1x_2x_5x_6x_8x_9 \oplus x_0x_1x_2x_5x_6x_8x_9
-\oplus x_0x_3x_5x_6x_8x_9 \oplus x_1x_3x_5x_6x_8x_9 \oplus
-x_2x_3x_5x_6x_8x_9 \oplus x_0x_2x_3x_5x_6x_8x_9 \oplus
-x_0x_1x_2x_3x_5x_6x_8x_9 \oplus x_4x_5x_6x_8x_9 \oplus
-x_1x_4x_5x_6x_8x_9 \oplus x_0x_1x_4x_5x_6x_8x_9 \oplus
-x_0x_2x_4x_5x_6x_8x_9 \oplus x_1x_2x_4x_5x_6x_8x_9 \oplus
-x_3x_4x_5x_6x_8x_9 \oplus x_0x_3x_4x_5x_6x_8x_9 \oplus
-x_0x_1x_3x_4x_5x_6x_8x_9 \oplus x_2x_3x_4x_5x_6x_8x_9 \oplus
-x_1x_2x_3x_4x_5x_6x_8x_9 \oplus x_0x_1x_2x_3x_4x_5x_6x_8x_9 \oplus
-x_0x_7x_8x_9 \oplus x_1x_7x_8x_9 \oplus x_2x_7x_8x_9 \oplus
-x_0x_2x_7x_8x_9 \oplus x_0x_1x_2x_7x_8x_9 \oplus x_3x_7x_8x_9 \oplus
-x_1x_3x_7x_8x_9 \oplus x_0x_1x_3x_7x_8x_9 \oplus x_0x_2x_3x_7x_8x_9
-\oplus x_1x_2x_3x_7x_8x_9 \oplus x_4x_7x_8x_9 \oplus x_0x_4x_7x_8x_9
-\oplus x_0x_1x_4x_7x_8x_9 \oplus x_2x_4x_7x_8x_9 \oplus
-x_1x_2x_4x_7x_8x_9 \oplus x_0x_1x_2x_4x_7x_8x_9 \oplus
-x_0x_3x_4x_7x_8x_9 \oplus x_1x_3x_4x_7x_8x_9 \oplus x_2x_3x_4x_7x_8x_9
-\oplus x_0x_2x_3x_4x_7x_8x_9 \oplus x_0x_1x_2x_3x_4x_7x_8x_9 \oplus
-x_5x_7x_8x_9 \oplus x_1x_5x_7x_8x_9 \oplus x_0x_1x_5x_7x_8x_9 \oplus
-x_0x_2x_5x_7x_8x_9 \oplus x_1x_2x_5x_7x_8x_9 \oplus x_3x_5x_7x_8x_9
-\oplus x_0x_3x_5x_7x_8x_9 \oplus x_0x_1x_3x_5x_7x_8x_9 \oplus
-x_2x_3x_5x_7x_8x_9 \oplus x_1x_2x_3x_5x_7x_8x_9 \oplus
-x_0x_1x_2x_3x_5x_7x_8x_9 \oplus x_0x_4x_5x_7x_8x_9 \oplus
-x_1x_4x_5x_7x_8x_9 \oplus x_2x_4x_5x_7x_8x_9 \oplus
-x_0x_2x_4x_5x_7x_8x_9 \oplus x_0x_1x_2x_4x_5x_7x_8x_9 \oplus
-x_3x_4x_5x_7x_8x_9 \oplus x_1x_3x_4x_5x_7x_8x_9 \oplus
-x_0x_1x_3x_4x_5x_7x_8x_9 \oplus x_0x_2x_3x_4x_5x_7x_8x_9 \oplus
-x_1x_2x_3x_4x_5x_7x_8x_9 \oplus x_6x_7x_8x_9 \oplus x_0x_6x_7x_8x_9
-\oplus x_0x_1x_6x_7x_8x_9 \oplus x_2x_6x_7x_8x_9 \oplus
-x_1x_2x_6x_7x_8x_9 \oplus x_0x_1x_2x_6x_7x_8x_9 \oplus
-x_0x_3x_6x_7x_8x_9 \oplus x_1x_3x_6x_7x_8x_9 \oplus x_2x_3x_6x_7x_8x_9
-\oplus x_0x_2x_3x_6x_7x_8x_9 \oplus x_0x_1x_2x_3x_6x_7x_8x_9 \oplus
-x_4x_6x_7x_8x_9 \oplus x_1x_4x_6x_7x_8x_9 \oplus x_0x_1x_4x_6x_7x_8x_9
-\oplus x_0x_2x_4x_6x_7x_8x_9 \oplus x_1x_2x_4x_6x_7x_8x_9 \oplus
-x_3x_4x_6x_7x_8x_9 \oplus x_0x_3x_4x_6x_7x_8x_9 \oplus
-x_0x_1x_3x_4x_6x_7x_8x_9 \oplus x_2x_3x_4x_6x_7x_8x_9 \oplus
-x_1x_2x_3x_4x_6x_7x_8x_9 \oplus x_0x_1x_2x_3x_4x_6x_7x_8x_9 \oplus
-x_0x_5x_6x_7x_8x_9 \oplus x_1x_5x_6x_7x_8x_9 \oplus x_2x_5x_6x_7x_8x_9
-\oplus x_0x_2x_5x_6x_7x_8x_9 \oplus x_0x_1x_2x_5x_6x_7x_8x_9 \oplus
-x_3x_5x_6x_7x_8x_9 \oplus x_1x_3x_5x_6x_7x_8x_9 \oplus
-x_0x_1x_3x_5x_6x_7x_8x_9 \oplus x_0x_2x_3x_5x_6x_7x_8x_9 \oplus
-x_1x_2x_3x_5x_6x_7x_8x_9 \oplus x_4x_5x_6x_7x_8x_9 \oplus
-x_0x_4x_5x_6x_7x_8x_9 \oplus x_0x_1x_4x_5x_6x_7x_8x_9 \oplus
-x_2x_4x_5x_6x_7x_8x_9 \oplus x_1x_2x_4x_5x_6x_7x_8x_9 \oplus
-x_0x_1x_2x_4x_5x_6x_7x_8x_9 \oplus x_0x_3x_4x_5x_6x_7x_8x_9 \oplus
-x_1x_3x_4x_5x_6x_7x_8x_9 \oplus x_2x_3x_4x_5x_6x_7x_8x_9 \oplus
-x_0x_2x_3x_4x_5x_6x_7x_8x_9 \oplus x_0x_1x_2x_3x_4x_5x_6x_7x_8x_9 = 0$
-
-
-\bigskip
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \twocolumngrid
 \bigskip
 \bibliography{cites.bib}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newpage
+
+de-emphasize symbolic execution
+
+emphasize oracles
+
+---------
+
+properties of ONE preimage
+vs
+one preimage in an equivalence class
+
+preimage of 'v' expressed in ANF
+(size could be huge)
+
+property is a query about ANF
+
+decision problems of boolean formulae in ANF
+
+pulse compiler ?? 
+
+---------
+
+oracle Uf(x,y) = (x, f(x) + y) x in uniform superposition y initially
+y0 f(x) + y0 ==> measure to r1, r2, ... rk Observe ($Sigma_x$ where
+$f(x)+y0 = r_i$) is the same irrespective of $r_i$ what kind of
+problems are those?
+
+---------
+
+The polymorphic nature of quantum oracles:
+  abstract code with forall type: takes a package implementing bool,
+  not, and, xor, and evaluates oracle using that package
+  need also high level view of reversible functions and the package
+  implements the primitives using their choice of qudits
+  Pi compiled to qudits?
+  need a version of Pi designed for arbitrary qudits, clock symmetries etc.
+same interface; classical package implementation; symbolic; quantum
+for any choice of package show multiple evaluations
+  normal evaluation forward
+  backward evaluation
+  symbolic forward backward
+  mixed retrodictive
+  algebraic normal form
+  qubit / qutrit
+conjecture:
+  there always exists one efficient representation; i guess
+  assuming uniform superposition on one side and partial measurement on
+  the other end; result of partial measurement must be irrelevant;
+  guaranteeing that oracle is only used to compute global statistics !!!
+
+\bigskip 
+
+  Ata:
+  synthesis algorithm 
+  produce generic circuit regular parameterized by dimension 'd' of qudit
+  always a 'd' that makes Shor efficient
+
+\bigskip 
+
+other: The algebraic normal form  of quantum states  
+preparation
+evolution
+observation
+need retro 
+
+\bigskip 
+---
+background:
+
+ANF of boolean circuiits / formulae well-established
+classical
+connections to SAT
+known complexity results (no 'and' implies efficient solution)
+
+\bigskip 
+---
+quantum oracles:
+
+made of Toffoli gates
+reversible
+some inputs are known booleans
+NEW ==> some outputs are known booleans (resullt of intermediate measurements)
+can start with mixed symbols / known booleans, produce ANF in one
+direction or the other
+Retro important because when input is $\ket{1}$ (or anything
+  other than $\ket{0}$ really, we can't use symbolic eval; but we can
+  in those cases use $\ket{0}$ as a possble future and use symbolic in
+  a retrodictive manner. (Need to work out Deutsch in super detail)
+
+\bigskip 
+---
+complexity:
+Cost model:
+   White-box model: \emph{We} implement $U_f$ and the cost of
+    implementing it and the cost of using it is counted as part of the
+    overall complexity
+   Black-box model: ``Someone'' implements $U_f$ and gives us
+    access to it; the complexity analysis only counts the number of
+    times $U_f$ is used. There are different cases based on what kind of
+    access we are given:
+      Query $U_f$ on a classical input 
+      Query $U_f$ on a quantum superposition
+      Query $U_f$ on a \emph{symbolic formula} (\textbf{NEW!})
+either given the quantum oracle as a circuit
+computing ANF of result in either direction may be exponential
+perhaps given as a black box (but an ANF black box); you give it ANF
+input you get ANF output;; we count how many ANF queries
+
+\bigskip 
+---
+quantum algorithms revisited
+focus on oracle
+Deutsch -- oracle
+Deutsch-Jozsa -- oracle
+Bernstein-Vazirani -- oracle
+Simon -- oracle
+Grover -- oracle
+Shor -- circuit
+
+\bigskip 
+---
+maybe 3 valued logic
+maybe AME
+maybe hidden variables (NEW idea is that hidden variables can be
+influenced by the future); adapt Abramsky \url{https://arxiv.org/pdf/1007.2754.pdf} 
+
+\bigskip 
+---
+Conclusion and related work
+  Gottesman-Knill
+  Van den Nest ??
+  Quantum computing with only the states $\{\ket{0}, \ket{1},
+    \ket{+}\}$  (explicitly without the $\ket{-}$ state) has a local
+    hidden variable model. Is it still faster than classical? Can we
+    write any algorithms in that setting? no need for complex numbers
+    in our examples but possible to deal with them by using two real
+    numbers etc 
+  Kochen-Specker symbolically?
+  Symbolic variables with phases (taint analysis; colors)
+
+  We can simulate many maximally entangled states. But some cannot be
+done with the classical symbolic retrodictive ideas. Boundary of
+quantum power.
+
 \end{document}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
